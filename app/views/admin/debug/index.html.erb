@@ -1,0 +1,62 @@
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "Debug",
+        subtitle: "Trigger errors and jobs to test observability pipeline." %>
+
+  <%# HTTP Exceptions %>
+  <div class="admin-section">
+    <h2 class="text-base font-semibold text-foreground mb-4">HTTP Exceptions</h2>
+    <p class="text-sm text-muted-foreground mb-4">
+      Each link triggers an unhandled exception in a Rails controller action.
+      The request returns 500 and the exception is captured on the active OTel span.
+    </p>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <% [
+        { label: "RuntimeError",  path: admin_debug_runtime_error_path,  description: "raise RuntimeError" },
+        { label: "ZeroDivisionError", path: admin_debug_zero_division_path, description: "1 / 0" },
+        { label: "ArgumentError", path: admin_debug_argument_error_path, description: 'Integer("not_a_number")' },
+        { label: "Nested Error",  path: admin_debug_nested_error_path,   description: "StandardError wrapping RuntimeError as cause" },
+      ].each do |item| %>
+        <div class="admin-card p-4 flex items-center justify-between gap-4">
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-foreground"><%= item[:label] %></p>
+            <p class="text-xs text-muted-foreground font-mono truncate"><%= item[:description] %></p>
+          </div>
+          <%= link_to item[:path],
+                class: "shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-destructive/50 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/5 transition-colors" do %>
+            Raise
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Background Jobs %>
+  <div class="admin-section">
+    <h2 class="text-base font-semibold text-foreground mb-4">Background Jobs</h2>
+    <p class="text-sm text-muted-foreground mb-4">
+      Enqueues <code class="text-xs font-mono bg-muted px-1 py-0.5 rounded">FailingJob</code>
+      which always raises and retries 3 times with a 3s delay.
+      Each attempt creates a separate OTel span on the job.
+    </p>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <% [
+        { label: "RuntimeError",   error_type: "runtime",      description: "raise RuntimeError" },
+        { label: "ArgumentError",  error_type: "argument",     description: "raise ArgumentError" },
+        { label: "ZeroDivisionError", error_type: "zero_division", description: "1 / 0" },
+      ].each do |item| %>
+        <div class="admin-card p-4 flex items-center justify-between gap-4">
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-foreground"><%= item[:label] %></p>
+            <p class="text-xs text-muted-foreground font-mono truncate"><%= item[:description] %></p>
+          </div>
+          <%= button_to admin_debug_enqueue_failing_job_path,
+                params: { error_type: item[:error_type] },
+                class: "shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-destructive/50 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/5 transition-colors" do %>
+            Enqueue
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

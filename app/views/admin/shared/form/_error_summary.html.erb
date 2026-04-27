@@ -1,0 +1,13 @@
+<%# locals: (object:) %>
+<% if object.errors.any? %>
+  <div class="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+    <p class="text-sm font-medium text-destructive mb-2">
+      Please fix the following errors:
+    </p>
+    <ul class="list-disc pl-5 text-sm text-destructive space-y-1">
+      <% object.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>

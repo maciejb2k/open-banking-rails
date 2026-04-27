@@ -1,0 +1,22 @@
+<%# locals: (form:, from_field:, to_field:, label:, hint: nil) %>
+<% from_error = form.object.errors[from_field].first %>
+<% to_error = form.object.errors[to_field].first %>
+<div>
+  <label class="block text-sm font-medium text-foreground mb-1.5"><%= label %></label>
+  <div class="flex items-center gap-2">
+    <%= form.date_field from_field, placeholder: "From",
+          class: "form-input #{from_error ? "border-destructive focus:ring-destructive/20" : ""}" %>
+    <span class="text-muted-foreground text-sm shrink-0">to</span>
+    <%= form.date_field to_field, placeholder: "To",
+          class: "form-input #{to_error ? "border-destructive focus:ring-destructive/20" : ""}" %>
+  </div>
+  <% if from_error %>
+    <p class="mt-1 text-xs text-destructive"><%= from_error %></p>
+  <% end %>
+  <% if to_error %>
+    <p class="mt-1 text-xs text-destructive"><%= to_error %></p>
+  <% end %>
+  <% if !from_error && !to_error && hint %>
+    <p class="mt-1 text-xs text-muted-foreground"><%= hint %></p>
+  <% end %>
+</div>

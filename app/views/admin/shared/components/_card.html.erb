@@ -1,0 +1,12 @@
+<%# locals: (title: nil, subtitle: nil, padding: true) %>
+<div class="admin-section <%= padding ? "" : "p-0 overflow-hidden" %>">
+  <% if title %>
+    <div class="mb-4">
+      <h2 class="text-lg font-semibold text-foreground"><%= title %></h2>
+      <% if subtitle %>
+        <p class="text-sm text-muted-foreground"><%= subtitle %></p>
+      <% end %>
+    </div>
+  <% end %>
+  <%= yield %>
+</div>

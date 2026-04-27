@@ -1,0 +1,18 @@
+<%# locals: (form:, field:, label:, hint: nil, required: false, html: {}) %>
+<% html_attrs = html.dup %>
+<% error = form.object.errors[field].first %>
+<div>
+  <label class="block text-sm font-medium text-foreground mb-1.5">
+    <%= label %>
+    <% if required %><span class="text-destructive ml-0.5">*</span><% end %>
+  </label>
+  <div class="flex items-center gap-3">
+    <%= form.color_field field, class: "h-10 w-14 rounded-lg border cursor-pointer", **html_attrs %>
+    <span class="text-sm text-muted-foreground" data-color-value></span>
+  </div>
+  <% if error %>
+    <p class="mt-1 text-xs text-destructive"><%= error %></p>
+  <% elsif hint %>
+    <p class="mt-1 text-xs text-muted-foreground"><%= hint %></p>
+  <% end %>
+</div>

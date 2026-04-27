@@ -1,0 +1,117 @@
+<div class="space-y-6">
+  <%# Page header %>
+  <div class="flex items-center gap-3">
+    <%= link_to admin_versions_path,
+          class: "rounded-lg p-2 text-muted-foreground hover:bg-card-hover transition-colors" do %>
+      <%= render "admin/shared/icons/arrow_left", classes: "h-5 w-5" %>
+    <% end %>
+    <div>
+      <div class="flex items-center gap-2">
+        <h1 class="text-2xl font-bold text-foreground">Version #<%= @version.id %></h1>
+        <% case @version.event %>
+        <% when "create" %>
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">create</span>
+        <% when "update" %>
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-info/10 px-2.5 py-0.5 text-xs font-medium text-info">update</span>
+        <% when "destroy" %>
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive">destroy</span>
+        <% end %>
+      </div>
+      <p class="text-sm text-muted-foreground mt-0.5">
+        <%= @version.item_type %> #<%= @version.item_id %> &mdash; <%= l(@version.created_at, format: :long) %>
+      </p>
+    </div>
+  </div>
+
+  <%# Metadata %>
+  <div class="admin-section max-w-2xl space-y-4">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
+        <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Resource</p>
+        <p class="text-sm font-medium text-foreground"><%= @version.item_type %></p>
+      </div>
+      <div>
+        <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Item ID</p>
+        <p class="text-sm text-foreground">#<%= @version.item_id %></p>
+      </div>
+      <div>
+        <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Event</p>
+        <p class="text-sm text-foreground"><%= @version.event %></p>
+      </div>
+      <div>
+        <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Changed by</p>
+        <p class="text-sm text-foreground"><%= @version.whodunnit || "—" %></p>
+      </div>
+      <div>
+        <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Timestamp</p>
+        <p class="text-sm text-foreground"><%= l(@version.created_at, format: :long) %></p>
+      </div>
+    </div>
+  </div>
+
+  <%# create / update: changeset (object_changes) %>
+  <% changeset = @version.changeset %>
+  <% if changeset.present? %>
+    <div class="admin-section max-w-2xl space-y-3">
+      <h2 class="text-sm font-semibold text-foreground">
+        <%= @version.event == "create" ? "Created with" : "Changed fields" %>
+      </h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b bg-muted/30">
+              <th class="px-4 py-2 text-left font-medium text-muted-foreground w-40">Attribute</th>
+              <% if @version.event == "update" %>
+                <th class="px-4 py-2 text-left font-medium text-muted-foreground">Before</th>
+              <% end %>
+              <th class="px-4 py-2 text-left font-medium text-muted-foreground">
+                <%= @version.event == "update" ? "After" : "Value" %>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <% changeset.each do |attribute, (before, after)| %>
+              <tr class="border-b last:border-0">
+                <td class="px-4 py-3 font-mono text-xs font-medium text-muted-foreground align-top"><%= attribute %></td>
+                <% if @version.event == "update" %>
+                  <td class="px-4 py-3 align-top">
+                    <% if before.is_a?(Hash) || before.is_a?(Array) %>
+                      <%= render "admin/shared/components/json_viewer", json: before %>
+                    <% else %>
+                      <span class="text-xs font-mono text-destructive/80"><%= before.inspect %></span>
+                    <% end %>
+                  </td>
+                <% end %>
+                <td class="px-4 py-3 align-top">
+                  <% if after.is_a?(Hash) || after.is_a?(Array) %>
+                    <%= render "admin/shared/components/json_viewer", json: after %>
+                  <% else %>
+                    <span class="text-xs font-mono text-success/80"><%= after.inspect %></span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+
+  <%# update: previous object snapshot %>
+  <% if @version.event == "update" && @version.object.present? %>
+    <% prev_obj = @version.object.is_a?(String) ? YAML.unsafe_load(@version.object) : @version.object %>
+    <div class="admin-section max-w-2xl space-y-3">
+      <h2 class="text-sm font-semibold text-foreground">Full previous state</h2>
+      <%= render "admin/shared/components/json_viewer", json: prev_obj %>
+    </div>
+  <% end %>
+
+  <%# destroy: deleted object snapshot %>
+  <% if @version.event == "destroy" && @version.object.present? %>
+    <% deleted_obj = @version.object.is_a?(String) ? YAML.unsafe_load(@version.object) : @version.object %>
+    <div class="admin-section max-w-2xl space-y-3">
+      <h2 class="text-sm font-semibold text-foreground">Deleted object snapshot</h2>
+      <%= render "admin/shared/components/json_viewer", json: deleted_obj %>
+    </div>
+  <% end %>
+</div>

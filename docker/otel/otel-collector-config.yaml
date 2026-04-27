@@ -1,0 +1,104 @@
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1888
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+
+connectors:
+  spanmetrics:
+    namespace: app
+    histogram:
+      explicit:
+        buckets: [2ms, 4ms, 6ms, 8ms, 10ms, 50ms, 100ms, 200ms, 400ms, 800ms, 1s, 2s, 5s, 10s]
+    dimensions:
+      - name: http.route
+      - name: http.status_code
+      - name: http.method
+      - name: db.system
+      - name: messaging.destination
+      - name: messaging.active_job.adapter.name
+      - name: exception.type
+    exemplars:
+      enabled: true
+
+processors:
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+
+  # Generate metrics only from HTTP, SQL and ActiveJob spans.
+  # Excludes noisy Sidekiq/Redis internal spans.
+  filter/spans_for_metrics:
+    error_mode: ignore
+    traces:
+      span:
+        - |
+          instrumentation_scope.name != "OpenTelemetry::Instrumentation::Rack" and
+          instrumentation_scope.name != "OpenTelemetry::Instrumentation::PG" and
+          instrumentation_scope.name != "OpenTelemetry::Instrumentation::ActiveJob"
+
+  # Drop logs below INFO before sending to Loki.
+  # SEVERITY_NUMBER_INFO = 9 (OTel spec).
+  # Application can still emit DEBUG — filtered here, not at the source.
+  filter/loki:
+    error_mode: ignore
+    logs:
+      log_record:
+        - severity_number < SEVERITY_NUMBER_INFO
+
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+    tls:
+      insecure: true
+
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    without_scope_info: true
+    resource_to_telemetry_conversion:
+      enabled: false
+
+  debug:
+    verbosity: detailed
+
+service:
+  extensions: [health_check, pprof, zpages]
+  pipelines:
+    # All traces go to Tempo.
+    traces/tempo:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/tempo, debug]
+
+    # All traces also go to spanmetrics connector to generate Prometheus metrics.
+    # No sampling here — all spans must be counted for accurate metrics.
+    traces/metrics:
+      receivers: [otlp]
+      processors: [filter/spans_for_metrics, batch]
+      exporters: [spanmetrics]
+
+    metrics:
+      receivers: [spanmetrics]
+      processors: [batch]
+      exporters: [prometheus]
+
+    logs:
+      receivers: [otlp]
+      processors: [batch, filter/loki]
+      exporters: [otlphttp/loki, debug]

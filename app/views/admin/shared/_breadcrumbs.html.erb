@@ -1,0 +1,12 @@
+<%# locals: (items: []) %>
+<% items.each_with_index do |item, i| %>
+  <% is_last = i == items.size - 1 %>
+  <span class="flex items-center gap-1">
+    <% if is_last %>
+      <span class="font-medium text-foreground"><%= item[:label] %></span>
+    <% else %>
+      <%= link_to item[:label], item[:path], class: "text-muted-foreground hover:text-foreground transition-colors" %>
+      <%= render "admin/shared/icons/chevron_right", classes: "h-3 w-3 text-muted-foreground/50" %>
+    <% end %>
+  </span>
+<% end %>

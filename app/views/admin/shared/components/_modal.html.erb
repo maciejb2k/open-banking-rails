@@ -1,0 +1,27 @@
+<%# locals: (id:, title:, size: :default) %>
+<%
+  sizes = {
+    sm: "max-w-sm",
+    default: "max-w-lg",
+    lg: "max-w-2xl",
+    xl: "max-w-4xl"
+  }
+  sz = sizes.fetch(size.to_sym, sizes[:default])
+%>
+<div id="<%= id %>"
+     data-controller="modal"
+     class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="fixed inset-0 bg-foreground/50" data-action="click->modal#close"></div>
+  <div class="relative w-full <%= sz %> rounded-xl border bg-card shadow-2xl">
+    <div class="flex items-center justify-between border-b px-6 py-4">
+      <h2 class="text-lg font-semibold text-foreground"><%= title %></h2>
+      <button data-action="click->modal#close"
+              class="rounded-lg p-1 text-muted-foreground hover:bg-card-hover hover:text-foreground transition-colors">
+        <%= render "admin/shared/icons/x", classes: "h-4 w-4" %>
+      </button>
+    </div>
+    <div class="p-6">
+      <%= yield %>
+    </div>
+  </div>
+</div>

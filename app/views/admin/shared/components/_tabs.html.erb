@@ -1,0 +1,22 @@
+<%# locals: (tabs:, current:) %>
+<div data-controller="tabs" data-tabs-current-value="<%= current %>">
+  <nav class="flex border-b">
+    <% tabs.each do |tab| %>
+      <button data-tabs-target="tab"
+              data-tab-id="<%= tab[:id] %>"
+              data-action="click->tabs#switch"
+              class="pb-3 px-4 text-sm font-medium transition-colors border-b-2 <%= tab[:id].to_s == current.to_s ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground" %>">
+        <%= tab[:label] %>
+      </button>
+    <% end %>
+  </nav>
+  <div class="mt-4">
+    <% tabs.each do |tab| %>
+      <div data-tabs-target="panel"
+           data-panel-id="<%= tab[:id] %>"
+           class="<%= tab[:id].to_s == current.to_s ? "" : "hidden" %>">
+        <%= tab[:content] if tab[:content] %>
+      </div>
+    <% end %>
+  </div>
+</div>

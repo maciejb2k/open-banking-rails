@@ -1,0 +1,26 @@
+<%# locals: (form:, field:, label:, options:, placeholder: "Select options...", hint: nil) %>
+<% selected_values = form.object.respond_to?(field) ? Array(form.object.public_send(field)) : [] %>
+<div data-controller="multi-select"
+     data-multi-select-options-value="<%= options.to_json %>"
+     data-multi-select-selected-value="<%= selected_values.to_json %>"
+     data-multi-select-field-name-value="<%= form.field_name(field) %>[]"
+     data-placeholder="<%= placeholder %>">
+  <label class="block text-sm font-medium text-foreground mb-1.5"><%= label %></label>
+  <div class="relative">
+    <div data-multi-select-target="trigger"
+         data-action="click->multi-select#toggle"
+         class="form-input flex items-center justify-between cursor-pointer min-h-[38px]">
+      <div data-multi-select-target="selected" class="flex flex-wrap gap-1">
+        <span class="text-muted-foreground text-sm"><%= placeholder %></span>
+      </div>
+      <%= render "admin/shared/icons/chevron_down", classes: "h-4 w-4 text-muted-foreground shrink-0 ml-2" %>
+    </div>
+    <div data-multi-select-target="dropdown"
+         class="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border bg-card shadow-lg hidden">
+    </div>
+    <div data-multi-select-target="hidden"></div>
+  </div>
+  <% if hint %>
+    <p class="mt-1 text-xs text-muted-foreground"><%= hint %></p>
+  <% end %>
+</div>

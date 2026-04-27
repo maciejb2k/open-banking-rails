@@ -1,0 +1,17 @@
+<%# locals: (label:, options:, hint: nil) %>
+<div>
+  <label class="block text-sm font-medium text-foreground mb-2"><%= label %></label>
+  <div class="space-y-2">
+    <% options.each do |opt| %>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" name="<%= opt[:name] %>" value="<%= opt[:value] %>"
+               <%= "checked" if opt[:checked] %>
+               class="rounded border-input h-4 w-4 text-primary focus:ring-primary/20">
+        <span class="text-sm text-foreground"><%= opt[:label] %></span>
+      </label>
+    <% end %>
+  </div>
+  <% if hint %>
+    <p class="mt-1 text-xs text-muted-foreground"><%= hint %></p>
+  <% end %>
+</div>

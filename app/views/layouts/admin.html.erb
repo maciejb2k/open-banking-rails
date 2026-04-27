@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= content_for(:title).presence || "Admin" %></title>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body>
+    <div class="flex h-screen overflow-hidden bg-background"
+         data-controller="sidebar">
+
+      <%# Mobile overlay %>
+      <div data-sidebar-target="overlay"
+           class="fixed inset-0 z-40 bg-foreground/50 lg:hidden hidden"
+           data-action="click->sidebar#closeMobile"></div>
+
+      <%= render "admin/shared/sidebar" %>
+
+      <%# Main content %>
+      <div class="flex flex-1 flex-col overflow-hidden min-w-0">
+        <%= render "admin/shared/topbar" %>
+        <main class="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6">
+          <div class="mx-auto w-full max-w-[1400px]">
+            <%= render "admin/shared/flash" %>
+            <%= yield %>
+          </div>
+          <%= render "admin/shared/footer" %>
+        </main>
+      </div>
+
+      <%= render "admin/shared/components/command_palette" %>
+    </div>
+  </body>
+</html>

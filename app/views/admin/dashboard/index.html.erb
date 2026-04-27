@@ -1,0 +1,53 @@
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "Dashboard",
+        subtitle: "Open Banking Rails — operational overview." %>
+
+  <%# Placeholder cards until domain models are wired up %>
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <% [
+      { label: "Connected accounts", icon: "users" },
+      { label: "Transactions today", icon: "dollar_sign" },
+      { label: "Active consents", icon: "shield" },
+      { label: "Failed callbacks", icon: "bar_chart_3" }
+    ].each do |card| %>
+      <div class="admin-card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div class="rounded-lg bg-primary/10 p-2">
+            <%= render "admin/shared/icons/#{card[:icon]}", classes: "h-5 w-5 text-primary" %>
+          </div>
+        </div>
+        <p class="text-2xl font-bold text-foreground">—</p>
+        <p class="text-sm text-muted-foreground"><%= card[:label] %></p>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Quick links %>
+  <div class="admin-section">
+    <h2 class="text-base font-semibold text-foreground mb-4">Getting started</h2>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <%= link_to admin_styleguide_path,
+            class: "flex items-center gap-3 rounded-lg border bg-card hover:bg-card-hover px-4 py-3 transition-colors" do %>
+        <div class="rounded-lg bg-primary/10 p-2 shrink-0">
+          <%= render "admin/shared/icons/settings", classes: "h-5 w-5 text-primary" %>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-foreground">Component library</p>
+          <p class="text-xs text-muted-foreground">Browse the styleguide</p>
+        </div>
+      <% end %>
+
+      <%= link_to admin_versions_path,
+            class: "flex items-center gap-3 rounded-lg border bg-card hover:bg-card-hover px-4 py-3 transition-colors" do %>
+        <div class="rounded-lg bg-primary/10 p-2 shrink-0">
+          <%= render "admin/shared/icons/shield", classes: "h-5 w-5 text-primary" %>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-foreground">Audit log</p>
+          <p class="text-xs text-muted-foreground">Review recorded changes</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

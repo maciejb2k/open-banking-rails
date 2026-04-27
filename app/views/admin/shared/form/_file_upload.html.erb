@@ -1,0 +1,18 @@
+<%# locals: (form:, field:, label:, hint: nil, accept: nil) %>
+<div data-controller="file-upload">
+  <label class="block text-sm font-medium text-foreground mb-1.5"><%= label %></label>
+  <div data-file-upload-target="dropzone"
+       data-action="dragover->file-upload#dragOver dragleave->file-upload#dragLeave drop->file-upload#drop"
+       class="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors">
+    <%= render "admin/shared/icons/upload", classes: "mx-auto h-6 w-6 text-muted-foreground mb-2" %>
+    <p class="text-sm text-muted-foreground">
+      <span class="font-medium text-primary cursor-pointer" data-action="click->file-upload#open">Click to upload</span>
+      or drag and drop
+    </p>
+    <p data-file-upload-target="filename" class="text-xs text-muted-foreground/70 mt-1"></p>
+    <%= form.file_field field, accept: accept, class: "hidden", data: {file_upload_target: "input", action: "change->file-upload#fileSelected"} %>
+  </div>
+  <% if hint %>
+    <p class="mt-1 text-xs text-muted-foreground"><%= hint %></p>
+  <% end %>
+</div>

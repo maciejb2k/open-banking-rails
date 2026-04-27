@@ -1,0 +1,16 @@
+<%# locals: (form:, field:, label:, options:, placeholder: "Search...", hint: nil, required: false) %>
+<% error = form.object.errors[field].first %>
+<%= render "admin/shared/form/form_group", label: label, hint: hint, error: error, required: required do %>
+  <div class="relative" data-controller="searchable-select"
+       data-searchable-select-options-value="<%= options.to_json %>">
+    <input type="text"
+           data-searchable-select-target="search"
+           data-action="input->searchable-select#filter focus->searchable-select#open"
+           placeholder="<%= placeholder %>"
+           class="form-input <%= error ? "border-destructive focus:ring-destructive/20" : "" %>">
+    <div data-searchable-select-target="dropdown"
+         class="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border bg-card shadow-lg hidden">
+    </div>
+    <%= form.hidden_field field, data: {searchable_select_target: "hidden"} %>
+  </div>
+<% end %>

@@ -1,0 +1,31 @@
+<% if flash[:notice] || flash[:alert] || flash[:warning] %>
+  <div class="mb-6 space-y-2" data-controller="dismissible">
+    <% if flash[:notice] %>
+      <div class="flex items-center justify-between gap-3 rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
+           data-dismissible-target="toast">
+        <p><%= flash[:notice] %></p>
+        <button data-action="click->dismissible#dismiss" class="text-success/70 hover:text-success transition-colors">
+          <%= render "admin/shared/icons/x", classes: "h-4 w-4" %>
+        </button>
+      </div>
+    <% end %>
+    <% if flash[:alert] %>
+      <div class="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+           data-dismissible-target="toast">
+        <p><%= flash[:alert] %></p>
+        <button data-action="click->dismissible#dismiss" class="text-destructive/70 hover:text-destructive transition-colors">
+          <%= render "admin/shared/icons/x", classes: "h-4 w-4" %>
+        </button>
+      </div>
+    <% end %>
+    <% if flash[:warning] %>
+      <div class="flex items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning"
+           data-dismissible-target="toast">
+        <p><%= flash[:warning] %></p>
+        <button data-action="click->dismissible#dismiss" class="text-warning/70 hover:text-warning transition-colors">
+          <%= render "admin/shared/icons/x", classes: "h-4 w-4" %>
+        </button>
+      </div>
+    <% end %>
+  </div>
+<% end %>

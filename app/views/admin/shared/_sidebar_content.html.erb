@@ -1,0 +1,58 @@
+<%# locals: (nav_sections:) %>
+<div class="flex h-full flex-col">
+  <%# Logo %>
+  <div class="flex h-16 items-center border-b border-sidebar-border px-4 group-[.w-16]:px-1.5 group-[.w-16]:justify-center">
+    <div class="flex items-center gap-3">
+      <div class="h-9 w-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+        <%= render "admin/shared/icons/dollar_sign", classes: "h-5 w-5" %>
+      </div>
+      <span class="text-base font-bold text-sidebar-foreground sidebar-label leading-tight">Open Banking<br><span class="text-xs font-normal text-sidebar-muted">Admin Console</span></span>
+    </div>
+  </div>
+
+  <%# Navigation %>
+  <nav class="flex-1 overflow-y-auto p-3 space-y-6">
+    <% nav_sections.each do |section| %>
+      <div>
+        <h3 class="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-muted sidebar-label">
+          <%= section[:title] %>
+        </h3>
+        <ul class="space-y-0.5">
+          <% section[:items].each do |item| %>
+            <%= render "admin/shared/sidebar_item", item: item %>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+  </nav>
+
+  <%# Collapse toggle — desktop only %>
+  <div class="hidden lg:block border-t border-sidebar-border p-3">
+    <button data-action="click->sidebar#toggleCollapse"
+            class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/50 transition-colors">
+      <span data-sidebar-target="collapseIconExpanded">
+        <%= render "admin/shared/icons/panel_left_close", classes: "h-4 w-4" %>
+      </span>
+      <span data-sidebar-target="collapseIconCollapsed" class="hidden">
+        <%= render "admin/shared/icons/panel_left", classes: "h-4 w-4" %>
+      </span>
+      <span class="sidebar-label">Collapse</span>
+    </button>
+  </div>
+
+  <%# User %>
+  <div class="border-t border-sidebar-border p-3">
+    <div class="flex items-center gap-3 rounded-lg px-3 py-2 group-[.w-16]:px-0 group-[.w-16]:justify-center">
+      <div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+        <%= current_admin.initials %>
+      </div>
+      <div class="flex-1 min-w-0 sidebar-label">
+        <p class="text-sm font-medium text-sidebar-foreground truncate"><%= current_admin.name %></p>
+        <p class="text-xs text-sidebar-muted truncate"><%= current_admin.email %></p>
+      </div>
+      <button class="text-sidebar-muted hover:text-sidebar-foreground transition-colors sidebar-label">
+        <%= render "admin/shared/icons/log_out", classes: "h-4 w-4" %>
+      </button>
+    </div>
+  </div>
+</div>

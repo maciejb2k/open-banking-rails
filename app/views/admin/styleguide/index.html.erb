@@ -1,0 +1,646 @@
+<div class="space-y-10">
+  <%= render "admin/shared/components/page_header",
+        title: "Styleguide",
+        subtitle: "Component library — all building blocks in one place." %>
+
+  <%# ── BADGES ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Badges</h2>
+    <div class="flex flex-wrap gap-2">
+      <%= render "admin/shared/components/badge", text: "Default", variant: :default %>
+      <%= render "admin/shared/components/badge", text: "Success", variant: :success %>
+      <%= render "admin/shared/components/badge", text: "Destructive", variant: :destructive %>
+      <%= render "admin/shared/components/badge", text: "Warning", variant: :warning %>
+      <%= render "admin/shared/components/badge", text: "Info", variant: :info %>
+      <%= render "admin/shared/components/badge", text: "Muted", variant: :muted %>
+    </div>
+  </section>
+
+  <%# ── BUTTONS ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Buttons</h2>
+    <div class="flex flex-wrap gap-2">
+      <%= render "admin/shared/components/button", label: "Primary", variant: :default %>
+      <%= render "admin/shared/components/button", label: "Outline", variant: :outline %>
+      <%= render "admin/shared/components/button", label: "Destructive", variant: :destructive %>
+      <%= render "admin/shared/components/button", label: "Ghost", variant: :ghost %>
+      <%= render "admin/shared/components/button", label: "With Icon", variant: :default, icon: "plus" %>
+      <%= render "admin/shared/components/button", label: "Small", variant: :outline, size: :sm %>
+      <%= render "admin/shared/components/button", label: "Large", variant: :default, size: :lg %>
+      <%= render "admin/shared/components/button", label: "As Link", variant: :outline, href: "#" %>
+    </div>
+  </section>
+
+  <%# ── PAGE HEADER ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Page Header</h2>
+    <div class="space-y-4">
+      <%= render "admin/shared/components/page_header", title: "Title only" %>
+      <%= render "admin/shared/components/page_header",
+            title: "With subtitle",
+            subtitle: "A short description of this page." %>
+      <%= render "admin/shared/components/page_header",
+            title: "With actions",
+            subtitle: "Includes action buttons on the right.",
+            actions: capture {
+              concat render("admin/shared/components/button", label: "Export", variant: :outline, icon: "download")
+              concat render("admin/shared/components/button", label: "Add New", variant: :default, icon: "plus")
+            } %>
+    </div>
+  </section>
+
+  <%# ── STAT CARDS ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Stat Cards</h2>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <%= render "admin/shared/components/stat_card", label: "Total Users", value: "1,248", change: 12.5, trend: :up, icon: "users" %>
+      <%= render "admin/shared/components/stat_card", label: "Revenue", value: "$48,290", change: 8.2, trend: :up, icon: "dollar_sign" %>
+      <%= render "admin/shared/components/stat_card", label: "Orders", value: "356", change: 3.1, trend: :down, icon: "shopping_cart" %>
+      <%= render "admin/shared/components/stat_card", label: "Conversion", value: "3.24%", change: 1.8, trend: :up, icon: "bar_chart_3" %>
+    </div>
+  </section>
+
+  <%# ── CARDS ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Cards</h2>
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <%= render "admin/shared/components/card", title: "Card with title", subtitle: "Optional subtitle" do %>
+        <p class="text-sm text-muted-foreground">Card body content goes here.</p>
+      <% end %>
+      <%= render "admin/shared/components/card", padding: false do %>
+        <div class="p-4 border-b">
+          <p class="text-sm font-medium">Card without padding</p>
+        </div>
+        <div class="p-4">
+          <p class="text-sm text-muted-foreground">Used for tables and custom layouts.</p>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <%# ── EMPTY STATE ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Empty State</h2>
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div class="admin-section">
+        <%= render "admin/shared/components/empty_state",
+              title: "No users found",
+              description: "Try adjusting your filters or add your first user.",
+              action_label: "Add User",
+              action_path: "#",
+              icon: "users" %>
+      </div>
+      <div class="admin-section">
+        <%= render "admin/shared/components/empty_state",
+              title: "No results",
+              description: "Nothing matches the current filters.",
+              icon: "search" %>
+      </div>
+    </div>
+  </section>
+
+  <%# ── TABS ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Tabs</h2>
+    <div class="admin-section">
+      <%= render "admin/shared/components/tabs",
+            current: "details",
+            tabs: [
+              {id: "details", label: "Details", content: capture { concat content_tag(:p, "Details panel content.", class: "text-sm text-muted-foreground") }},
+              {id: "activity", label: "Activity", content: capture { concat content_tag(:p, "Activity panel content.", class: "text-sm text-muted-foreground") }},
+              {id: "settings", label: "Settings", content: capture { concat content_tag(:p, "Settings panel content.", class: "text-sm text-muted-foreground") }}
+            ] %>
+    </div>
+  </section>
+
+  <%# ── FLASH / ALERTS ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Flash / Alerts</h2>
+    <div class="flex items-center justify-between gap-3 rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
+      User was saved successfully.
+    </div>
+    <div class="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      Something went wrong. Please try again.
+    </div>
+    <div class="flex items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+      Your session expires in 5 minutes.
+    </div>
+  </section>
+
+  <%# ── TOAST ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Toast</h2>
+    <p class="text-sm text-muted-foreground">Auto-dismisses after 4 seconds. Slides in from the right.</p>
+    <div class="max-w-sm space-y-2">
+      <%= render "admin/shared/components/toast", message: "Changes saved successfully.", type: :success %>
+      <%= render "admin/shared/components/toast", message: "Failed to delete record.", type: :error %>
+      <%= render "admin/shared/components/toast", message: "Session expiring soon.", type: :warning %>
+      <%= render "admin/shared/components/toast", message: "New version available.", type: :default %>
+    </div>
+  </section>
+
+  <%# ── SKELETONS ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Skeletons</h2>
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <%= render "admin/shared/components/skeleton", type: :card %>
+      <%= render "admin/shared/components/skeleton", type: :card %>
+      <%= render "admin/shared/components/skeleton", type: :card %>
+    </div>
+    <%= render "admin/shared/components/skeleton", type: :table %>
+  </section>
+
+  <%# ── MODAL ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Modal</h2>
+    <div class="flex flex-wrap gap-2">
+      <button type="button"
+              onclick="document.getElementById('demo-modal-sm').classList.remove('hidden')"
+              class="rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-card-hover transition-colors">
+        Small
+      </button>
+      <button type="button"
+              onclick="document.getElementById('demo-modal-default').classList.remove('hidden')"
+              class="rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-card-hover transition-colors">
+        Default
+      </button>
+      <button type="button"
+              onclick="document.getElementById('demo-modal-lg').classList.remove('hidden')"
+              class="rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-card-hover transition-colors">
+        Large
+      </button>
+      <button type="button"
+              onclick="document.getElementById('demo-modal-xl').classList.remove('hidden')"
+              class="rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-card-hover transition-colors">
+        Extra Large
+      </button>
+    </div>
+    <%= render "admin/shared/components/modal", id: "demo-modal-sm", title: "Small Modal", size: :sm do %>
+      <p class="text-sm text-muted-foreground">A compact modal for short confirmations or simple prompts.</p>
+    <% end %>
+    <%= render "admin/shared/components/modal", id: "demo-modal-default", title: "Default Modal" do %>
+      <p class="text-sm text-muted-foreground">Default size modal. Good for forms and longer content.</p>
+    <% end %>
+    <%= render "admin/shared/components/modal", id: "demo-modal-lg", title: "Large Modal", size: :lg do %>
+      <p class="text-sm text-muted-foreground">Large modal for complex forms or rich content areas.</p>
+    <% end %>
+    <%= render "admin/shared/components/modal", id: "demo-modal-xl", title: "Extra Large Modal", size: :xl do %>
+      <p class="text-sm text-muted-foreground">Extra large modal for data-heavy content or side-by-side layouts.</p>
+    <% end %>
+  </section>
+
+  <%# ── FILTER PANEL ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Filter Panel</h2>
+    <p class="text-sm text-muted-foreground">
+      Slide-out panel triggered by the Filters button. Wrap the index content in
+      <code class="bg-muted px-1 rounded text-xs">data-controller="filter-panel"</code>.
+      The panel must live inside the filter <code class="bg-muted px-1 rounded text-xs">form_with</code> block —
+      the Apply button submits the enclosing form. Clear navigates to the base path.
+    </p>
+    <div data-controller="filter-panel">
+      <%= form_with url: "#", method: :get, data: {turbo: false} do |f| %>
+        <%# Visible bar — quick search + trigger %>
+        <div class="flex items-center gap-3">
+          <div class="relative flex-1 max-w-md">
+            <%= render "admin/shared/icons/search", classes: "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" %>
+            <input type="text" placeholder="Quick search..." class="w-full rounded-lg border bg-card pl-9 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+          </div>
+          <button type="button" data-action="filter-panel#open"
+                  class="inline-flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-card-hover transition-colors border-primary/40 text-primary">
+            <%= render "admin/shared/icons/sliders_horizontal", classes: "h-4 w-4" %>
+            Filters
+            <span class="inline-flex items-center justify-center rounded-full bg-primary px-1.5 min-w-5 h-5 text-xs font-bold text-primary-foreground">1</span>
+          </button>
+        </div>
+
+        <%# Active chip example %>
+        <div class="flex flex-wrap items-center gap-2 mt-3">
+          <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            Status: Active
+            <button type="button" class="ml-0.5 hover:text-primary/70 transition-colors">
+              <%= render "admin/shared/icons/x", classes: "h-3 w-3" %>
+            </button>
+          </span>
+          <span class="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">Clear all</span>
+        </div>
+
+        <%# The slide-out panel %>
+        <%= render "admin/shared/components/filter_panel", clear_url: "#", active_count: 1 do %>
+          <div class="space-y-1.5">
+            <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
+            <select class="w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+              <option value="">All statuses</option>
+              <option value="active" selected>Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Event</label>
+            <select class="w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+              <option value="">All events</option>
+              <option value="create">Create</option>
+              <option value="update">Update</option>
+              <option value="destroy">Destroy</option>
+            </select>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+
+  <%# ── SORTABLE TABLE HEADERS ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Sortable Table Headers</h2>
+    <p class="text-sm text-muted-foreground">
+      Use <code class="bg-muted px-1 rounded text-xs">sort_link "Label", "column"</code> inside <code class="bg-muted px-1 rounded text-xs">&lt;th&gt;</code>.
+      Reads sort state from <code class="bg-muted px-1 rounded text-xs">@q</code> (Ransack object set in controller).
+      Active column: <code class="bg-muted px-1 rounded text-xs">text-primary font-medium</code> + directional arrow.
+      Inactive columns: faded <code class="bg-muted px-1 rounded text-xs">arrow_up_down</code>.
+      Sort param: <code class="bg-muted px-1 rounded text-xs">?q[s]=name+asc</code>.
+    </p>
+    <div class="admin-section p-0 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b bg-muted/30">
+              <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "ID", "id" %></th>
+              <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "Name", "name" %></th>
+              <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "Created", "created_at" %></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% [["1", "Acme Bank", "14 Mar 2026"], ["2", "Globex Bank", "1 Jan 2026"], ["3", "Initech Bank", "5 Feb 2026"]].each do |id, name, date| %>
+              <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                <td class="px-4 py-3 text-muted-foreground"><%= id %></td>
+                <td class="px-4 py-3 font-medium text-foreground"><%= name %></td>
+                <td class="px-4 py-3 text-muted-foreground"><%= date %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <%# ── DATA TABLE ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Data Table</h2>
+    <div class="admin-section p-0 overflow-hidden">
+      <%= render "admin/shared/components/data_table",
+            columns: [
+              {label: "Name", sortable: true},
+              {label: "Status"},
+              {label: "Created", sortable: true},
+              {label: "Actions"}
+            ] do %>
+        <% [
+          {name: "Acme Bank", status: :success, status_label: "Active", created: "14 Mar 2026"},
+          {name: "Globex Bank", status: :muted, status_label: "Inactive", created: "1 Jan 2026"},
+          {name: "Initech Bank", status: :muted, status_label: "Inactive", created: "5 Feb 2026"}
+        ].each do |row| %>
+          <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+            <td class="px-4 py-3 font-medium text-foreground"><%= row[:name] %></td>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/badge", text: row[:status_label], variant: row[:status] %>
+            </td>
+            <td class="px-4 py-3 text-muted-foreground"><%= row[:created] %></td>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/dropdown_menu", items: [
+                {label: "View", icon: "eye", href: "#"},
+                {label: "Edit", icon: "pencil", href: "#"},
+                {divider: true},
+                {label: "Delete", icon: "trash_2", variant: :destructive, href: "#", method: :delete}
+              ] %>
+            </td>
+          </tr>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+
+  <%# ── BULK ACTION BAR ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Bulk Action Bar</h2>
+    <%= render "admin/shared/components/bulk_action_bar",
+          count: 3,
+          actions: [
+            {label: "Export", icon: "download", href: "#"},
+            {label: "Delete", icon: "trash_2", variant: :destructive, href: "#"}
+          ] %>
+  </section>
+
+  <%# ── PAGINATION ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Pagination</h2>
+    <p class="text-sm text-muted-foreground">Rendered by Pagy. Requires <code class="bg-muted px-1 rounded text-xs">@pagy</code> from <code class="bg-muted px-1 rounded text-xs">pagy(:offset, scope)</code> in the controller.</p>
+    <div class="admin-section">
+      <div class="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <span class="text-sm text-muted-foreground">Showing 21–40 of 100 results</span>
+        <nav class="flex items-center gap-1 text-sm">
+          <a href="#" class="rounded-lg border bg-card px-3 py-1.5 text-muted-foreground hover:bg-card-hover transition-colors">‹</a>
+          <a href="#" class="rounded-lg px-3 py-1.5 text-muted-foreground hover:bg-card-hover transition-colors">1</a>
+          <span class="rounded-lg bg-primary px-3 py-1.5 text-primary-foreground">2</span>
+          <a href="#" class="rounded-lg px-3 py-1.5 text-muted-foreground hover:bg-card-hover transition-colors">3</a>
+          <span class="px-2 text-muted-foreground">…</span>
+          <a href="#" class="rounded-lg px-3 py-1.5 text-muted-foreground hover:bg-card-hover transition-colors">5</a>
+          <a href="#" class="rounded-lg border bg-card px-3 py-1.5 text-muted-foreground hover:bg-card-hover transition-colors">›</a>
+        </nav>
+      </div>
+    </div>
+  </section>
+
+  <%# ── DROPDOWN MENU ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Dropdown Menu</h2>
+    <div class="admin-section">
+      <div class="flex gap-4">
+        <%= render "admin/shared/components/dropdown_menu", items: [
+          {label: "View", icon: "eye", href: "#"},
+          {label: "Edit", icon: "pencil", href: "#"},
+          {divider: true},
+          {label: "Delete", icon: "trash_2", variant: :destructive}
+        ] %>
+      </div>
+    </div>
+  </section>
+
+  <%# ── JSON VIEWER ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">JSON Viewer</h2>
+    <div class="admin-section space-y-3">
+      <p class="text-sm text-muted-foreground">Drag the bottom-right handle to resize vertically.</p>
+      <%= render "admin/shared/components/json_viewer", json: {type: "PaymentInitiation", payment: {amount: "1500.00", currency: "EUR", debtor: {iban: "DE89370400440532013000"}, creditor: {iban: "FR1420041010050500013M02606"}, status: "PENDING"}} %>
+    </div>
+  </section>
+
+  <%# ── CONFIRM DIALOG ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Confirm Dialog</h2>
+    <div class="flex gap-2">
+      <button type="button"
+              onclick="document.getElementById('demo-confirm-destructive').classList.remove('hidden')"
+              class="rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors">
+        Destructive
+      </button>
+      <button type="button"
+              onclick="document.getElementById('demo-confirm-default').classList.remove('hidden')"
+              class="rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-card-hover transition-colors">
+        Default
+      </button>
+    </div>
+    <%= render "admin/shared/components/confirm_dialog",
+          id: "demo-confirm-destructive",
+          title: "Delete User",
+          message: "Are you sure? This action cannot be undone.",
+          confirm_label: "Delete",
+          variant: :destructive %>
+    <%= render "admin/shared/components/confirm_dialog",
+          id: "demo-confirm-default",
+          title: "Publish Changes",
+          message: "This will make the changes visible to all users.",
+          confirm_label: "Publish" %>
+  </section>
+
+  <%# ── ICONS ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Icons</h2>
+    <div class="flex flex-wrap gap-4 text-muted-foreground">
+      <% %w[layout_dashboard users package shopping_cart bar_chart_3 settings bell shield mail chevron_down chevron_right panel_left_close panel_left log_out menu search trending_up trending_down dollar_sign clock plus arrow_left eye eye_off upload pencil trash_2 more_horizontal arrow_up arrow_down arrow_up_down columns_3 x download tag file_text map sliders_horizontal].each do |name| %>
+        <div class="flex flex-col items-center gap-1 text-xs text-center w-16">
+          <%= render "admin/shared/icons/#{name}", classes: "h-5 w-5" %>
+          <span class="text-muted-foreground/70 text-[10px] leading-tight"><%= name %></span>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <%# ── FORM COMPONENTS ── %>
+  <%
+    demo = StyleguideDemo.new
+    demo_with_errors = StyleguideDemo.new
+    demo_with_errors.errors.add(:name, "can't be blank")
+  %>
+  <section class="space-y-5">
+    <h2 class="text-lg font-semibold border-b pb-2">Form Components</h2>
+
+    <%# Text inputs %>
+    <%= form_with model: demo, url: "#", html: {onsubmit: "return false"} do |f| %>
+      <div class="admin-section max-w-2xl space-y-5">
+        <h3 class="font-medium">Text Fields</h3>
+
+        <%= render "admin/shared/form/text_field",
+              form: f, field: :name,
+              label: "Text Field",
+              placeholder: "Enter value..." %>
+
+        <%= render "admin/shared/form/text_field",
+              form: f, field: :name,
+              label: "With hint",
+              placeholder: "Enter value...",
+              hint: "This is a helpful hint below the input." %>
+
+        <%= render "admin/shared/form/text_field",
+              form: f, field: :name,
+              label: "Required",
+              placeholder: "Enter value...",
+              required: true %>
+
+        <%= render "admin/shared/form/email_field",
+              form: f, field: :name,
+              label: "Email Field",
+              placeholder: "user@example.com" %>
+
+        <%= render "admin/shared/form/password_field",
+              form: f, field: :name,
+              label: "Password Field" %>
+
+        <%= render "admin/shared/form/number_field",
+              form: f, field: :name,
+              label: "Number Field",
+              placeholder: "0", min: 0, max: 100,
+              hint: "Enter a value between 0 and 100." %>
+      </div>
+
+      <div class="admin-section max-w-2xl space-y-5 mt-5">
+        <h3 class="font-medium">Multi-line & Select</h3>
+
+        <%= render "admin/shared/form/textarea",
+              form: f, field: :name,
+              label: "Textarea",
+              placeholder: "Enter description...",
+              rows: 4 %>
+
+        <%= render "admin/shared/form/select",
+              form: f, field: :name,
+              label: "Select",
+              include_blank: "Choose...",
+              options: [["Active", "active"], ["Inactive", "inactive"], ["Archived", "archived"]] %>
+      </div>
+
+      <div class="admin-section max-w-2xl space-y-5 mt-5">
+        <h3 class="font-medium">Date & Time</h3>
+
+        <%= render "admin/shared/form/date_picker",
+              form: f, field: :name,
+              label: "Date Picker" %>
+
+        <%= render "admin/shared/form/time_picker",
+              form: f, field: :name,
+              label: "Time Picker" %>
+
+        <%= render "admin/shared/form/date_range_picker",
+              form: f, from_field: :name, to_field: :name,
+              label: "Date Range Picker" %>
+      </div>
+
+      <div class="admin-section max-w-2xl space-y-5 mt-5">
+        <h3 class="font-medium">Toggles & Selections</h3>
+
+        <%= render "admin/shared/form/checkbox",
+              form: f, field: :name,
+              label: "Checkbox",
+              hint: "Optional hint text." %>
+
+        <%= render "admin/shared/form/toggle",
+              form: f, field: :name,
+              label: "Toggle Switch",
+              on_label: "Active", off_label: "Inactive" %>
+
+        <%= render "admin/shared/form/radio_group",
+              form: f, field: :name,
+              label: "Radio Group",
+              options: [
+                {value: "a", label: "Option A"},
+                {value: "b", label: "Option B"},
+                {value: "c", label: "Option C"}
+              ] %>
+
+        <%= render "admin/shared/form/checkbox_group",
+              label: "Checkbox Group",
+              hint: "Select all that apply.",
+              options: [
+                {name: "demo_perms[]", value: "read", label: "Read", checked: true},
+                {name: "demo_perms[]", value: "write", label: "Write"},
+                {name: "demo_perms[]", value: "delete", label: "Delete"}
+              ] %>
+
+        <%= render "admin/shared/form/color_picker",
+              form: f, field: :name,
+              label: "Color Picker" %>
+      </div>
+
+      <div class="admin-section max-w-2xl space-y-5 mt-5">
+        <h3 class="font-medium">Advanced Inputs</h3>
+
+        <%= render "admin/shared/form/tags_input",
+              form: f, field: :name,
+              label: "Tags Input",
+              placeholder: "Add a tag and press Enter",
+              hint: "Press Enter to add each tag." %>
+
+        <%= render "admin/shared/form/searchable_select",
+              form: f, field: :name,
+              label: "Searchable Select",
+              placeholder: "Search...",
+              options: [
+                {value: "1", label: "Acme Bank"},
+                {value: "2", label: "Globex Bank"},
+                {value: "3", label: "Initech Bank"}
+              ] %>
+
+        <%= render "admin/shared/form/multi_select",
+              form: f, field: :name,
+              label: "Multi Select",
+              placeholder: "Select options...",
+              options: [
+                {value: "1", label: "Option A"},
+                {value: "2", label: "Option B"},
+                {value: "3", label: "Option C"}
+              ] %>
+
+        <%= render "admin/shared/form/file_upload",
+              form: f, field: :name,
+              label: "File Upload",
+              accept: "image/*,.pdf",
+              hint: "Accepts images and PDFs." %>
+
+      </div>
+
+      <div class="admin-section max-w-2xl space-y-5 mt-5">
+        <h3 class="font-medium">Ajax Select</h3>
+        <p class="text-sm text-muted-foreground -mt-2">
+          Association picker — searches records via AJAX endpoint, stores ID in hidden field.
+          Requires a <code class="bg-muted px-1 rounded text-xs">search</code> collection action returning <code class="bg-muted px-1 rounded text-xs">[{id:, label:}]</code>.
+            See docs for full usage. Wpisz cokolwiek — używa lokalnych danych zamiast endpointu.
+        </p>
+        <%= render "admin/shared/form/ajax_select",
+              form: f, field: :name,
+              label: "Counterparty",
+              search_url: "#",
+              hint: "Search by name (min. 3 characters).",
+              min_chars: 3,
+              mock_options: [
+                {id: 1, label: "Acme Bank"},
+                {id: 2, label: "Globex Bank"},
+                {id: 3, label: "Initech Bank"}
+              ] %>
+      </div>
+
+      <div class="admin-section max-w-2xl space-y-5 mt-5">
+        <h3 class="font-medium">Form Group (custom content)</h3>
+        <p class="text-sm text-muted-foreground -mt-2">Use when no standard component fits — wraps any content in the standard label/hint/error shell.</p>
+
+        <%= render "admin/shared/form/form_group",
+              label: "Custom Field", required: true,
+              hint: "Arbitrary content inside the standard label/hint/error wrapper." do %>
+          <div class="flex gap-2">
+            <input type="text" placeholder="Part one" class="form-input flex-1">
+            <input type="text" placeholder="Part two" class="form-input flex-1">
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%# Error state — separate form with errors %>
+    <%= form_with model: demo_with_errors, url: "#", html: {onsubmit: "return false"} do |f| %>
+      <div class="admin-section max-w-2xl space-y-5 mt-5">
+        <h3 class="font-medium">Error State</h3>
+
+        <%= render "admin/shared/form/error_summary", object: demo_with_errors %>
+
+        <%= render "admin/shared/form/text_field",
+              form: f, field: :name,
+              label: "Name (with error)",
+              placeholder: "Enter name...",
+              required: true %>
+      </div>
+    <% end %>
+  </section>
+
+  <%# ── FORM FOOTER ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Form Footer</h2>
+    <p class="text-sm text-muted-foreground">
+      Sticky action bar used in new/edit views. Lives inside a <code class="bg-muted px-1 rounded text-xs">max-w-2xl</code> form wrapper so it stays aligned with the form content.
+      Add secondary actions (e.g. Delete) before Cancel in the same flex row.
+    </p>
+    <div class="max-w-2xl">
+      <div class="bg-card/95 backdrop-blur-sm border rounded-xl px-4 py-3">
+        <div class="flex items-center justify-end gap-2">
+          <a href="#" class="rounded-lg border px-4 py-2 text-sm font-medium text-foreground hover:bg-card-hover transition-colors">Cancel</a>
+          <button type="button" class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer">Save Changes</button>
+        </div>
+      </div>
+    </div>
+    <div class="max-w-2xl">
+      <div class="bg-card/95 backdrop-blur-sm border rounded-xl px-4 py-3">
+        <div class="flex items-center justify-end gap-2">
+          <button type="button" class="rounded-lg border border-destructive/30 px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/5 transition-colors">Delete</button>
+          <a href="#" class="rounded-lg border px-4 py-2 text-sm font-medium text-foreground hover:bg-card-hover transition-colors">Cancel</a>
+          <button type="button" class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,44 @@
+<%# locals: (clear_url:, active_count: 0) %>
+<%# Slide-out filter panel. Must live inside the filter form (data-controller="filter-panel" on outer div). %>
+
+<%# Overlay %>
+<div data-filter-panel-target="overlay"
+     class="hidden fixed inset-0 z-40 bg-foreground/20 lg:bg-foreground/10"
+     data-action="click->filter-panel#close"></div>
+
+<%# Panel %>
+<div data-filter-panel-target="panel"
+     class="fixed right-0 top-0 z-50 flex h-full w-full max-w-sm flex-col border-l bg-card shadow-2xl translate-x-full transition-transform duration-300 ease-out">
+
+  <%# Header %>
+  <div class="flex items-center justify-between border-b px-5 py-4">
+    <div class="flex items-center gap-2">
+      <%= render "admin/shared/icons/sliders_horizontal", classes: "h-4 w-4 text-muted-foreground" %>
+      <h2 class="text-sm font-semibold text-foreground">Filters</h2>
+      <% if active_count > 0 %>
+        <span class="inline-flex items-center justify-center rounded-full bg-primary px-1.5 min-w-5 h-5 text-xs font-bold text-primary-foreground">
+          <%= active_count %>
+        </span>
+      <% end %>
+    </div>
+    <button type="button" data-action="filter-panel#close"
+            class="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors">
+      <%= render "admin/shared/icons/x", classes: "h-4 w-4" %>
+    </button>
+  </div>
+
+  <%# Filter fields (scrollable) %>
+  <div class="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+    <%= yield %>
+  </div>
+
+  <%# Footer %>
+  <div class="border-t px-5 py-4 flex items-center gap-3">
+    <%= link_to "Clear all", clear_url,
+          class: "flex-1 rounded-lg border bg-card px-4 py-2 text-sm font-medium text-center hover:bg-card-hover transition-colors #{"opacity-40 pointer-events-none" if active_count == 0}" %>
+    <button type="submit"
+            class="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer">
+      Apply
+    </button>
+  </div>
+</div>

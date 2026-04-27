@@ -1,0 +1,13 @@
+<%# locals: (text:, variant: :default) %>
+<%
+  variant_classes = {
+    default: "bg-primary/10 text-primary",
+    success: "bg-success/10 text-success",
+    destructive: "bg-destructive/10 text-destructive",
+    warning: "bg-warning/10 text-warning",
+    info: "bg-info/10 text-info",
+    muted: "bg-muted text-muted-foreground"
+  }
+  cls = variant_classes.fetch(variant.to_sym, variant_classes[:default])
+%>
+<span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium <%= cls %>"><%= text %></span>

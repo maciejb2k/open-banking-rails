@@ -1,0 +1,12 @@
+<%# locals: (form:, field:, label:, placeholder: nil, hint: nil, required: false, html: {}) %>
+<% error = form.object.errors[field].first %>
+<% html_attrs = html.dup %>
+<% extra_class = html_attrs.delete(:class) %>
+<%= render "admin/shared/form/form_group", label: label, hint: hint, error: error, required: required do %>
+  <div class="relative">
+    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
+    <%= form.email_field field, placeholder: placeholder || "user@example.com",
+          class: "form-input pl-9 #{error ? "border-destructive focus:ring-destructive/20" : ""} #{extra_class}".strip,
+          **html_attrs %>
+  </div>
+<% end %>

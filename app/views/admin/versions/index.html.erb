@@ -1,0 +1,134 @@
+<div class="space-y-6" data-controller="filter-panel">
+  <%# Page header %>
+  <div>
+    <h1 class="text-2xl font-bold text-foreground">Audit Log</h1>
+    <p class="text-sm text-muted-foreground">Read-only history of all changes across the system.</p>
+  </div>
+
+  <% active_filter_count = [
+       params.dig(:q, :event_eq).present?,
+       params.dig(:q, :item_type_eq).present?
+     ].count(true) %>
+
+  <%= search_form_for @q, url: admin_versions_path, html: {data: {turbo: false}} do |f| %>
+    <%= f.hidden_field :s, value: params.dig(:q, :s) %>
+
+    <%# Filters trigger %>
+    <div class="flex items-center gap-3">
+      <button type="button" data-action="filter-panel#open"
+              class="inline-flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-card-hover transition-colors <%= "border-primary/40 text-primary" if active_filter_count > 0 %>">
+        <%= render "admin/shared/icons/sliders_horizontal", classes: "h-4 w-4" %>
+        Filters
+        <% if active_filter_count > 0 %>
+          <span class="inline-flex items-center justify-center rounded-full bg-primary px-1.5 min-w-5 h-5 text-xs font-bold text-primary-foreground">
+            <%= active_filter_count %>
+          </span>
+        <% end %>
+      </button>
+    </div>
+
+    <%# Active filter chips %>
+    <% if active_filter_count > 0 %>
+      <div class="flex flex-wrap items-center gap-2 mt-3">
+        <% if params.dig(:q, :event_eq).present? %>
+          <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            Event: <%= params.dig(:q, :event_eq).capitalize %>
+            <%= link_to admin_versions_path(q: params[:q].to_unsafe_h.except("event_eq")),
+                  class: "ml-0.5 hover:text-primary/70 transition-colors" do %>
+              <%= render "admin/shared/icons/x", classes: "h-3 w-3" %>
+            <% end %>
+          </span>
+        <% end %>
+        <% if params.dig(:q, :item_type_eq).present? %>
+          <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            Resource: <%= params.dig(:q, :item_type_eq) %>
+            <%= link_to admin_versions_path(q: params[:q].to_unsafe_h.except("item_type_eq")),
+                  class: "ml-0.5 hover:text-primary/70 transition-colors" do %>
+              <%= render "admin/shared/icons/x", classes: "h-3 w-3" %>
+            <% end %>
+          </span>
+        <% end %>
+        <%= link_to "Clear all", admin_versions_path,
+              class: "text-xs text-muted-foreground hover:text-foreground transition-colors" %>
+      </div>
+    <% end %>
+
+    <%# Slide-out filter panel %>
+    <%= render "admin/shared/components/filter_panel",
+          clear_url: admin_versions_path,
+          active_count: active_filter_count do %>
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Event</label>
+        <%= f.select :event_eq,
+              [["All events", ""], ["Create", "create"], ["Update", "update"], ["Destroy", "destroy"]],
+              {selected: params.dig(:q, :event_eq)},
+              class: "w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" %>
+      </div>
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Resource</label>
+        <%= f.select :item_type_eq,
+              [["All resources", ""], *PaperTrail::Version.distinct.pluck(:item_type).sort.map { |t| [t, t] }],
+              {selected: params.dig(:q, :item_type_eq)},
+              class: "w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <%# Table %>
+  <div class="admin-section p-0 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b bg-muted/30">
+            <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "ID", "id" %></th>
+            <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "Event", "event" %></th>
+            <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "Resource", "item_type" %></th>
+            <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "Item ID", "item_id" %></th>
+            <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "By", "whodunnit" %></th>
+            <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "At", "created_at" %></th>
+            <th class="w-12 px-4 py-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if @collection.empty? %>
+            <tr>
+              <td colspan="7">
+                <%= render "admin/shared/components/empty_state",
+                      title: "No versions found",
+                      description: "No changes have been recorded yet.",
+                      icon: "shield" %>
+              </td>
+            </tr>
+          <% else %>
+            <% @collection.each do |version| %>
+              <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                <td class="px-4 py-3 text-muted-foreground"><%= version.id %></td>
+                <td class="px-4 py-3">
+                  <% case version.event %>
+                  <% when "create" %>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">create</span>
+                  <% when "update" %>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-info/10 px-2.5 py-0.5 text-xs font-medium text-info">update</span>
+                  <% when "destroy" %>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive">destroy</span>
+                  <% end %>
+                </td>
+                <td class="px-4 py-3 font-medium text-foreground"><%= version.item_type %></td>
+                <td class="px-4 py-3 text-muted-foreground">#<%= version.item_id %></td>
+                <td class="px-4 py-3 text-muted-foreground"><%= version.whodunnit || "—" %></td>
+                <td class="px-4 py-3 text-muted-foreground"><%= l(version.created_at, format: :short) %></td>
+                <td class="px-4 py-3">
+                  <%= render "admin/shared/components/dropdown_menu", items: [
+                    {label: "View", icon: "eye", href: admin_version_path(version)}
+                  ] %>
+                </td>
+              </tr>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <%= render "admin/shared/components/pagination", pagy: @pagy %>
+  </div>
+</div>

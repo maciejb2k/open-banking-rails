@@ -1,0 +1,14 @@
+<%# locals: (form:, field:, label:, hint: nil, html: {}) %>
+<% html_attrs = html.dup %>
+<% error = form.object.errors[field].first %>
+<div>
+  <label class="flex items-center gap-2 cursor-pointer">
+    <%= form.check_box field, {class: "rounded border-input h-4 w-4 text-primary focus:ring-primary/20", **html_attrs} %>
+    <span class="text-sm font-medium text-foreground"><%= label %></span>
+  </label>
+  <% if error %>
+    <p class="mt-1 text-xs text-destructive"><%= error %></p>
+  <% elsif hint %>
+    <p class="mt-1 text-xs text-muted-foreground"><%= hint %></p>
+  <% end %>
+</div>

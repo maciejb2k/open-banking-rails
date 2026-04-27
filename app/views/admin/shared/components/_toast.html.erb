@@ -1,0 +1,19 @@
+<%# locals: (message:, type: :default) %>
+<%
+  type_classes = {
+    default: "border-border bg-card text-foreground",
+    success: "border-success/30 bg-success/10 text-success",
+    error: "border-destructive/30 bg-destructive/10 text-destructive",
+    warning: "border-warning/30 bg-warning/10 text-warning"
+  }
+  cls = type_classes.fetch(type.to_sym, type_classes[:default])
+%>
+<div class="flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg animate-slide-in-right <%= cls %>"
+     data-controller="dismissible"
+     data-dismissible-timeout-value="4000">
+  <p><%= message %></p>
+  <button data-action="click->dismissible#dismiss"
+          class="opacity-70 hover:opacity-100 transition-opacity">
+    <%= render "admin/shared/icons/x", classes: "h-4 w-4" %>
+  </button>
+</div>

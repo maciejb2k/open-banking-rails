@@ -1,0 +1,3 @@
+<%# Locals: json (Hash/Array/nil) %>
+<% json_string = json.present? ? JSON.pretty_generate(json) : "null" %>
+<pre class="rounded-lg border bg-muted/30 p-4 text-xs font-mono overflow-auto resize-y min-h-24 max-h-[32rem]"><%= json_string %></pre>

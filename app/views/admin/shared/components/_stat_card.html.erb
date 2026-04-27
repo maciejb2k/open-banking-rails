@@ -1,0 +1,20 @@
+<%# locals: (label:, value:, change:, trend:, icon:) %>
+<div class="admin-card p-5">
+  <div class="flex items-center justify-between">
+    <div class="rounded-lg bg-primary/10 p-2">
+      <%= render "admin/shared/icons/#{icon}", classes: "h-5 w-5 text-primary" %>
+    </div>
+    <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium <%= trend == :up ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive" %>">
+      <% if trend == :up %>
+        <%= render "admin/shared/icons/trending_up", classes: "h-3 w-3" %>
+      <% else %>
+        <%= render "admin/shared/icons/trending_down", classes: "h-3 w-3" %>
+      <% end %>
+      <%= change.abs %>%
+    </span>
+  </div>
+  <div class="mt-3">
+    <p class="text-2xl font-bold text-foreground"><%= value %></p>
+    <p class="text-sm text-muted-foreground"><%= label %></p>
+  </div>
+</div>

@@ -1,0 +1,14 @@
+<%# locals: (form:, field:, label:, on_label: "Enabled", off_label: "Disabled", hint: nil) %>
+<div>
+  <label class="block text-sm font-medium text-foreground mb-1.5"><%= label %></label>
+  <label class="relative inline-flex items-center cursor-pointer" data-controller="toggle">
+    <%= form.check_box field, class: "sr-only peer", data: {toggle_target: "field", action: "change->toggle#update"} %>
+    <div class="w-11 h-6 bg-muted-foreground/20 peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-card after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+    <span class="ml-3 text-sm text-muted-foreground" data-toggle-target="label"
+          data-on-label="<%= on_label %>" data-off-label="<%= off_label %>">
+    </span>
+  </label>
+  <% if hint %>
+    <p class="mt-1 text-xs text-muted-foreground"><%= hint %></p>
+  <% end %>
+</div>

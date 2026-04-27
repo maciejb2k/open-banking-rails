@@ -1,0 +1,24 @@
+<%# locals: (columns:, rows: nil) %>
+<div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b bg-muted/30">
+        <% columns.each do |col| %>
+          <th class="px-4 py-3 text-left font-medium text-muted-foreground">
+            <% if col[:sortable] %>
+              <button class="flex items-center gap-1 hover:text-foreground transition-colors">
+                <%= col[:label] %>
+                <%= render "admin/shared/icons/arrow_up_down", classes: "h-3.5 w-3.5 opacity-30" %>
+              </button>
+            <% else %>
+              <%= col[:label] %>
+            <% end %>
+          </th>
+        <% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <%= yield if block_given? %>
+    </tbody>
+  </table>
+</div>

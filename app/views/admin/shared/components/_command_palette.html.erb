@@ -1,0 +1,32 @@
+<div data-controller="command-palette"
+     id="command-palette"
+     class="hidden fixed inset-0 z-50 flex items-start justify-center pt-[20vh]">
+  <div class="fixed inset-0 bg-foreground/50"
+       data-action="click->command-palette#close"></div>
+  <div class="relative w-full max-w-lg rounded-xl border bg-card shadow-2xl">
+    <div class="flex items-center gap-2 border-b px-4 py-3">
+      <%= render "admin/shared/icons/search", classes: "h-4 w-4 text-muted-foreground shrink-0" %>
+      <input data-command-palette-target="input"
+             data-action="input->command-palette#filter keydown->command-palette#navigate"
+             type="text"
+             placeholder="Type a command or search..."
+             class="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground">
+    </div>
+    <div data-command-palette-target="results"
+         class="max-h-64 overflow-y-auto p-2">
+      <% admin_nav_sections.each do |section| %>
+        <div data-command-palette-target="group">
+          <p class="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider"><%= section[:title] %></p>
+          <% section[:items].each do |item| %>
+            <%= link_to item[:path],
+                  data: {command_palette_target: "item"},
+                  class: "flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-card-hover transition-colors" do %>
+              <%= render "admin/shared/icons/#{item[:icon]}", classes: "h-4 w-4 text-muted-foreground" %>
+              <%= item[:name] %>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

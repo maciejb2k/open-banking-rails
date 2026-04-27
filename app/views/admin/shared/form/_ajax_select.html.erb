@@ -1,0 +1,30 @@
+<%# locals: (form:, field:, label:, search_url:, selected_label: nil, hint: nil, required: false, min_chars: 1, sort_by: nil, mock_options: nil) %>
+<%# See docs/admin_styleguide.md — "Ajax Select" section for full usage and endpoint convention. %>
+<% error = form.object.errors[field].first %>
+<%= render "admin/shared/form/form_group", label: label, hint: hint, error: error, required: required do %>
+  <div class="relative"
+       data-controller="ajax-select"
+       data-ajax-select-url-value="<%= search_url %>"
+       data-ajax-select-min-chars-value="<%= min_chars %>"
+       <% if sort_by %>data-ajax-select-sort-by-value="<%= sort_by %>"<% end %>
+       <% if mock_options %>data-ajax-select-mock-options-value="<%= mock_options.to_json %>"<% end %>>
+    <div class="flex gap-2">
+      <input type="text"
+             data-ajax-select-target="input"
+             data-action="input->ajax-select#search"
+             value="<%= selected_label %>"
+             placeholder="Search..."
+             autocomplete="off"
+             class="form-input flex-1 <%= error ? "border-destructive focus:ring-destructive/20" : "" %>">
+      <button type="button"
+              data-action="click->ajax-select#clear"
+              class="rounded-lg border bg-card px-3 text-muted-foreground hover:bg-card-hover transition-colors">
+        <%= render "admin/shared/icons/x", classes: "h-4 w-4" %>
+      </button>
+    </div>
+    <div data-ajax-select-target="dropdown"
+         class="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border bg-card shadow-lg hidden">
+    </div>
+    <%= form.hidden_field field, data: {ajax_select_target: "hidden"} %>
+  </div>
+<% end %>

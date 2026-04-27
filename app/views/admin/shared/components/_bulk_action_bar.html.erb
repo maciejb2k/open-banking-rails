@@ -1,0 +1,18 @@
+<%# locals: (count:, actions:) %>
+<div class="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+  <span class="text-sm font-medium"><%= count %> selected</span>
+  <% actions.each do |action| %>
+    <% if action[:href] %>
+      <%= link_to action[:label], action[:href],
+            class: "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors #{action[:variant] == :destructive ? "border-destructive/30 text-destructive hover:bg-destructive/5" : "bg-card hover:bg-card-hover"}" %>
+    <% else %>
+      <button type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors <%= action[:variant] == :destructive ? "border-destructive/30 text-destructive hover:bg-destructive/5" : "bg-card hover:bg-card-hover" %>">
+        <% if action[:icon] %>
+          <%= render "admin/shared/icons/#{action[:icon]}", classes: "h-3.5 w-3.5" %>
+        <% end %>
+        <%= action[:label] %>
+      </button>
+    <% end %>
+  <% end %>
+</div>

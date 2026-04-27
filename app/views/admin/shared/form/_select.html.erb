@@ -1,0 +1,10 @@
+<%# locals: (form:, field:, label:, options:, include_blank: nil, hint: nil, required: false, html: {}) %>
+<% error = form.object.errors[field].first %>
+<% html_attrs = html.dup %>
+<% extra_class = html_attrs.delete(:class) %>
+<%= render "admin/shared/form/form_group", label: label, hint: hint, error: error, required: required do %>
+  <%= form.select field, options_for_select(options, form.object.send(field)),
+        {include_blank: include_blank},
+        class: "form-input #{error ? "border-destructive focus:ring-destructive/20" : ""} #{extra_class}".strip,
+        **html_attrs %>
+<% end %>

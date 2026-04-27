@@ -1,0 +1,16 @@
+<%# locals: (label:, hint: nil, error: nil, required: false) %>
+<div>
+  <label class="block text-sm font-medium text-foreground mb-1.5">
+    <%= label %>
+    <% if required %>
+      <span class="text-destructive ml-0.5">*</span>
+    <% end %>
+  </label>
+  <%= yield %>
+  <% if hint && !error %>
+    <p class="mt-1 text-xs text-muted-foreground"><%= hint %></p>
+  <% end %>
+  <% if error %>
+    <p class="mt-1 text-xs text-destructive"><%= error %></p>
+  <% end %>
+</div>

@@ -1,0 +1,39 @@
+<header class="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-card px-4 lg:px-6">
+  <%# Mobile menu button %>
+  <button data-action="click->sidebar#openMobile"
+          class="lg:hidden text-muted-foreground hover:text-foreground transition-colors">
+    <%= render "admin/shared/icons/menu", classes: "h-5 w-5" %>
+  </button>
+
+  <%# Breadcrumbs %>
+  <nav class="flex items-center gap-1 text-sm">
+    <%= render "admin/shared/breadcrumbs", items: breadcrumb_items %>
+  </nav>
+
+  <%# Right side %>
+  <div class="ml-auto flex items-center gap-2">
+    <%# Search / command palette %>
+    <button data-action="click->command-palette#open"
+            class="hidden sm:flex items-center gap-2 rounded-lg border bg-card px-3 py-1.5 text-sm text-muted-foreground hover:bg-card-hover transition-colors">
+      <%= render "admin/shared/icons/search", classes: "h-4 w-4" %>
+      <span>Search...</span>
+      <kbd class="ml-2 rounded border bg-muted px-1.5 py-0.5 text-xs font-mono">⌘K</kbd>
+    </button>
+
+    <%# Notifications %>
+    <button class="relative rounded-lg p-2 text-muted-foreground hover:bg-card-hover hover:text-foreground transition-colors">
+      <%= render "admin/shared/icons/bell", classes: "h-5 w-5" %>
+      <span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-destructive"></span>
+    </button>
+
+    <%# User %>
+    <div class="hidden sm:flex items-center gap-2 ml-2 pl-2 border-l">
+      <div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold">
+        <%= current_admin.initials %>
+      </div>
+      <div class="text-sm">
+        <p class="font-medium"><%= current_admin.name %></p>
+      </div>
+    </div>
+  </div>
+</header>

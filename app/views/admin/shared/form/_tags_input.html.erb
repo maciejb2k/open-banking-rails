@@ -1,0 +1,24 @@
+<%# locals: (form:, field:, label:, placeholder: "Add a tag and press Enter", hint: nil) %>
+<div data-controller="tags-input">
+  <label class="block text-sm font-medium text-foreground mb-1.5"><%= label %></label>
+  <div class="space-y-2">
+    <div class="flex gap-2">
+      <input type="text"
+             data-tags-input-target="input"
+             data-action="keydown->tags-input#onKeydown"
+             placeholder="<%= placeholder %>"
+             class="form-input flex-1">
+      <button type="button"
+              data-action="click->tags-input#add"
+              class="rounded-lg border bg-card px-3 py-2 text-sm hover:bg-card-hover transition-colors shrink-0">
+        <%= render "admin/shared/icons/plus", classes: "h-4 w-4" %>
+      </button>
+    </div>
+    <div data-tags-input-target="tags" class="flex flex-wrap gap-2">
+    </div>
+    <%= form.hidden_field field, data: {tags_input_target: "hidden"} %>
+  </div>
+  <% if hint %>
+    <p class="mt-1 text-xs text-muted-foreground"><%= hint %></p>
+  <% end %>
+</div>

@@ -1,0 +1,37 @@
+<%# locals: (item:, depth: 0) %>
+<li data-controller="sidebar-item" data-sidebar-item-open-value="<%= item[:children].present? ? 'true' : 'false' %>">
+  <% active = nav_item_active?(item[:path]) %>
+  <% has_children = item[:children].present? %>
+
+  <% if has_children %>
+    <button data-action="click->sidebar-item#toggle"
+            class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground <%= "ml-7 text-[13px]" if depth > 0 %>">
+      <% if item[:icon] %>
+        <%= render "admin/shared/icons/#{item[:icon]}", classes: "h-4 w-4 shrink-0" %>
+      <% end %>
+      <span class="truncate sidebar-label"><%= item[:name] %></span>
+      <% if item[:badge] %>
+        <span class="ml-auto mr-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary sidebar-label"><%= item[:badge] %></span>
+      <% end %>
+      <span data-sidebar-item-target="chevron" class="ml-auto sidebar-label transition-transform">
+        <%= render "admin/shared/icons/chevron_down", classes: "h-4 w-4 shrink-0" %>
+      </span>
+    </button>
+    <ul data-sidebar-item-target="submenu" class="mt-1 space-y-0.5">
+      <% item[:children].each do |child| %>
+        <%= render "admin/shared/sidebar_item", item: child, depth: depth + 1 %>
+      <% end %>
+    </ul>
+  <% else %>
+    <%= link_to item[:path],
+          class: "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors #{active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"} #{depth > 0 ? "ml-7 text-[13px]" : ""}" do %>
+      <% if item[:icon] %>
+        <%= render "admin/shared/icons/#{item[:icon]}", classes: "h-4 w-4 shrink-0" %>
+      <% end %>
+      <span class="truncate sidebar-label"><%= item[:name] %></span>
+      <% if item[:badge] %>
+        <span class="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary sidebar-label"><%= item[:badge] %></span>
+      <% end %>
+    <% end %>
+  <% end %>
+</li>
