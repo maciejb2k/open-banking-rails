@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= content_for(:title).presence || "Admin" %></title>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body>
+    <div class="min-h-screen flex flex-col bg-background">
+      <main class="flex flex-1 items-center justify-center px-4 py-10 sm:py-16">
+        <div class="w-full max-w-md">
+          <%# Brand %>
+          <div class="mb-8 flex flex-col items-center gap-3">
+            <div class="h-12 w-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
+              <%= render "admin/shared/icons/dollar_sign", classes: "h-6 w-6" %>
+            </div>
+            <div class="text-center">
+              <p class="text-base font-bold text-foreground leading-tight">Open Banking</p>
+              <p class="text-xs font-normal text-muted-foreground">Admin Console</p>
+            </div>
+          </div>
+
+          <%= render "admin/shared/auth_flash" %>
+
+          <div class="admin-section">
+            <%= yield %>
+          </div>
+
+          <p class="mt-6 text-center text-xs text-muted-foreground">
+            &copy; <%= Date.current.year %> Open Banking Rails
+            &middot;
+            <%= OpenBankingRails::ADMIN_EDITION %> Edition
+            &middot;
+            v<%= OpenBankingRails::ADMIN_VERSION %>
+          </p>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

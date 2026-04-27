@@ -1,0 +1,26 @@
+<% content_for :title, "Reset password" %>
+
+<div class="mb-6">
+  <h1 class="text-xl font-semibold text-foreground">Forgot your password?</h1>
+  <p class="mt-1 text-sm text-muted-foreground">Enter your email address and we'll send you a link to reset your password.</p>
+</div>
+
+<%= form_with model: resource, url: password_path(resource_name), method: :post, html: { class: "space-y-5" } do |f| %>
+  <%= render "admin/shared/form/error_summary", object: resource %>
+
+  <%= render "admin/shared/form/email_field",
+        form: f, field: :email,
+        label: "Email address",
+        placeholder: "you@example.com",
+        required: true,
+        html: { autofocus: true, autocomplete: "email" } %>
+
+  <%= f.submit "Send reset instructions",
+        class: "inline-flex w-full items-center justify-center gap-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 py-2.5 text-sm cursor-pointer" %>
+<% end %>
+
+<div class="mt-6 border-t border-border pt-4 text-center text-sm">
+  <%= link_to "Back to sign in",
+        new_session_path(resource_name),
+        class: "font-medium text-primary hover:text-primary/80 transition-colors" %>
+</div>

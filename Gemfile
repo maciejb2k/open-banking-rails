@@ -12,6 +12,9 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem "bootsnap", require: false
 gem "image_processing", "~> 1.2"
 
+# Authentication
+gem "devise"
+
 # Admin / pagination / search / audit
 gem "pagy", "~> 43.3"
 gem "rack-cors"

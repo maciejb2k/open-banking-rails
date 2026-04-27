@@ -1,0 +1,19 @@
+<% if flash[:notice] || flash[:alert] || flash[:warning] %>
+  <div class="mb-4 space-y-2">
+    <% if flash[:notice] %>
+      <div class="flex items-start gap-3 rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
+        <p><%= flash[:notice] %></p>
+      </div>
+    <% end %>
+    <% if flash[:alert] %>
+      <div class="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <p><%= flash[:alert] %></p>
+      </div>
+    <% end %>
+    <% if flash[:warning] %>
+      <div class="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+        <p><%= flash[:warning] %></p>
+      </div>
+    <% end %>
+  </div>
+<% end %>

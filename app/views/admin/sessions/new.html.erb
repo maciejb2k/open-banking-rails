@@ -1,0 +1,38 @@
+<% content_for :title, "Sign in" %>
+
+<div class="mb-6">
+  <h1 class="text-xl font-semibold text-foreground">Sign in to your account</h1>
+  <p class="mt-1 text-sm text-muted-foreground">Enter your credentials to access the admin panel.</p>
+</div>
+
+<%= form_with model: resource, url: session_path(resource_name), method: :post, html: { class: "space-y-5" } do |f| %>
+  <%= render "admin/shared/form/email_field",
+        form: f, field: :email,
+        label: "Email address",
+        placeholder: "you@example.com",
+        required: true,
+        html: { autofocus: true, autocomplete: "email" } %>
+
+  <%= render "admin/shared/form/password_field",
+        form: f, field: :password,
+        label: "Password",
+        required: true,
+        html: { autocomplete: "current-password" } %>
+
+  <% if devise_mapping.rememberable? %>
+    <div class="flex items-center justify-between">
+      <%= render "admin/shared/form/checkbox",
+            form: f, field: :remember_me,
+            label: "Remember me" %>
+
+      <% if devise_mapping.recoverable? %>
+        <%= link_to "Forgot password?",
+              new_password_path(resource_name),
+              class: "text-sm font-medium text-primary hover:text-primary/80 transition-colors" %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%= f.submit "Sign in",
+        class: "inline-flex w-full items-center justify-center gap-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 py-2.5 text-sm cursor-pointer" %>
+<% end %>

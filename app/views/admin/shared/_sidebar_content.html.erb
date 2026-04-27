@@ -44,15 +44,20 @@
   <div class="border-t border-sidebar-border p-3">
     <div class="flex items-center gap-3 rounded-lg px-3 py-2 group-[.w-16]:px-0 group-[.w-16]:justify-center">
       <div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold shrink-0">
-        <%= current_admin.initials %>
+        <%= current_user.initials %>
       </div>
       <div class="flex-1 min-w-0 sidebar-label">
-        <p class="text-sm font-medium text-sidebar-foreground truncate"><%= current_admin.name %></p>
-        <p class="text-xs text-sidebar-muted truncate"><%= current_admin.email %></p>
+        <p class="text-sm font-medium text-sidebar-foreground truncate"><%= current_user.display_name %></p>
+        <p class="text-xs text-sidebar-muted truncate"><%= current_user.email %></p>
       </div>
-      <button class="text-sidebar-muted hover:text-sidebar-foreground transition-colors sidebar-label">
+      <%= button_to destroy_user_session_path,
+            method: :delete,
+            form: { class: "sidebar-label" },
+            class: "text-sidebar-muted hover:text-sidebar-foreground transition-colors cursor-pointer",
+            title: "Sign out",
+            "aria-label": "Sign out" do %>
         <%= render "admin/shared/icons/log_out", classes: "h-4 w-4" %>
-      </button>
+      <% end %>
     </div>
   </div>
 </div>

@@ -29,10 +29,10 @@
     <%# User %>
     <div class="hidden sm:flex items-center gap-2 ml-2 pl-2 border-l">
       <div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold">
-        <%= current_admin.initials %>
+        <%= current_user.initials %>
       </div>
       <div class="text-sm">
-        <p class="font-medium"><%= current_admin.name %></p>
+        <p class="font-medium"><%= current_user.display_name %></p>
       </div>
     </div>
   </div>
