@@ -118,6 +118,12 @@ GEM
     factory_bot_rails (6.5.1)
       factory_bot (~> 6.5)
       railties (>= 6.1.0)
+    faraday (2.14.1)
+      faraday-net_http (>= 2.0, < 3.5)
+      json
+      logger
+    faraday-net_http (3.4.2)
+      net-http (~> 0.5)
     ffi (1.17.4-aarch64-linux-gnu)
     ffi (1.17.4-aarch64-linux-musl)
     ffi (1.17.4-arm-linux-gnu)
@@ -167,6 +173,8 @@ GEM
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
     json (2.19.4)
+    jwt (2.10.2)
+      base64
     language_server-protocol (3.17.0.5)
     lint_roller (1.1.0)
     logger (1.7.0)
@@ -192,6 +200,8 @@ GEM
       drb (~> 2.0)
       prism (~> 1.5)
     msgpack (1.8.0)
+    net-http (0.9.1)
+      uri (>= 0.11.1)
     net-imap (0.6.4)
       date
       net-protocol
@@ -645,8 +655,10 @@ DEPENDENCIES
   devise
   dotenv-rails
   factory_bot_rails (~> 6.5)
+  faraday (~> 2.9)
   image_processing (~> 1.2)
   importmap-rails
+  jwt (~> 2.8)
   lograge
   opentelemetry-exporter-otlp (~> 0.32.0)
   opentelemetry-exporter-otlp-logs (~> 0.3.0)

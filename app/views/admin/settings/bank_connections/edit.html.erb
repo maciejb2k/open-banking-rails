@@ -1,0 +1,45 @@
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "Edit connection",
+        subtitle: @connection.bank_name.presence || @connection.bank_slug %>
+
+  <%= form_with model: @connection, url: admin_settings_bank_connection_path(@connection), method: :patch, local: true, class: "space-y-6" do |f| %>
+    <% if @connection.errors.any? %>
+      <%= render "admin/shared/form/error_summary", errors: @connection.errors.full_messages %>
+    <% end %>
+
+    <div class="admin-section space-y-4">
+      <h2 class="text-base font-semibold text-foreground">Lifecycle override</h2>
+      <p class="text-sm text-muted-foreground -mt-2">
+        Local fields only — they don't change the consent on the bank side, just
+        the alerts and views in this app. "Refresh from API" will overwrite them
+        with the bank's values.
+      </p>
+
+      <div>
+        <label class="block text-sm font-medium text-foreground mb-1.5">Valid until</label>
+        <%= f.datetime_local_field :valid_until,
+              value: @connection.valid_until&.iso8601,
+              class: "form-input" %>
+        <p class="mt-1 text-xs text-muted-foreground">
+          Bank currently returns: <code><%= @connection.valid_until&.iso8601 %></code>.
+          Shorten manually if you know the bank will force re-SCA earlier (e.g. mBank,
+          where API says 180d but the bank's UI showed 90d during SCA).
+        </p>
+      </div>
+
+      <%= render "admin/shared/form/select",
+            form: f, field: :status, label: "Status",
+            options: BankConnection::STATUSES.map { |s| [ s.humanize, s ] } %>
+    </div>
+
+    <div class="flex items-center justify-end gap-3">
+      <%= render "admin/shared/components/button",
+            label: "Cancel",
+            href: admin_settings_bank_connection_path(@connection),
+            variant: :outline %>
+      <%= f.submit "Save changes",
+            class: "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 text-sm" %>
+    </div>
+  <% end %>
+</div>

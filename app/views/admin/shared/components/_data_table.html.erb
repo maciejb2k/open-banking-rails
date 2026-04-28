@@ -1,11 +1,17 @@
 <%# locals: (columns:, rows: nil) %>
+<%# col may declare sortable as: %>
+<%#   "field"  → renders sort_link helper (real Ransack sorting) %>
+<%#   true     → arrow icon only (decorative, legacy) %>
+<%#   omitted  → plain header %>
 <div class="overflow-x-auto">
   <table class="w-full text-sm">
     <thead>
       <tr class="border-b bg-muted/30">
         <% columns.each do |col| %>
           <th class="px-4 py-3 text-left font-medium text-muted-foreground">
-            <% if col[:sortable] %>
+            <% if col[:sortable].is_a?(String) || col[:sortable].is_a?(Symbol) %>
+              <%= sort_link col[:label], col[:sortable] %>
+            <% elsif col[:sortable] %>
               <button class="flex items-center gap-1 hover:text-foreground transition-colors">
                 <%= col[:label] %>
                 <%= render "admin/shared/icons/arrow_up_down", classes: "h-3.5 w-3.5 opacity-30" %>

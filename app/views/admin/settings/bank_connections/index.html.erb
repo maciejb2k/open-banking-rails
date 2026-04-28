@@ -1,0 +1,71 @@
+<% add_button = capture do %>
+  <%= render "admin/shared/components/button",
+        label: "Add bank",
+        href: new_admin_settings_bank_connection_path,
+        icon: "plus" %>
+<% end %>
+
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "Bank Connections",
+        subtitle: "Authorized sessions per bank. Each connection has its own validity period — keep them refreshed before they expire.",
+        actions: add_button %>
+
+  <% if @collection.empty? %>
+    <%= render "admin/shared/components/empty_state",
+          title: "No bank connections yet",
+          description: "Click below to authorize a bank — you'll log in on the bank's site and approve the consent.",
+          action_label: "Add bank",
+          action_path: new_admin_settings_bank_connection_path,
+          icon: "package" %>
+  <% else %>
+    <div class="admin-section p-0 overflow-hidden">
+      <%= render "admin/shared/components/data_table",
+            columns: [
+              { label: "Bank", sortable: "bank_name" },
+              { label: "Credential" },
+              { label: "PSU type", sortable: "psu_type" },
+              { label: "Valid until", sortable: "valid_until" },
+              { label: "Status", sortable: "status" },
+              { label: "" }
+            ] do %>
+        <% @collection.each do |bc| %>
+          <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+            <td class="px-4 py-3">
+              <%= link_to (bc.bank_name.presence || bc.bank_slug), admin_settings_bank_connection_path(bc),
+                    class: "font-medium text-foreground hover:text-primary" %>
+              <span class="text-xs text-muted-foreground ml-1"><%= bc.bank_country %></span>
+            </td>
+            <td class="px-4 py-3 text-muted-foreground"><%= bc.tpp_credential.name %></td>
+            <td class="px-4 py-3 text-muted-foreground"><%= bc.psu_type %></td>
+            <td class="px-4 py-3">
+              <% if bc.valid_until %>
+                <span class="<%= "text-destructive" if bc.expired? %><%= " text-warning" if !bc.expired? && bc.expiring_soon? %>">
+                  <%= bc.valid_until.to_date %>
+                  <span class="text-muted-foreground text-xs">
+                    (<%= bc.days_until_expiry %>d)
+                  </span>
+                </span>
+              <% else %>
+                <span class="text-muted-foreground/50">—</span>
+              <% end %>
+            </td>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/badge",
+                    text: bc.status,
+                    variant: bc.status_tone %>
+            </td>
+            <td class="px-4 py-3 text-right">
+              <%= link_to "View", admin_settings_bank_connection_path(bc),
+                    class: "text-sm text-primary hover:underline" %>
+            </td>
+          </tr>
+        <% end %>
+      <% end %>
+    </div>
+
+    <% if @pagy.pages > 1 %>
+      <%= render "admin/shared/components/pagination", pagy: @pagy %>
+    <% end %>
+  <% end %>
+</div>

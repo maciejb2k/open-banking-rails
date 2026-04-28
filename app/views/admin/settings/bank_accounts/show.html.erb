@@ -1,0 +1,125 @@
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: @account.display_name,
+        subtitle: "Bank account — #{@account.iban || @account.uid}" %>
+
+  <div class="flex items-center gap-3">
+    <%= render "admin/shared/components/badge",
+          text: @account.status,
+          variant: { "active" => :success, "inactive" => :muted, "revoked" => :destructive }.fetch(@account.status, :muted) %>
+    <% if @account.cash_account_type %>
+      <%= render "admin/shared/components/badge", text: @account.cash_account_type, variant: :default %>
+    <% end %>
+    <% if @account.usage %>
+      <%= render "admin/shared/components/badge", text: @account.usage, variant: :muted %>
+    <% end %>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2">
+    <%= render "admin/shared/components/button",
+          label: "Refresh details",
+          href: refresh_details_admin_settings_bank_account_path(@account),
+          method: :post,
+          variant: :outline %>
+    <%= render "admin/shared/components/button",
+          label: "Refresh balances",
+          href: refresh_balances_admin_settings_bank_account_path(@account),
+          method: :post %>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <%= render "admin/shared/components/card", title: "Identity" do %>
+      <%= render "admin/shared/components/definition_list", pairs: [
+        { label: "IBAN", value: @account.iban, mono: true, wrap: true },
+        { label: "BBAN", value: @account.bban, mono: true },
+        { label: "EB UID", value: @account.uid, mono: true, wrap: true },
+        { label: "Currency", value: @account.currency },
+        { label: "Holder", value: @account.name },
+        { label: "Product", value: @account.product },
+        { label: "Description", value: @account.details },
+        { label: "Type", value: @account.cash_account_type, mono: true },
+        { label: "Usage", value: @account.usage }
+      ] %>
+
+      <% if @account.alternate_ibans.any? %>
+        <div class="mt-4 pt-4 border-t">
+          <p class="text-xs text-muted-foreground mb-2">Alternate IBAN-y (np. Revolut PL+LT):</p>
+          <ul class="space-y-1">
+            <% @account.alternate_ibans.each do |alt| %>
+              <li class="font-mono text-xs break-all"><%= alt %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    <% end %>
+
+    <%= render "admin/shared/components/card", title: "Servicer & connection" do %>
+      <%= render "admin/shared/components/definition_list", pairs: [
+        { label: "BIC", value: @account.bic, mono: true },
+        { label: "Bank", value: @account.account_servicer&.dig("name") },
+        { label: "Credential",
+          value: link_to(@account.tpp_credential.name, admin_settings_tpp_credential_path(@account.tpp_credential), class: "text-primary hover:underline") },
+        { label: "Active connection",
+          value: (
+            if @account.current_bank_connection
+              link_to(@account.current_bank_connection.bank_name.presence || @account.current_bank_connection.bank_slug,
+                      admin_settings_bank_connection_path(@account.current_bank_connection),
+                      class: "text-primary hover:underline")
+            end
+          ) },
+        { label: "Connection valid until",
+          value: @account.current_bank_connection&.valid_until&.to_date&.to_s,
+          hint: (
+            if (days = @account.current_bank_connection&.days_until_expiry)
+              "(#{days}d)"
+            end
+          ) }
+      ] %>
+    <% end %>
+  </div>
+
+  <% balances = @account.parsed_balances %>
+  <% if balances.any? %>
+    <%= render "admin/shared/components/card", title: "Balances (synced #{time_ago_in_words(@account.balances_synced_at)} ago)" do %>
+      <%= render "admin/shared/components/data_table",
+            columns: [
+              { label: "Type" },
+              { label: "Name" },
+              { label: "Amount" },
+              { label: "Reference date" }
+            ] do %>
+        <% balances.each do |b| %>
+          <tr class="border-b last:border-0">
+            <td class="px-4 py-3 font-mono text-xs"><%= b["balance_type"] %></td>
+            <td class="px-4 py-3 text-muted-foreground text-xs"><%= b["name"] %></td>
+            <td class="px-4 py-3 font-mono">
+              <%= number_with_precision(b.dig("balance_amount", "amount").to_f, precision: 2) %>
+              <span class="text-muted-foreground text-xs"><%= b.dig("balance_amount", "currency") %></span>
+            </td>
+            <td class="px-4 py-3 text-muted-foreground text-xs">
+              <%= b["reference_date"] || b["last_change_date_time"] || "—" %>
+            </td>
+          </tr>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <%= render "admin/shared/components/card", title: "Sync state" do %>
+    <%= render "admin/shared/components/definition_list", pairs: [
+      { label: "Details fetched", value: @account.details_fetched_at&.to_s },
+      { label: "Balances synced", value: @account.balances_synced_at&.to_s },
+      { label: "Transactions synced", value: @account.transactions_synced_at&.to_s }
+    ] %>
+  <% end %>
+
+  <%= render "admin/shared/components/card", title: "Raw account resource (from POST /sessions)" do %>
+    <%= render "admin/shared/components/json_viewer", json: @account.raw_account_resource %>
+  <% end %>
+
+  <% if @account.raw_details.present? %>
+    <%= render "admin/shared/components/card", title: "Raw account details (from GET /accounts/{uid}/details)" do %>
+      <%= render "admin/shared/components/json_viewer", json: @account.raw_details %>
+    <% end %>
+  <% end %>
+</div>

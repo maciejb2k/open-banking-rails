@@ -1,0 +1,84 @@
+<% reauth_mode = @replaces_connection_id.present? %>
+
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: (reauth_mode ? "Re-authorize bank connection" : "Add bank connection"),
+        subtitle: (reauth_mode ?
+          "Renewing existing consent. Old connection will be marked as replaced when the new one is approved." :
+          "Pick a bank and authorize via the bank's login (SCA). You'll be redirected back when done.") %>
+
+  <% if reauth_mode %>
+    <div class="rounded-lg border border-info/30 bg-info/5 p-3">
+      <p class="text-xs text-info">
+        Re-auth flow: linked accounts (matched by EB UID) will be re-attached to the new connection automatically.
+        The old connection stays as a historical record (status: replaced).
+      </p>
+    </div>
+  <% end %>
+
+  <%= form_with model: @form, url: admin_settings_bank_connections_path, method: :post, local: true, class: "space-y-6" do |f| %>
+    <% if reauth_mode %>
+      <%= hidden_field_tag :replaces_connection_id, @replaces_connection_id %>
+    <% end %>
+    <div class="admin-section space-y-4">
+      <h2 class="text-base font-semibold text-foreground">Bank</h2>
+
+      <%= render "admin/shared/form/select",
+            form: f, field: :aspsp_name, label: "Bank (ASPSP)", required: true,
+            options: @aspsps.map { |a| [
+              "#{a["name"]} #{a["beta"] ? "(beta)" : ""}".strip,
+              a["name"]
+            ] },
+            include_blank: "Choose a bank" %>
+
+      <%# Hidden — defaults to PL since we list PL ASPSPs %>
+      <%= f.hidden_field :aspsp_country, value: "PL" %>
+
+      <%= render "admin/shared/form/select",
+            form: f, field: :psu_type, label: "PSU type", required: true,
+            options: [ [ "Personal", "personal" ], [ "Business", "business" ] ] %>
+
+      <%= render "admin/shared/form/number_field",
+            form: f, field: :valid_days, label: "Consent validity (days)",
+            placeholder: "180",
+            hint: "Default 180 days. Some banks cap this lower (mBank → 90)." %>
+    </div>
+
+    <div class="admin-section space-y-4">
+      <h2 class="text-base font-semibold text-foreground">Pre-flight check</h2>
+
+      <% redirect_in_eb = Array(@primary_credential.metadata["redirect_urls"]) %>
+      <% mismatch = redirect_in_eb.any? && !redirect_in_eb.include?(@primary_credential.redirect_url) %>
+
+      <%= render "admin/shared/components/definition_list", pairs: [
+        { label: "Credential", value: @primary_credential.name },
+        { label: "Redirect URL (sent to bank)",
+          value: @primary_credential.redirect_url,
+          mono: true, wrap: true,
+          hint: (mismatch ? "⚠ not in EB allowed list — bank will reject" : nil) },
+        { label: "EB-registered URLs",
+          value: redirect_in_eb.join(", ").presence,
+          mono: true, wrap: true }
+      ] %>
+
+      <% if mismatch %>
+        <div class="rounded-lg border border-warning/30 bg-warning/5 p-3">
+          <p class="text-xs text-warning">
+            ⚠ Your local <code>redirect_url</code> doesn't match anything in EB's allowed list.
+            <%= link_to "Edit credential", edit_admin_settings_tpp_credential_path(@primary_credential), class: "underline" %>
+            and set it to: <code><%= redirect_in_eb.first %></code>
+          </p>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="flex items-center justify-end gap-3">
+      <%= render "admin/shared/components/button",
+            label: "Cancel",
+            href: admin_settings_bank_connections_path,
+            variant: :outline %>
+      <%= f.submit "Continue to bank →",
+            class: "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 text-sm" %>
+    </div>
+  <% end %>
+</div>

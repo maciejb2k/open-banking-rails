@@ -1,0 +1,19 @@
+<%# locals: (pairs:) — array of hashes: {label:, value:, mono: false, wrap: false, hint: nil} %>
+<%# Nils skipped, blank values render as muted dash. See styleguide for examples. %>
+<dl class="space-y-2 text-sm">
+  <% Array(pairs).compact.each do |pair| %>
+    <div class="flex justify-between gap-4">
+      <dt class="text-muted-foreground shrink-0"><%= pair[:label] %></dt>
+      <dd class="text-right<%= " font-mono" if pair[:mono] %><%= " break-all" if pair[:wrap] %>">
+        <% if pair[:value].present? %>
+          <%= pair[:value] %>
+          <% if pair[:hint].present? %>
+            <span class="text-xs text-muted-foreground ml-1"><%= pair[:hint] %></span>
+          <% end %>
+        <% else %>
+          <span class="text-muted-foreground/50">—</span>
+        <% end %>
+      </dd>
+    </div>
+  <% end %>
+</dl>

@@ -1,0 +1,68 @@
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "Bank Accounts",
+        subtitle: "Per-IBAN entities. Each account has a stable Enable Banking UID and persists across session renewals." %>
+
+  <% if @collection.empty? %>
+    <%= render "admin/shared/components/empty_state",
+          title: "No bank accounts yet",
+          description: "Bank accounts are populated automatically when you authorize a bank connection.",
+          action_label: "Manage connections",
+          action_path: admin_settings_bank_connections_path,
+          icon: "dollar_sign" %>
+  <% else %>
+    <div class="admin-section p-0 overflow-hidden">
+      <%= render "admin/shared/components/data_table",
+            columns: [
+              { label: "IBAN", sortable: "iban" },
+              { label: "Holder / Product" },
+              { label: "Currency", sortable: "currency" },
+              { label: "Type", sortable: "cash_account_type" },
+              { label: "Connection" },
+              { label: "Status", sortable: "status" },
+              { label: "" }
+            ] do %>
+        <% @collection.each do |account| %>
+          <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+            <td class="px-4 py-3">
+              <%= link_to admin_settings_bank_account_path(account),
+                    class: "font-mono text-xs text-foreground hover:text-primary" do %>
+                <%= account.iban || account.uid %>
+              <% end %>
+            </td>
+            <td class="px-4 py-3 text-muted-foreground">
+              <%= account.display_name %>
+              <% if account.alternate_ibans.any? %>
+                <span class="text-xs text-muted-foreground/70">+<%= account.alternate_ibans.size %></span>
+              <% end %>
+            </td>
+            <td class="px-4 py-3 text-muted-foreground"><%= account.currency %></td>
+            <td class="px-4 py-3 text-muted-foreground"><%= account.cash_account_type %></td>
+            <td class="px-4 py-3">
+              <% if account.current_bank_connection %>
+                <%= link_to account.current_bank_connection.bank_name.presence || account.current_bank_connection.bank_slug,
+                      admin_settings_bank_connection_path(account.current_bank_connection),
+                      class: "text-sm text-primary hover:underline" %>
+              <% else %>
+                <span class="text-muted-foreground/50">—</span>
+              <% end %>
+            </td>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/badge",
+                    text: account.status,
+                    variant: { "active" => :success, "inactive" => :muted, "revoked" => :destructive }.fetch(account.status, :muted) %>
+            </td>
+            <td class="px-4 py-3 text-right">
+              <%= link_to "View", admin_settings_bank_account_path(account),
+                    class: "text-sm text-primary hover:underline" %>
+            </td>
+          </tr>
+        <% end %>
+      <% end %>
+    </div>
+
+    <% if @pagy.pages > 1 %>
+      <%= render "admin/shared/components/pagination", pagy: @pagy %>
+    <% end %>
+  <% end %>
+</div>

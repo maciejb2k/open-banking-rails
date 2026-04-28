@@ -1,0 +1,103 @@
+<% raw_payload = (JSON.parse(@connection.raw_session_payload) rescue nil) if @connection.raw_session_payload.present? %>
+
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: (@connection.bank_name.presence || @connection.bank_slug),
+        subtitle: "Bank connection — credential: #{@connection.tpp_credential.name}" %>
+
+  <div class="flex items-center gap-3">
+    <%= render "admin/shared/components/badge",
+          text: @connection.status,
+          variant: @connection.status_tone %>
+    <% if @connection.expired? %>
+      <%= render "admin/shared/components/badge", text: "expired", variant: :destructive %>
+    <% elsif @connection.expiring_soon? %>
+      <%= render "admin/shared/components/badge", text: "expiring soon", variant: :warning %>
+    <% end %>
+  </div>
+
+  <% left_actions = capture do %>
+    <%= render "admin/shared/components/button",
+          label: "Refresh from API",
+          href: refresh_admin_settings_bank_connection_path(@connection),
+          method: :post,
+          variant: :outline %>
+    <%= render "admin/shared/components/button",
+          label: "Reauth (re-link with bank)",
+          href: reauth_admin_settings_bank_connection_path(@connection),
+          method: :post %>
+    <%= render "admin/shared/components/button",
+          label: "Close connection",
+          href: admin_settings_bank_connection_path(@connection),
+          method: :delete,
+          variant: :destructive,
+          data: { turbo_confirm: "Mark this connection as closed?" } %>
+  <% end %>
+
+  <% right_actions = capture do %>
+    <%= render "admin/shared/components/button",
+          label: "Edit",
+          href: edit_admin_settings_bank_connection_path(@connection),
+          variant: :outline %>
+  <% end %>
+
+  <%= render "admin/shared/components/action_toolbar",
+        left: left_actions, right: right_actions %>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <%= render "admin/shared/components/card", title: "Connection" do %>
+      <%= render "admin/shared/components/definition_list", pairs: [
+        { label: "Bank slug", value: @connection.bank_slug, mono: true },
+        { label: "Bank country", value: @connection.bank_country },
+        { label: "PSU type", value: @connection.psu_type },
+        { label: "Session ID", value: @connection.session_id, mono: true, wrap: true },
+        { label: "Access scope", value: [
+            ("balances" if @connection.access_balances),
+            ("transactions" if @connection.access_transactions)
+          ].compact.join(" + ") }
+      ] %>
+    <% end %>
+
+    <%= render "admin/shared/components/card", title: "Lifecycle" do %>
+      <%= render "admin/shared/components/definition_list", pairs: [
+        { label: "Authorized at", value: @connection.authorized_at&.to_s },
+        { label: "Valid until",
+          value: @connection.valid_until&.to_date&.to_s,
+          hint: (@connection.days_until_expiry ? "(#{@connection.days_until_expiry}d)" : nil) },
+        { label: "Last refreshed", value: @connection.last_refreshed_at&.to_s },
+        { label: "Last synced", value: @connection.last_synced_at&.to_s },
+        { label: "Closed at", value: @connection.closed_at&.to_s }
+      ] %>
+    <% end %>
+  </div>
+
+  <%= render "admin/shared/components/card", title: "Bank accounts (#{@connection.current_bank_accounts.count})" do %>
+    <% if @connection.current_bank_accounts.empty? %>
+      <p class="text-sm text-muted-foreground">No accounts currently linked to this connection.</p>
+    <% else %>
+      <ul class="space-y-2">
+        <% @connection.current_bank_accounts.each do |account| %>
+          <li>
+            <%= link_to admin_settings_bank_account_path(account), class: "flex items-center justify-between rounded-lg border bg-card p-3 hover:bg-card-hover transition-colors" do %>
+              <div>
+                <p class="font-mono text-xs text-foreground"><%= account.iban || account.uid %></p>
+                <p class="text-xs text-muted-foreground"><%= account.display_name %> · <%= account.currency %></p>
+              </div>
+              <%= render "admin/shared/components/badge", text: account.cash_account_type || "—", variant: :muted %>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  <% end %>
+
+  <%= render "admin/shared/components/card", title: "Raw session payload (encrypted at rest)" do %>
+    <%= render "admin/shared/components/json_viewer", json: raw_payload %>
+  <% end %>
+
+  <% if @connection.last_error.present? %>
+    <%= render "admin/shared/components/card", title: "Last error" do %>
+      <pre class="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-xs font-mono overflow-auto text-destructive"><%= @connection.last_error %></pre>
+    <% end %>
+  <% end %>
+</div>

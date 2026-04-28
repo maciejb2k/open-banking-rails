@@ -15,6 +15,10 @@ gem "image_processing", "~> 1.2"
 # Authentication
 gem "devise"
 
+# Open Banking integration (Enable Banking adapter)
+gem "faraday", "~> 2.9"
+gem "jwt", "~> 2.8"
+
 # Admin / pagination / search / audit
 gem "pagy", "~> 43.3"
 gem "rack-cors"

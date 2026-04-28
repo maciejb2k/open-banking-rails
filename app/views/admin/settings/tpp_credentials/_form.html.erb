@@ -1,0 +1,63 @@
+<%= form_with model: @credential, url: form_url, class: "space-y-6", local: true do |f| %>
+  <% if @credential.errors.any? %>
+    <%= render "admin/shared/form/error_summary", errors: @credential.errors.full_messages %>
+  <% end %>
+
+  <div class="admin-section space-y-4">
+    <h2 class="text-base font-semibold text-foreground">Identity</h2>
+
+    <%= render "admin/shared/form/text_field",
+          form: f, field: :name, label: "Label", required: true,
+          placeholder: "e.g. Primary Enable Banking app",
+          hint: "Human-readable name used in lists and UI." %>
+
+    <%= render "admin/shared/form/select",
+          form: f, field: :provider, label: "Provider", required: true,
+          options: TppCredential::PROVIDERS.map { |p| [ p.humanize, p ] } %>
+
+    <%= render "admin/shared/form/select",
+          form: f, field: :environment, label: "Environment",
+          options: TppCredential::ENVIRONMENTS.map { |e| [ e, e ] },
+          include_blank: "—" %>
+
+    <%= render "admin/shared/form/text_field",
+          form: f, field: :redirect_url, label: "Redirect URL", required: true,
+          placeholder: "https://yourapp.com/oauth/enable_banking/callback",
+          hint: "Must match the redirect URL registered in the provider's Control Panel." %>
+  </div>
+
+  <div class="admin-section space-y-4">
+    <h2 class="text-base font-semibold text-foreground">Secrets</h2>
+    <p class="text-sm text-muted-foreground -mt-2">
+      Sensitive values — encrypted at rest. Never logged or shown after save.
+    </p>
+
+    <%= render "admin/shared/form/text_field",
+          form: f, field: :application_id, label: "Application ID (kid)", required: true,
+          placeholder: "b67f59d9-4630-4032-bc92-bb7ae9ae91be",
+          hint: "UUID from the provider's Control Panel after uploading your public certificate." %>
+
+    <%= render "admin/shared/form/textarea",
+          form: f, field: :private_key_pem, label: "Private key (PEM)", required: true,
+          rows: 10,
+          placeholder: "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
+          hint: "RSA key used to sign JWTs. Must be 2048+ bits.",
+          html: { class: "font-mono text-xs" } %>
+
+    <%= render "admin/shared/form/textarea",
+          form: f, field: :public_cert_pem, label: "Public certificate (PEM)",
+          rows: 8,
+          placeholder: "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
+          hint: "Optional. If pasted, the app shows certificate metadata (subject, expiry) without an API call.",
+          html: { class: "font-mono text-xs" } %>
+  </div>
+
+  <div class="flex items-center justify-end gap-3">
+    <%= render "admin/shared/components/button",
+          label: "Cancel",
+          href: (@credential.persisted? ? admin_settings_tpp_credential_path(@credential) : admin_settings_tpp_credentials_path),
+          variant: :outline %>
+    <%= f.submit (@credential.persisted? ? "Save changes" : "Create credential"),
+          class: "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 text-sm" %>
+  </div>
+<% end %>

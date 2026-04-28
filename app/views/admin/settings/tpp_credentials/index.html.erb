@@ -1,0 +1,69 @@
+<% new_button = capture do %>
+  <%= render "admin/shared/components/button",
+        label: "New credential",
+        href: new_admin_settings_tpp_credential_path,
+        icon: "plus" %>
+<% end %>
+
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "TPP Credentials",
+        subtitle: "Your application identities for accessing Open Banking providers (e.g. Enable Banking).",
+        actions: new_button %>
+
+  <% if @collection.empty? %>
+    <%= render "admin/shared/components/empty_state",
+          title: "No credentials yet",
+          description: "Add a TPP credential to start connecting banks. You'll need a private key, application ID, and certificate from your provider's Control Panel.",
+          action_label: "Add credential",
+          action_path: new_admin_settings_tpp_credential_path,
+          icon: "file_text" %>
+  <% else %>
+    <div class="admin-section p-0 overflow-hidden">
+      <%= render "admin/shared/components/data_table",
+            columns: [
+              { label: "Name", sortable: "name" },
+              { label: "Provider", sortable: "provider" },
+              { label: "Environment", sortable: "environment" },
+              { label: "Cert expires", sortable: "cert_expires_at" },
+              { label: "Status", sortable: "status" },
+              { label: "" }
+            ] do %>
+        <% @collection.each do |c| %>
+          <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+            <td class="px-4 py-3">
+              <%= link_to c.name, admin_settings_tpp_credential_path(c), class: "font-medium text-foreground hover:text-primary" %>
+              <% if c.primary? %>
+                <%= render "admin/shared/components/badge", text: "primary", variant: :info %>
+              <% end %>
+            </td>
+            <td class="px-4 py-3 text-muted-foreground"><%= c.provider %></td>
+            <td class="px-4 py-3 text-muted-foreground"><%= c.environment %></td>
+            <td class="px-4 py-3">
+              <% if c.cert_expires_at %>
+                <span class="<%= "text-destructive" if c.cert_expired? %><%= " text-warning" if !c.cert_expired? && c.cert_expiring_soon? %>">
+                  <%= c.cert_expires_at.to_date %>
+                  <span class="text-muted-foreground text-xs">(<%= time_ago_in_words(c.cert_expires_at) %><%= c.cert_expired? ? " ago" : "" %>)</span>
+                </span>
+              <% else %>
+                <span class="text-muted-foreground/50">—</span>
+              <% end %>
+            </td>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/badge",
+                    text: c.status,
+                    variant: { "active" => :success, "error" => :destructive, "pending" => :info }.fetch(c.status, :muted) %>
+            </td>
+            <td class="px-4 py-3 text-right">
+              <%= link_to "View", admin_settings_tpp_credential_path(c), class: "text-sm text-primary hover:underline" %>
+            </td>
+          </tr>
+        <% end %>
+      <% end %>
+    </div>
+
+    <% if @pagy.pages > 1 %>
+      <%= render "admin/shared/components/pagination", pagy: @pagy %>
+    <% end %>
+  <% end %>
+</div>

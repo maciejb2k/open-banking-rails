@@ -1,4 +1,6 @@
-<%# locals: (title:, subtitle: nil, actions: nil) %>
+<%# locals: (title:, subtitle: nil, actions: nil, browser_title: nil) %>
+<%# Browser <title> defaults to page H1; override via browser_title: when they should differ. %>
+<% content_for :title, "#{browser_title || title} · Open Banking" %>
 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
   <div>
     <h1 class="text-2xl font-bold text-foreground"><%= title %></h1>

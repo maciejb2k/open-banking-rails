@@ -1,0 +1,136 @@
+<% cert = @credential.cert_info %>
+
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: @credential.name,
+        subtitle: "TPP credential — #{@credential.provider} (#{@credential.environment || 'environment not set'})" %>
+
+  <% if @credential.last_verification_error.present? %>
+    <div class="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+      <p class="text-sm font-medium text-destructive">Last verification failed</p>
+      <p class="text-sm text-muted-foreground mt-1 font-mono break-all"><%= @credential.last_verification_error %></p>
+    </div>
+  <% end %>
+
+  <div class="flex items-center gap-3">
+    <%= render "admin/shared/components/badge",
+          text: @credential.status,
+          variant: { "active" => :success, "error" => :destructive, "pending" => :info }.fetch(@credential.status, :muted) %>
+    <% if @credential.primary? %>
+      <%= render "admin/shared/components/badge", text: "primary", variant: :info %>
+    <% end %>
+    <% if @credential.cert_expired? %>
+      <%= render "admin/shared/components/badge", text: "cert expired", variant: :destructive %>
+    <% elsif @credential.cert_expiring_soon? %>
+      <%= render "admin/shared/components/badge", text: "cert expiring soon", variant: :warning %>
+    <% end %>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2">
+    <%= render "admin/shared/components/button",
+          label: "Test connection",
+          href: test_connection_admin_settings_tpp_credential_path(@credential),
+          method: :post %>
+    <% unless @credential.primary? %>
+      <%= render "admin/shared/components/button",
+            label: "Make primary",
+            href: make_primary_admin_settings_tpp_credential_path(@credential),
+            method: :post,
+            variant: :outline %>
+    <% end %>
+    <%= render "admin/shared/components/button",
+          label: "Edit",
+          href: edit_admin_settings_tpp_credential_path(@credential),
+          variant: :outline %>
+    <% unless @credential.bank_connections.exists? %>
+      <%= render "admin/shared/components/button",
+            label: "Delete",
+            href: admin_settings_tpp_credential_path(@credential),
+            method: :delete,
+            variant: :destructive,
+            data: { turbo_confirm: "Permanently delete this credential?" } %>
+    <% end %>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <% registered_urls = Array(@credential.metadata["redirect_urls"]) %>
+    <% redirect_mismatch = registered_urls.any? && !registered_urls.include?(@credential.redirect_url) %>
+
+    <%= render "admin/shared/components/card", title: "Identity" do %>
+      <%= render "admin/shared/components/definition_list", pairs: [
+        { label: "Provider", value: @credential.provider, mono: true },
+        { label: "Environment", value: @credential.environment },
+        { label: "Application ID (kid)", value: @credential.application_id, mono: true, wrap: true },
+        { label: "Redirect URL (sent in /auth)",
+          value: @credential.redirect_url,
+          mono: true,
+          wrap: true,
+          hint: (redirect_mismatch ? "⚠ not in EB allowed list" : nil) },
+        { label: "Registered in EB",
+          value: (registered_urls.any? ? registered_urls.join(", ") : nil),
+          mono: true,
+          wrap: true },
+        { label: "Last verified", value: @credential.last_verified_at ? "#{time_ago_in_words(@credential.last_verified_at)} ago" : "never" }
+      ] %>
+
+      <% if redirect_mismatch %>
+        <div class="mt-4 pt-4 border-t">
+          <p class="text-xs text-warning">
+            Your local <code>redirect_url</code> isn't in EB's registered URL list.
+            <code>POST /auth</code> will be rejected. Edit the credential to use one of the
+            registered URLs, or add your URL in EB Control Panel.
+          </p>
+        </div>
+      <% end %>
+    <% end %>
+
+    <%= render "admin/shared/components/card", title: "Certificate metadata" do %>
+      <% if cert %>
+        <%= render "admin/shared/components/definition_list", pairs: [
+          { label: "Subject", value: cert[:subject], mono: true, wrap: true },
+          { label: "Issuer", value: cert[:issuer], mono: true, wrap: true },
+          { label: "Valid from", value: cert[:not_before].to_date.to_s },
+          { label: "Valid until", value: cert[:not_after].to_date.to_s, hint: "(#{cert[:days_remaining]} days)" },
+          { label: "Key size", value: "#{cert[:key_size]} bits" },
+          { label: "Signature", value: cert[:signature_algorithm], mono: true }
+        ] %>
+      <% else %>
+        <p class="text-sm text-muted-foreground">
+          No certificate uploaded — paste the public cert (PEM) to see metadata here.
+        </p>
+      <% end %>
+    <% end %>
+  </div>
+
+  <%= render "admin/shared/components/card", title: "Provider metadata (cached from GET /application)" do %>
+    <% if @credential.metadata.present? %>
+      <%= render "admin/shared/components/json_viewer", json: @credential.metadata %>
+    <% else %>
+      <p class="text-sm text-muted-foreground">
+        Run "Test connection" to fetch live metadata from the provider.
+      </p>
+    <% end %>
+  <% end %>
+
+  <%= render "admin/shared/components/card", title: "Bank connections (#{@credential.bank_connections.count})" do %>
+    <% if @credential.bank_connections.empty? %>
+      <p class="text-sm text-muted-foreground">No bank connections yet.</p>
+    <% else %>
+      <ul class="space-y-2">
+        <% @credential.bank_connections.each do |bc| %>
+          <li>
+            <%= link_to admin_settings_bank_connection_path(bc), class: "flex items-center justify-between rounded-lg border bg-card p-3 hover:bg-card-hover transition-colors" do %>
+              <div>
+                <p class="font-medium text-foreground"><%= bc.bank_name.presence || bc.bank_slug %></p>
+                <p class="text-xs text-muted-foreground">
+                  <%= bc.psu_type %> · valid until <%= bc.valid_until&.to_date || "—" %>
+                </p>
+              </div>
+              <%= render "admin/shared/components/badge", text: bc.status, variant: bc.status_tone %>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  <% end %>
+</div>

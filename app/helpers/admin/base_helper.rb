@@ -17,20 +17,18 @@ module Admin
           ]
         },
         {
-          title: "Audit",
-          items: [
-            { name: "Audit Log", path: admin_versions_path, icon: "shield" }
-          ]
-        },
-        {
           title: "Settings",
           items: [
-            { name: "Styleguide", path: admin_styleguide_path, icon: "settings" }
+            { name: "TPP Credentials", path: admin_settings_tpp_credentials_path, icon: "file_text" },
+            { name: "Bank Connections", path: admin_settings_bank_connections_path, icon: "package" },
+            { name: "Bank Accounts", path: admin_settings_bank_accounts_path, icon: "dollar_sign" },
+            { name: "Audit Log", path: admin_versions_path, icon: "shield" }
           ]
         },
         *(Rails.env.development? ? [ {
           title: "Development",
           items: [
+            { name: "Styleguide", path: admin_styleguide_path, icon: "settings" },
             { name: "Debug", path: admin_debug_path, icon: "sliders_horizontal" }
           ]
         } ] : [])
@@ -69,9 +67,43 @@ module Admin
 
       segments.each_with_index.map do |seg, i|
         path = "/" + segments[0..i].join("/")
-        item = nav_labels[seg]
-        { label: item&.fetch(:label, nil) || seg.humanize, path: item&.fetch(:path, nil) || path }
+
+        if numeric_id?(seg) && i.positive?
+          label = breadcrumb_label_for_id(parent_segment: segments[i - 1], id: seg) || seg
+          { label: label, path: path }
+        else
+          item = nav_labels[seg]
+          { label: item&.fetch(:label, nil) || seg.humanize, path: item&.fetch(:path, nil) || path }
+        end
       end
+    end
+
+    private
+
+    def numeric_id?(segment)
+      segment.match?(/\A\d+\z/)
+    end
+
+    # Resolve `/.../tpp_credentials/1` → "Personal Enable Banking"
+    # by looking up the record and falling back through:
+    #   to_breadcrumb → display_name → name → id
+    # Returns nil if model can't be inferred or record not found.
+    def breadcrumb_label_for_id(parent_segment:, id:)
+      klass = parent_segment.singularize.classify.safe_constantize
+      return nil unless klass.is_a?(Class) && klass < ApplicationRecord
+
+      record = klass.find_by(id: id)
+      return nil unless record
+
+      if record.respond_to?(:to_breadcrumb)
+        record.to_breadcrumb.presence
+      elsif record.respond_to?(:display_name) && record.display_name.present?
+        record.display_name
+      elsif record.respond_to?(:name) && record.name.present?
+        record.name
+      end
+    rescue StandardError
+      nil
     end
   end
 end
