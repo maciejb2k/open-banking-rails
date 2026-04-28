@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module EnableBanking
-  module Queries
+  module Api
     # GET /application — returns the credential's own metadata as known
     # to Enable Banking: name, environment, services, redirect_urls,
     # countries, active flag, kid.

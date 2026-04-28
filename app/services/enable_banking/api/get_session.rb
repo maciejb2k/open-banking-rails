@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module EnableBanking
-  module Queries
+  module Api
     # GET /sessions/{session_id} — refreshes session status / scope.
     #
     # IMPORTANT (PoC finding): the GET response shape differs from POST /sessions:

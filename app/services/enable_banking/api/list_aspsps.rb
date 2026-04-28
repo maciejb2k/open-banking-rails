@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module EnableBanking
-  module Queries
+  module Api
     # GET /aspsps[?country=XX] — list of bank integrations EB supports.
     #
     # Response: { aspsps: [{ name, country, logo, psu_types, auth_methods,

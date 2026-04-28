@@ -6,19 +6,9 @@ module Admin
       before_action :set_connection, only: %i[show edit update destroy refresh reauth]
       before_action :require_primary_credential, only: %i[new create]
 
-      EB_STATUS_MAP = {
-        "AUTHORIZED" => "authorized",
-        "CLOSED" => "closed",
-        "EXPIRED" => "expired",
-        "REJECTED" => "revoked",
-        "REVOKED" => "revoked"
-      }.freeze
-
       def index
         scope = BankConnection.joins(:tpp_credential).where(tpp_credentials: { user_id: current_user.id })
-        @q = scope.ransack(params[:q])
-        @q.sorts = "valid_until asc" if @q.sorts.empty?
-        @pagy, @collection = pagy(:offset, @q.result.includes(:tpp_credential))
+        @pagy, @collection = paginated(scope, default_sort: "valid_until asc", includes: :tpp_credential)
       end
 
       def show
@@ -43,7 +33,7 @@ module Admin
         )
         @replaces_connection_id = sanitize_replaces_param(params[:replaces])
 
-        result = EnableBanking::Queries::ListAspsps.call(credential: @primary_credential, country: @form.aspsp_country)
+        result = EnableBanking::Api::ListAspsps.call(credential: @primary_credential, country: @form.aspsp_country)
         if result.success?
           @aspsps = Array(result.data["aspsps"]).sort_by { |a| a["name"].to_s.downcase }
         else
@@ -61,75 +51,29 @@ module Admin
           return new
         end
 
-        state_token = EnableBanking::State.encode(
-          user_id: current_user.id,
-          tpp_credential_id: @primary_credential.id,
-          aspsp_name: @form.aspsp_name,
-          aspsp_country: @form.aspsp_country,
-          psu_type: @form.psu_type,
+        url = EnableBanking::Operations::StartAuth.call(
+          credential: @primary_credential,
+          form: @form,
+          current_user: current_user,
           replaces_connection_id: @replaces_connection_id
         )
-
-        result = EnableBanking::Queries::StartAuth.call(
-          credential: @primary_credential,
-          aspsp_name: @form.aspsp_name,
-          aspsp_country: @form.aspsp_country,
-          psu_type: @form.psu_type,
-          state: state_token,
-          valid_days: @form.valid_days
-        )
-
-        if result.success? && result.data["url"].present?
-          redirect_to result.data["url"], allow_other_host: true, status: :see_other
-        else
-          redirect_to new_admin_settings_bank_connection_path,
-                      alert: "Failed to start auth: #{result.error.presence || "HTTP #{result.status}"}"
-        end
-      rescue EnableBanking::Error => e
-        redirect_to new_admin_settings_bank_connection_path,
-                    alert: "Configuration error: #{e.message}"
+        redirect_to url, allow_other_host: true, status: :see_other
+      rescue EnableBanking::Operations::StartAuth::Failed => e
+        redirect_to new_admin_settings_bank_connection_path, alert: e.message
       end
 
       def destroy
-        # Best-effort: try to close on EB side before marking locally.
-        if @connection.status == "authorized" && @connection.session_id.present?
-          EnableBanking::Queries::CloseSession.call(
-            credential: @connection.tpp_credential,
-            session_id: @connection.session_id
-          )
-        end
-        @connection.update!(status: "closed", closed_at: Time.current, last_error: nil)
-        redirect_to admin_settings_bank_connections_path,
-                    notice: "Connection closed."
+        EnableBanking::Operations::CloseConnection.call(@connection)
+        redirect_to admin_settings_bank_connections_path, notice: "Connection closed."
       end
 
       def refresh
-        result = EnableBanking::Queries::GetSession.call(
-          credential: @connection.tpp_credential,
-          session_id: @connection.session_id
-        )
-
-        if result.success?
-          data = result.data
-          @connection.update!(
-            status: EB_STATUS_MAP.fetch(data["status"], "error"),
-            last_refreshed_at: Time.current,
-            access_balances: data.dig("access", "balances"),
-            access_transactions: data.dig("access", "transactions"),
-            valid_until: data.dig("access", "valid_until"),
-            closed_at: data["closed"],
-            last_error: nil
-          )
-          redirect_to admin_settings_bank_connection_path(@connection),
-                      notice: "Refreshed — status: #{@connection.status}, valid until #{@connection.valid_until&.to_date}."
-        else
-          @connection.update!(last_error: "HTTP #{result.status}: #{result.error}")
-          redirect_to admin_settings_bank_connection_path(@connection),
-                      alert: "Refresh failed: #{result.error.presence || "HTTP #{result.status}"}"
-        end
-      rescue EnableBanking::Error => e
+        EnableBanking::Operations::RefreshConnection.call(@connection)
         redirect_to admin_settings_bank_connection_path(@connection),
-                    alert: "Configuration error: #{e.message}"
+                    notice: "Refreshed — status: #{@connection.status}, valid until #{@connection.valid_until&.to_date}."
+      rescue EnableBanking::Operations::RefreshConnection::Failed => e
+        redirect_to admin_settings_bank_connection_path(@connection),
+                    alert: "Refresh failed: #{e.message}"
       end
 
       def reauth

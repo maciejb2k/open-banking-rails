@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module EnableBanking
-  module Queries
+  module Api
     # POST /auth — initiates the authorization flow with a bank.
     #
     # Returns { url, authorization_id, psu_id_hash } — `url` is what the

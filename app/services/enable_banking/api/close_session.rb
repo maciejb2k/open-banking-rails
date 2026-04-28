@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module EnableBanking
-  module Queries
+  module Api
     # DELETE /sessions/{session_id} — explicitly close a session on the EB side.
     #
     # PoC noted side effects untested. Use as best-effort cleanup; mark

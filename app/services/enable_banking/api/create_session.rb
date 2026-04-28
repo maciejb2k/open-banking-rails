@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module EnableBanking
-  module Queries
+  module Api
     # POST /sessions — exchange the `code` returned from the bank redirect
     # for an authorized session.
     #

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module EnableBanking
-  module Queries
+  module Api
     # GET /accounts/{uid}/balances — current balance snapshot.
     #
     # Returns { balances: [{ name, balance_amount{currency, amount},

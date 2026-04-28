@@ -6,9 +6,7 @@ module Admin
       before_action :set_credential, only: %i[show edit update destroy test_connection make_primary]
 
       def index
-        @q = current_user.tpp_credentials.ransack(params[:q])
-        @q.sorts = "created_at desc" if @q.sorts.empty?
-        @pagy, @collection = pagy(:offset, @q.result)
+        @pagy, @collection = paginated(current_user.tpp_credentials, default_sort: "created_at desc")
       end
 
       def show
@@ -52,44 +50,9 @@ module Admin
       end
 
       def test_connection
-        result = EnableBanking::Queries::GetApplication.call(credential: @credential)
-
-        if result.success?
-          updates = {
-            status: "active",
-            last_verified_at: Time.current,
-            last_verification_error: nil,
-            metadata: result.data
-          }
-
-          msg_parts = [ "Connection verified — metadata refreshed." ]
-          registered = Array(result.data["redirect_urls"])
-
-          if registered.any? && !registered.include?(@credential.redirect_url)
-            if registered.size == 1
-              # Only one URL registered — safe to auto-sync, no ambiguity.
-              updates[:redirect_url] = registered.first
-              msg_parts << "Local redirect_url updated to match EB: #{registered.first}"
-            else
-              # Multiple URLs — user must pick. Warn, don't auto-change.
-              msg_parts << "⚠ Local redirect_url (#{@credential.redirect_url}) is NOT in EB list. Choose one of: #{registered.join(", ")}"
-            end
-          end
-
-          @credential.update!(updates)
-          redirect_to admin_settings_tpp_credential_path(@credential), notice: msg_parts.join(" ")
-        else
-          @credential.update!(
-            status: "error",
-            last_verification_error: "HTTP #{result.status}: #{result.error}"
-          )
-          redirect_to admin_settings_tpp_credential_path(@credential),
-                      alert: "Test failed: #{result.error.presence || "HTTP #{result.status}"}"
-        end
-      rescue EnableBanking::Error => e
-        @credential.update!(status: "error", last_verification_error: e.message)
-        redirect_to admin_settings_tpp_credential_path(@credential),
-                    alert: "Configuration error: #{e.message}"
+        result = EnableBanking::Operations::VerifyCredential.call(@credential)
+        flash_key = result.failed? ? :alert : :notice
+        redirect_to admin_settings_tpp_credential_path(@credential), flash_key => result.message
       end
 
       def make_primary

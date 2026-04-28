@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module EnableBanking
-  module Queries
+  module Api
     # GET /accounts/{uid}/details — fuller per-account metadata than what
     # POST /sessions returns.
     #

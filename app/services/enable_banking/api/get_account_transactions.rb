@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module EnableBanking
-  module Queries
+  module Api
     # GET /accounts/{uid}/transactions — paginated transactions list.
     #
     # Auto-paginates via `continuation_key` and aggregates pages into a single
