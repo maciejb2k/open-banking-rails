@@ -1,0 +1,128 @@
+# frozen_string_literal: true
+
+# Runtime trace of an EnableBanking::Operations::* (or any future
+# long-running domain operation). One row per run — manual, scheduled,
+# or system-triggered.
+#
+# Generic by design: `kind` discriminates, `params`/`summary` are
+# kind-specific jsonb. The contract for each kind lives in code
+# (the operation/job that owns that kind), not the schema.
+#
+# Designed to absorb the scattered `last_synced_at` / `last_error`
+# fields on BankConnection/BankAccount over time — those become a
+# denormalized cache; this is the source of truth for history.
+class OperationRun < ApplicationRecord
+  KINDS = %w[
+    transaction_sync
+    balance_refresh
+    connection_refresh
+    account_details_refresh
+  ].freeze
+
+  STATUSES = %w[queued running succeeded partial failed].freeze
+  TRIGGERS = %w[manual scheduled].freeze
+  TERMINAL_STATUSES = %w[succeeded partial failed].freeze
+
+  belongs_to :subject, polymorphic: true, optional: true
+  belongs_to :triggered_by_user, class_name: "User", optional: true
+
+  validates :kind,    presence: true, inclusion: { in: KINDS }
+  validates :status,  presence: true, inclusion: { in: STATUSES }
+  validates :trigger, presence: true, inclusion: { in: TRIGGERS }
+
+  # Live progress to the run show page. Each `update!` (the job calls one
+  # after every account synced) re-renders _run_progress.html.erb in place.
+  # Stream channel is per-run so multiple admins watching different runs
+  # don't cross-talk.
+  after_update_commit :broadcast_progress
+
+  scope :recent,        -> { order(created_at: :desc) }
+  scope :running,       -> { where(status: "running") }
+  scope :queued,        -> { where(status: "queued") }
+  scope :terminal,      -> { where(status: TERMINAL_STATUSES) }
+  scope :of_kind,       ->(k) { where(kind: k) }
+  scope :triggered_by,  ->(user) { where(triggered_by_user: user) }
+
+  def self.ransackable_attributes(_auth_object = nil)
+    %w[id kind status trigger subject_type subject_id triggered_by_user_id
+       started_at finished_at created_at updated_at]
+  end
+
+  def self.ransackable_associations(_auth_object = nil)
+    %w[subject triggered_by_user]
+  end
+
+  # ── Lifecycle helpers ─────────────────────────────────────────────
+  def start!
+    update!(status: "running", started_at: Time.current)
+  end
+
+  def succeed!(summary: nil)
+    finish!("succeeded", summary: summary)
+  end
+
+  def mark_partial!(summary: nil, error: nil)
+    finish!("partial", summary: summary, error: error)
+  end
+
+  def fail!(error:, summary: nil)
+    finish!("failed", summary: summary, error: error.to_s)
+  end
+
+  def terminal?
+    TERMINAL_STATUSES.include?(status)
+  end
+
+  def running?
+    status == "running"
+  end
+
+  def queued?
+    status == "queued"
+  end
+
+  def duration_seconds
+    return nil if started_at.nil?
+    end_time = finished_at || Time.current
+    (end_time - started_at).to_i
+  end
+
+  # Convenience for badges / icons in the UI.
+  def status_tone
+    case status
+    when "succeeded" then :success
+    when "running"   then :info
+    when "queued"    then :muted
+    when "partial"   then :warning
+    when "failed"    then :destructive
+    else :muted
+    end
+  end
+
+  # Subject label for the UI — falls back through to_breadcrumb / display_name / email.
+  def subject_label
+    return "—" if subject.nil?
+    %i[to_breadcrumb display_name email name].each do |m|
+      return subject.public_send(m) if subject.respond_to?(m) && subject.public_send(m).present?
+    end
+    "#{subject_type}##{subject_id}"
+  end
+
+  private
+
+  def broadcast_progress
+    broadcast_replace_later_to(
+      "operation_run_#{id}",
+      target: ActionView::RecordIdentifier.dom_id(self, :progress),
+      partial: "admin/#{kind.pluralize}/run_progress",
+      locals: { run: self }
+    )
+  end
+
+  def finish!(new_status, summary: nil, error: nil)
+    attrs = { status: new_status, finished_at: Time.current }
+    attrs[:summary] = summary if summary
+    attrs[:error] = error if error
+    update!(attrs)
+  end
+end

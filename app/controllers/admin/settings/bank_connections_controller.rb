@@ -7,8 +7,7 @@ module Admin
       before_action :require_primary_credential, only: %i[new create]
 
       def index
-        scope = BankConnection.joins(:tpp_credential).where(tpp_credentials: { user_id: current_user.id })
-        @pagy, @collection = paginated(scope, default_sort: "valid_until asc", includes: :tpp_credential)
+        @pagy, @collection = paginated(BankConnection.for_user(current_user), default_sort: "valid_until asc", includes: :tpp_credential)
       end
 
       def show
@@ -96,9 +95,7 @@ module Admin
         return nil if value.blank?
         id = value.to_i
         return nil if id.zero?
-        BankConnection.joins(:tpp_credential)
-                      .where(tpp_credentials: { user_id: current_user.id })
-                      .where(id: id).pick(:id)
+        BankConnection.for_user(current_user).where(id: id).pick(:id)
       end
 
       def connection_params
@@ -114,10 +111,7 @@ module Admin
       end
 
       def set_connection
-        @connection = BankConnection
-                        .joins(:tpp_credential)
-                        .where(tpp_credentials: { user_id: current_user.id })
-                        .find(params[:id])
+        @connection = BankConnection.for_user(current_user).find(params[:id])
       end
     end
   end

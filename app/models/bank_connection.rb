@@ -34,6 +34,7 @@ class BankConnection < ApplicationRecord
   scope :active,    -> { where(status: "authorized") }
   scope :inactive,  -> { where.not(status: "authorized") }
   scope :for_bank,  ->(slug) { where(bank_slug: slug) }
+  scope :for_user,  ->(user) { joins(:tpp_credential).where(tpp_credentials: { user_id: user.id }) }
   scope :expiring_within, ->(duration) { active.where(valid_until: ..duration.from_now) }
   scope :expired,   -> { where("valid_until < ?", Time.current) }
 

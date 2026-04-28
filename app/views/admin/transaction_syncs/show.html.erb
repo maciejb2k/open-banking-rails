@@ -1,0 +1,16 @@
+<%= turbo_stream_from "operation_run_#{@run.id}" %>
+
+<% scope_label = case @run.subject
+                 when User then "all my connections"
+                 when BankConnection then @run.subject.bank_name.presence || @run.subject.bank_slug
+                 when BankAccount then @run.subject.display_name
+                 else "—"
+                 end %>
+
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "Sync ##{@run.id}",
+        subtitle: "#{@run.trigger.humanize} sync — #{scope_label}" %>
+
+  <%= render "run_progress", run: @run %>
+</div>

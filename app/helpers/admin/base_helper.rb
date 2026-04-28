@@ -13,7 +13,9 @@ module Admin
         {
           title: "Operations",
           items: [
-            { name: "Dashboard", path: admin_root_path, icon: "layout_dashboard" }
+            { name: "Dashboard", path: admin_root_path, icon: "layout_dashboard" },
+            { name: "Bank Transactions", path: admin_bank_transactions_path, icon: "dollar_sign" },
+            { name: "Sync Transactions", path: admin_transaction_syncs_path, icon: "refresh_cw" }
           ]
         },
         {

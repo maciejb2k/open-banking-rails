@@ -1,0 +1,99 @@
+<%# locals: (run:, **) %>
+<%# Re-rendered live via Turbo Streams on every run.update!. %>
+<%# Turbo::Broadcastable auto-injects the record as `operation_run` (model name); %>
+<%# the `**` accepts that extra local without us needing to use it. %>
+<%= tag.div id: dom_id(run, :progress), class: "space-y-6" do %>
+  <div class="flex items-center gap-3">
+    <%= render "admin/shared/components/badge", text: run.status, variant: run.status_tone %>
+    <%= render "admin/shared/components/badge", text: run.trigger, variant: :muted %>
+    <% if run.running? %>
+      <span class="inline-flex items-center gap-2 text-xs text-muted-foreground">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-info opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-info"></span>
+        </span>
+        Running — <%= Array(run.summary["accounts"]).size %> account(s) processed
+      </span>
+    <% elsif run.terminal? && run.finished_at %>
+      <span class="text-xs text-muted-foreground">
+        Finished in <%= run.duration_seconds %>s
+      </span>
+    <% end %>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <%= render "admin/shared/components/card", title: "Run details" do %>
+      <%= render "admin/shared/components/definition_list", pairs: [
+        { label: "Kind", value: run.kind, mono: true },
+        { label: "Status", value: run.status },
+        { label: "Trigger", value: run.trigger },
+        { label: "Subject",
+          value: ([run.subject_type, run.subject_label].compact.join(" — ").presence) },
+        { label: "Triggered by", value: run.triggered_by_user&.display_name },
+        { label: "Created at", value: run.created_at&.to_s },
+        { label: "Started at", value: run.started_at&.to_s },
+        { label: "Finished at", value: run.finished_at&.to_s },
+        { label: "Duration", value: run.duration_seconds && "#{run.duration_seconds}s" }
+      ] %>
+    <% end %>
+
+    <%= render "admin/shared/components/card", title: "Parameters" do %>
+      <% if run.params.present? && run.params.any? %>
+        <%= render "admin/shared/components/definition_list",
+              pairs: run.params.map { |k, v| { label: k.humanize, value: v.to_s, mono: true } } %>
+      <% else %>
+        <p class="text-sm text-muted-foreground">No parameters.</p>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% if run.error.present? %>
+    <%= render "admin/shared/components/card", title: "Error" do %>
+      <pre class="text-sm text-destructive whitespace-pre-wrap break-all"><%= run.error %></pre>
+    <% end %>
+  <% end %>
+
+  <% account_rows = Array(run.summary["accounts"]) %>
+  <%= render "admin/shared/components/card", title: "Per-account breakdown" do %>
+    <% if account_rows.empty? %>
+      <p class="text-sm text-muted-foreground">
+        <%= run.queued? ? "Run is queued — waiting for the worker to pick it up." : "No accounts processed yet." %>
+      </p>
+    <% else %>
+      <%= render "admin/shared/components/data_table",
+            columns: [
+              { label: "Bank" },
+              { label: "Account" },
+              { label: "Range" },
+              { label: "Status" },
+              { label: "Inserted" },
+              { label: "Skipped" },
+              { label: "Pages" }
+            ] do %>
+        <% account_rows.each do |row| %>
+          <tr class="border-b last:border-0">
+            <td class="px-4 py-3 text-foreground text-sm"><%= row["bank"] || "—" %></td>
+            <td class="px-4 py-3 font-mono text-xs"><%= row["iban"] || "uid #{row['bank_account_id']}" %></td>
+            <td class="px-4 py-3 text-xs text-muted-foreground">
+              <%= row["date_from"] %> → <%= row["date_to"] %>
+              <% if row["truncated"] %>
+                <span class="text-warning">(truncated)</span>
+              <% end %>
+            </td>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/badge",
+                    text: row["status"],
+                    variant: row["status"] == "succeeded" ? :success : :destructive %>
+              <% if row["status"] == "failed" && row["error"].present? %>
+                <div class="text-xs text-destructive mt-1 break-all"><%= row["error"] %></div>
+              <% end %>
+            </td>
+            <td class="px-4 py-3 font-mono text-sm"><%= row["inserted"] || "—" %></td>
+            <td class="px-4 py-3 font-mono text-sm text-muted-foreground"><%= row["skipped"] || "—" %></td>
+            <td class="px-4 py-3 font-mono text-sm text-muted-foreground"><%= row["pages_fetched"] || "—" %></td>
+          </tr>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>

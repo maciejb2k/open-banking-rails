@@ -1,0 +1,70 @@
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "#{@transaction.direction == 'credit' ? '+' : '−'}#{number_with_precision(@transaction.amount, precision: 2)} #{@transaction.currency}",
+        subtitle: "#{@transaction.title.presence || @transaction.external_id} — #{@transaction.booking_date}" %>
+
+  <div class="flex items-center gap-3">
+    <%= render "admin/shared/components/badge",
+          text: @transaction.direction,
+          variant: @transaction.direction == "credit" ? :success : :muted %>
+    <%= render "admin/shared/components/badge",
+          text: @transaction.status,
+          variant: @transaction.status == "booked" ? :success : :info %>
+    <% if @transaction.bank_transaction_code.present? %>
+      <%= render "admin/shared/components/badge", text: @transaction.bank_transaction_code, variant: :default %>
+    <% end %>
+    <% if @transaction.type_hint.present? %>
+      <%= render "admin/shared/components/badge", text: @transaction.type_hint, variant: :muted %>
+    <% end %>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <%= render "admin/shared/components/card", title: "Transaction" do %>
+      <%= render "admin/shared/components/definition_list", pairs: [
+        { label: "Amount",
+          value: "#{@transaction.direction == 'credit' ? '+' : '−'}#{number_with_precision(@transaction.amount, precision: 2)} #{@transaction.currency}",
+          mono: true },
+        { label: "Direction", value: @transaction.direction },
+        { label: "Status", value: @transaction.status },
+        { label: "Title", value: @transaction.title, wrap: true },
+        { label: "Type hint", value: @transaction.type_hint, hint: "(remittance_information[1] — bank-specific)" },
+        { label: "Bank txn code", value: @transaction.bank_transaction_code, mono: true, hint: "(Berlin Group, only Revolut populates)" },
+        { label: "Booking date", value: @transaction.booking_date&.to_s, mono: true },
+        { label: "Value date", value: @transaction.value_date&.to_s, mono: true },
+        { label: "Transaction date", value: @transaction.transaction_date&.to_s, mono: true },
+        { label: "External ID", value: @transaction.external_id, mono: true, wrap: true,
+          hint: "(transaction_id || entry_reference — Revolut uses entry_reference)" }
+      ] %>
+    <% end %>
+
+    <%= render "admin/shared/components/card", title: "Counterparty & account" do %>
+      <%= render "admin/shared/components/definition_list", pairs: [
+        { label: "Counterparty", value: @transaction.counterparty_name },
+        { label: "Counterparty IBAN", value: @transaction.counterparty_iban, mono: true, wrap: true,
+          hint: "(mBank: derived from BBAN by prepending 'PL')" },
+        { label: "Bank account",
+          value: link_to(@transaction.bank_account.display_name,
+                         admin_settings_bank_account_path(@transaction.bank_account),
+                         class: "text-primary hover:underline") },
+        { label: "Account IBAN", value: @transaction.bank_account.iban, mono: true, wrap: true },
+        { label: "Bank",
+          value: (
+            if (bc = @transaction.bank_account.current_bank_connection)
+              link_to(bc.bank_name.presence || bc.bank_slug,
+                      admin_settings_bank_connection_path(bc),
+                      class: "text-primary hover:underline")
+            end
+          ) },
+        { label: "Fetched at", value: @transaction.fetched_at&.to_s }
+      ] %>
+    <% end %>
+  </div>
+
+  <%= render "admin/shared/components/card", title: "Raw payload (from Enable Banking)" do %>
+    <p class="text-xs text-muted-foreground mb-3">
+      Source of truth — full transaction object as returned by
+      <code>GET /accounts/{uid}/transactions</code>. Encrypted at rest.
+    </p>
+    <%= render "admin/shared/components/json_viewer", json: @transaction.parsed_raw_payload %>
+  <% end %>
+</div>

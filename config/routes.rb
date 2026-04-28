@@ -34,6 +34,12 @@ Rails.application.routes.draw do
 
     resources :versions, only: [ :index, :show ]
 
+    resources :bank_transactions, only: [ :index, :show ]
+
+    # Each OperationRun kind gets its own admin surface — the underlying
+    # OperationRun model is shared, but the UI is concern-specific.
+    resources :transaction_syncs, only: [ :index, :show, :new, :create ]
+
     namespace :settings do
       get "/", to: redirect("/admin/settings/tpp_credentials"), as: :root
 

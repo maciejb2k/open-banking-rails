@@ -11,6 +11,7 @@ gem "tailwindcss-rails"
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem "bootsnap", require: false
 gem "image_processing", "~> 1.2"
+gem "redis", "~> 5.0"
 
 # Authentication
 gem "devise"

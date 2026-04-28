@@ -1,0 +1,246 @@
+<% sync_button = capture do %>
+  <%= render "admin/shared/components/button",
+        label: "Sync now",
+        href: new_admin_transaction_sync_path,
+        icon: "plus",
+        variant: :outline %>
+<% end %>
+
+<div class="space-y-6" data-controller="filter-panel">
+  <%= render "admin/shared/components/page_header",
+        title: "Bank Transactions",
+        subtitle: "All transactions pulled from Enable Banking, normalized across PKO / Revolut / mBank quirks.",
+        actions: sync_button %>
+
+  <%# ── Filters ── %>
+  <% active_filter_count = [
+       params.dig(:q, :bank_account_id_eq).present?,
+       params.dig(:q, :direction_eq).present?,
+       params.dig(:q, :status_eq).present?,
+       params.dig(:q, :currency_eq).present?,
+       params.dig(:q, :booking_date_gteq).present?,
+       params.dig(:q, :booking_date_lteq).present?,
+       params.dig(:q, :title_or_counterparty_name_cont).present?
+     ].count(true) %>
+
+  <%= search_form_for @q, url: admin_bank_transactions_path, html: { data: { turbo: false } } do |f| %>
+    <%= f.hidden_field :s, value: params.dig(:q, :s) %>
+
+    <%# Search bar + filter trigger %>
+    <div class="flex items-center gap-3">
+      <div class="relative flex-1 max-w-md">
+        <%= render "admin/shared/icons/search", classes: "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" %>
+        <%= f.search_field :title_or_counterparty_name_cont,
+              placeholder: "Search title or counterparty…",
+              class: "w-full rounded-lg border bg-card pl-9 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" %>
+      </div>
+
+      <button type="button" data-action="filter-panel#open"
+              class="inline-flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-card-hover transition-colors <%= "border-primary/40 text-primary" if active_filter_count > 0 %>">
+        <%= render "admin/shared/icons/sliders_horizontal", classes: "h-4 w-4" %>
+        Filters
+        <% if active_filter_count > 0 %>
+          <span class="inline-flex items-center justify-center rounded-full bg-primary px-1.5 min-w-5 h-5 text-xs font-bold text-primary-foreground">
+            <%= active_filter_count %>
+          </span>
+        <% end %>
+      </button>
+
+      <button type="submit"
+              class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer">
+        Apply
+      </button>
+    </div>
+
+    <%# Active filter chips %>
+    <% if active_filter_count > 0 %>
+      <div class="flex flex-wrap items-center gap-2 mt-3">
+        <% if (val = params.dig(:q, :bank_account_id_eq)).present? %>
+          <% acc = @user_bank_accounts.find { |a| a.id.to_s == val.to_s } %>
+          <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            Account: <%= acc&.display_name || "##{val}" %>
+            <%= link_to admin_bank_transactions_path(q: params[:q].to_unsafe_h.except("bank_account_id_eq")),
+                  class: "ml-0.5 hover:text-primary/70 transition-colors" do %>
+              <%= render "admin/shared/icons/x", classes: "h-3 w-3" %>
+            <% end %>
+          </span>
+        <% end %>
+        <% if (val = params.dig(:q, :direction_eq)).present? %>
+          <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            Direction: <%= val.capitalize %>
+            <%= link_to admin_bank_transactions_path(q: params[:q].to_unsafe_h.except("direction_eq")),
+                  class: "ml-0.5 hover:text-primary/70 transition-colors" do %>
+              <%= render "admin/shared/icons/x", classes: "h-3 w-3" %>
+            <% end %>
+          </span>
+        <% end %>
+        <% if (val = params.dig(:q, :status_eq)).present? %>
+          <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            Status: <%= val.capitalize %>
+            <%= link_to admin_bank_transactions_path(q: params[:q].to_unsafe_h.except("status_eq")),
+                  class: "ml-0.5 hover:text-primary/70 transition-colors" do %>
+              <%= render "admin/shared/icons/x", classes: "h-3 w-3" %>
+            <% end %>
+          </span>
+        <% end %>
+        <% if (val = params.dig(:q, :currency_eq)).present? %>
+          <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            Currency: <%= val %>
+            <%= link_to admin_bank_transactions_path(q: params[:q].to_unsafe_h.except("currency_eq")),
+                  class: "ml-0.5 hover:text-primary/70 transition-colors" do %>
+              <%= render "admin/shared/icons/x", classes: "h-3 w-3" %>
+            <% end %>
+          </span>
+        <% end %>
+        <% if params.dig(:q, :booking_date_gteq).present? || params.dig(:q, :booking_date_lteq).present? %>
+          <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            Date: <%= params.dig(:q, :booking_date_gteq).presence || "…" %> → <%= params.dig(:q, :booking_date_lteq).presence || "…" %>
+            <%= link_to admin_bank_transactions_path(q: params[:q].to_unsafe_h.except("booking_date_gteq", "booking_date_lteq")),
+                  class: "ml-0.5 hover:text-primary/70 transition-colors" do %>
+              <%= render "admin/shared/icons/x", classes: "h-3 w-3" %>
+            <% end %>
+          </span>
+        <% end %>
+        <% if (val = params.dig(:q, :title_or_counterparty_name_cont)).present? %>
+          <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            Search: "<%= val %>"
+            <%= link_to admin_bank_transactions_path(q: params[:q].to_unsafe_h.except("title_or_counterparty_name_cont")),
+                  class: "ml-0.5 hover:text-primary/70 transition-colors" do %>
+              <%= render "admin/shared/icons/x", classes: "h-3 w-3" %>
+            <% end %>
+          </span>
+        <% end %>
+        <%= link_to "Clear all", admin_bank_transactions_path,
+              class: "text-xs text-muted-foreground hover:text-foreground transition-colors" %>
+      </div>
+    <% end %>
+
+    <%# Slide-out filter panel %>
+    <%= render "admin/shared/components/filter_panel",
+          clear_url: admin_bank_transactions_path,
+          active_count: active_filter_count do %>
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Bank account</label>
+        <%= f.select :bank_account_id_eq,
+              [["All accounts", ""]] + @user_bank_accounts.map { |a|
+                bank = a.current_bank_connection&.bank_name || a.current_bank_connection&.bank_slug
+                ["#{bank.present? ? "#{bank} — " : ""}#{a.display_name}", a.id]
+              },
+              { selected: params.dig(:q, :bank_account_id_eq) },
+              class: "w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" %>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Direction</label>
+        <%= f.select :direction_eq,
+              [["All", ""], ["Credit (incoming)", "credit"], ["Debit (outgoing)", "debit"]],
+              { selected: params.dig(:q, :direction_eq) },
+              class: "w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" %>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
+        <%= f.select :status_eq,
+              [["All", ""], ["Booked", "booked"], ["Pending", "pending"]],
+              { selected: params.dig(:q, :status_eq) },
+              class: "w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" %>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Currency</label>
+        <% currencies = @user_bank_accounts.pluck(:currency).compact.uniq.sort %>
+        <%= f.select :currency_eq,
+              [["All", ""]] + currencies.map { |c| [c, c] },
+              { selected: params.dig(:q, :currency_eq) },
+              class: "w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" %>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Booking date — from</label>
+        <%= f.date_field :booking_date_gteq, value: params.dig(:q, :booking_date_gteq),
+              class: "w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" %>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Booking date — to</label>
+        <%= f.date_field :booking_date_lteq, value: params.dig(:q, :booking_date_lteq),
+              class: "w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <%# ── Table ── %>
+  <div class="admin-section p-0 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b bg-muted/30">
+            <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "Date", "booking_date" %></th>
+            <th class="px-4 py-3 text-left font-medium text-muted-foreground">Account</th>
+            <th class="px-4 py-3 text-left font-medium text-muted-foreground">Title</th>
+            <th class="px-4 py-3 text-left font-medium text-muted-foreground">Counterparty</th>
+            <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "Status", "status" %></th>
+            <th class="px-4 py-3 text-right font-medium text-muted-foreground"><%= sort_link "Amount", "amount" %></th>
+            <th class="w-12 px-4 py-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if @collection.empty? %>
+            <tr>
+              <td colspan="7">
+                <%= render "admin/shared/components/empty_state",
+                      title: "No transactions",
+                      description: active_filter_count > 0 ? "No transactions match your filters." : "Run a sync above to pull data from your banks.",
+                      icon: "dollar_sign" %>
+              </td>
+            </tr>
+          <% else %>
+            <% @collection.each do |tx| %>
+              <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                <td class="px-4 py-3 font-mono text-xs whitespace-nowrap"><%= tx.booking_date %></td>
+                <td class="px-4 py-3 text-xs text-muted-foreground">
+                  <% bank = tx.bank_account.current_bank_connection&.bank_name || tx.bank_account.current_bank_connection&.bank_slug %>
+                  <div class="text-foreground"><%= bank %></div>
+                  <div class="font-mono text-muted-foreground/70"><%= tx.bank_account.iban || tx.bank_account.uid %></div>
+                </td>
+                <td class="px-4 py-3 max-w-xs">
+                  <div class="text-foreground truncate"><%= tx.title.presence || "—" %></div>
+                  <% if tx.type_hint.present? %>
+                    <div class="text-xs text-muted-foreground truncate"><%= tx.type_hint %></div>
+                  <% end %>
+                </td>
+                <td class="px-4 py-3 text-xs">
+                  <% if tx.counterparty_name.present? %>
+                    <div class="text-foreground truncate max-w-[18ch]"><%= tx.counterparty_name %></div>
+                  <% end %>
+                  <% if tx.counterparty_iban.present? %>
+                    <div class="font-mono text-muted-foreground/80"><%= tx.counterparty_iban %></div>
+                  <% end %>
+                  <% if tx.counterparty_name.blank? && tx.counterparty_iban.blank? %>
+                    <span class="text-muted-foreground/50">—</span>
+                  <% end %>
+                </td>
+                <td class="px-4 py-3">
+                  <%= render "admin/shared/components/badge",
+                        text: tx.status,
+                        variant: tx.status == "booked" ? :success : :info %>
+                </td>
+                <td class="px-4 py-3 text-right font-mono whitespace-nowrap <%= tx.direction == 'credit' ? 'text-success' : 'text-foreground' %>">
+                  <%= tx.direction == "credit" ? "+" : "−" %><%= number_with_precision(tx.amount, precision: 2) %>
+                  <span class="text-muted-foreground text-xs"><%= tx.currency %></span>
+                </td>
+                <td class="px-4 py-3">
+                  <%= render "admin/shared/components/dropdown_menu", items: [
+                    { label: "View", icon: "eye", href: admin_bank_transaction_path(tx) }
+                  ] %>
+                </td>
+              </tr>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <%= render "admin/shared/components/pagination", pagy: @pagy %>
+  </div>
+</div>

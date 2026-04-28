@@ -7,6 +7,7 @@ class BankAccount < ApplicationRecord
   belongs_to :tpp_credential
   belongs_to :current_bank_connection, class_name: "BankConnection", optional: true
   has_one :user, through: :tpp_credential
+  has_many :bank_transactions, dependent: :destroy
 
   encrypts :raw_balances
 

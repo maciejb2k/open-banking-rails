@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_28_194530) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_28_220217) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -72,6 +72,53 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_28_194530) do
     t.index ["valid_until"], name: "index_bank_connections_on_valid_until"
   end
 
+  create_table "bank_transactions", force: :cascade do |t|
+    t.decimal "amount", precision: 15, scale: 2, null: false
+    t.bigint "bank_account_id", null: false
+    t.string "bank_transaction_code"
+    t.date "booking_date", null: false
+    t.string "counterparty_iban"
+    t.string "counterparty_name"
+    t.datetime "created_at", null: false
+    t.string "currency", limit: 3, null: false
+    t.string "direction", null: false
+    t.string "external_id", null: false
+    t.datetime "fetched_at", null: false
+    t.text "raw_payload", null: false
+    t.string "status", default: "booked", null: false
+    t.text "title"
+    t.date "transaction_date"
+    t.string "type_hint"
+    t.datetime "updated_at", null: false
+    t.date "value_date"
+    t.index ["bank_account_id", "booking_date"], name: "index_bank_transactions_on_bank_account_id_and_booking_date"
+    t.index ["bank_account_id", "external_id"], name: "index_bank_transactions_on_bank_account_id_and_external_id", unique: true
+    t.index ["bank_account_id"], name: "index_bank_transactions_on_bank_account_id"
+    t.index ["status"], name: "index_bank_transactions_on_status"
+  end
+
+  create_table "operation_runs", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "error"
+    t.datetime "finished_at"
+    t.string "kind", null: false
+    t.jsonb "params", default: {}, null: false
+    t.datetime "started_at"
+    t.string "status", default: "queued", null: false
+    t.bigint "subject_id"
+    t.string "subject_type"
+    t.jsonb "summary", default: {}, null: false
+    t.string "trigger", default: "manual", null: false
+    t.bigint "triggered_by_user_id"
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_operation_runs_on_created_at"
+    t.index ["kind", "status"], name: "index_operation_runs_on_kind_and_status"
+    t.index ["kind"], name: "index_operation_runs_on_kind"
+    t.index ["status"], name: "index_operation_runs_on_status"
+    t.index ["subject_type", "subject_id"], name: "index_operation_runs_on_subject"
+    t.index ["triggered_by_user_id"], name: "index_operation_runs_on_triggered_by_user_id"
+  end
+
   create_table "tpp_credentials", force: :cascade do |t|
     t.text "application_id"
     t.datetime "cert_expires_at"
@@ -123,5 +170,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_28_194530) do
   add_foreign_key "bank_accounts", "tpp_credentials"
   add_foreign_key "bank_connections", "bank_connections", column: "replaces_id"
   add_foreign_key "bank_connections", "tpp_credentials"
+  add_foreign_key "bank_transactions", "bank_accounts"
+  add_foreign_key "operation_runs", "users", column: "triggered_by_user_id"
   add_foreign_key "tpp_credentials", "users"
 end
