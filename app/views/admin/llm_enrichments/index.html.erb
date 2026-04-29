@@ -1,0 +1,178 @@
+<% trigger_button = capture do %>
+  <%= render "admin/shared/components/button",
+        label: "Generate proposals",
+        icon: "refresh_cw",
+        variant: @api_key_set ? :default : :outline,
+        href: @api_key_set ? nil : "#",
+        type: @api_key_set ? nil : :button,
+        data: { action: @api_key_set ? nil : "click->toast#show" } %>
+<% end %>
+
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "AI Enrichment",
+        subtitle: "Identifies merchants from unmatched transactions via the LLM. Each run processes unique patterns in batches — progress streams live.",
+        actions: trigger_button %>
+
+  <% unless @api_key_set %>
+    <%= render "admin/shared/components/callout",
+          variant: :warning,
+          title: "No API key configured",
+          message: "Set OPENAI_API_KEY in .env and restart the server." %>
+  <% end %>
+
+  <%# Custom: stat-with-explanation list. stat_card requires change/trend %>
+  <%# props which don't apply here. If reused elsewhere, extract _stat_explanation_list. %>
+  <%= render "admin/shared/components/card", padding: false do %>
+    <div class="border-b px-4 py-3">
+      <h3 class="font-semibold">What's left</h3>
+      <p class="text-xs text-muted-foreground">Unmatched transactions broken down by what you can do with them.</p>
+    </div>
+    <ul class="divide-y">
+      <% rows = [
+        { value: @unmatched_count, label: "Unmatched total",
+          hint: "Transactions still without a category. The numbers below add up to this." },
+        { value: @pending_merchants.size, label: "Awaiting approval",
+          hint: "LLM proposed a merchant — click \"Approve\" in the section below to enable the rule and re-classify history." },
+        { value: @new_groups_count, label: "Ready to send to LLM",
+          hint: "New groups with no existing rule. Click \"Generate proposals\" above to send them to OpenAI." },
+        { value: @unmatched_count - @suggestible_count, label: "LLM can't help",
+          hint: "Titles with no signal (\"PRZELEW\", phone numbers, BLIK codes). Classify manually in the transaction view." }
+      ] %>
+      <% rows.each_with_index do |row, idx| %>
+        <li class="flex items-center gap-4 px-4 py-3 <%= idx.zero? ? "bg-muted/20" : "" %>">
+          <span class="w-12 shrink-0 text-right text-xl font-semibold text-foreground tabular-nums"><%= row[:value] %></span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-foreground"><%= row[:label] %></p>
+            <p class="text-xs text-muted-foreground leading-relaxed mt-0.5"><%= row[:hint] %></p>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <%= render "admin/shared/components/card", title: "New run" do %>
+    <p class="text-sm text-muted-foreground mb-4">
+      Groups are sent in batches of <strong><%= Llm::MerchantSuggester::BATCH_SIZE %></strong> —
+      <%= (@group_count.to_f / Llm::MerchantSuggester::BATCH_SIZE).ceil %> API <%= "call".pluralize((@group_count.to_f / Llm::MerchantSuggester::BATCH_SIZE).ceil) %>
+      for the current <%= @group_count %> groups.
+      Only the normalized <code>title</code> and <code>counterparty_name</code> are sent — no amounts, IBANs, or dates.
+    </p>
+    <%= form_with url: admin_llm_enrichments_path, method: :post, html: { class: "flex items-end gap-3" } do |f| %>
+      <div class="w-32">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Group limit</label>
+        <%= f.number_field :limit, value: [ @group_count, Llm::EnrichmentRunner::DEFAULT_LIMIT ].min,
+              min: 1, max: 200, class: "form-input mt-1" %>
+      </div>
+      <%= render "admin/shared/components/button",
+            label: "Generate proposals", type: :submit,
+            icon: "refresh_cw", variant: @api_key_set ? :default : :outline %>
+    <% end %>
+    <p class="text-xs text-muted-foreground mt-3">
+      Confidence ≥ <%= Llm::EnrichmentRunner::AUTO_APPROVE_THRESHOLD %> → rule enabled immediately.
+      Below that → goes to the approval queue.
+    </p>
+  <% end %>
+
+  <%= render "admin/shared/components/card", padding: false do %>
+    <div class="border-b px-4 py-3">
+      <h3 class="font-semibold">Awaiting approval (<%= @pending_merchants.size %>)</h3>
+      <p class="text-xs text-muted-foreground">LLM proposals waiting for your decision.</p>
+    </div>
+    <% if @pending_merchants.any? %>
+      <ul class="divide-y">
+        <% @pending_merchants.each do |m| %>
+          <% rule = m.merchant_rules.find { |r| r.source == "llm" } || m.merchant_rules.first %>
+          <li class="px-4 py-3 hover:bg-muted/20 transition-colors">
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="font-medium <%= sensitive_class %>"><%= m.display %></span>
+                  <%= render "admin/shared/components/badge", text: "AI", variant: :default %>
+                  <span class="text-xs text-muted-foreground">confidence: <%= (m.confidence.to_f * 100).round %>%</span>
+                </div>
+                <% if rule %>
+                  <div class="text-xs text-muted-foreground font-mono mt-1 <%= sensitive_class %>">
+                    <%= rule.field %> <%= rule.kind %> "<%= rule.pattern %>"
+                  </div>
+                <% end %>
+                <% if m.default_category %>
+                  <div class="text-xs text-muted-foreground mt-0.5">
+                    Category: <%= m.default_category.parent ? "#{m.default_category.parent.name} → #{m.default_category.name}" : m.default_category.name %>
+                  </div>
+                <% end %>
+                <% if m.notes.present? %>
+                  <div class="text-xs italic text-muted-foreground mt-1"><%= m.notes %></div>
+                <% end %>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <%= render "admin/shared/components/button",
+                      label: "Edit", href: edit_admin_merchant_path(m),
+                      variant: :outline, size: :sm, icon: "pencil" %>
+                <%= render "admin/shared/components/button",
+                      label: "Delete", href: admin_merchant_path(m), method: :delete,
+                      data: { turbo_confirm: "Delete proposal #{m.display}?" },
+                      variant: :destructive, size: :sm, icon: "trash_2" %>
+                <%= render "admin/shared/components/button",
+                      label: "Approve", href: approve_admin_merchant_path(m), method: :post,
+                      variant: :default, size: :sm %>
+              </div>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <%= render "admin/shared/components/empty_state",
+            title: "No proposals to approve",
+            description: "Either everything's been approved, or the LLM hasn't generated proposals yet.",
+            icon: "tag" %>
+    <% end %>
+  <% end %>
+
+  <div class="admin-section p-0 overflow-hidden">
+    <%= render "admin/shared/components/data_table",
+          columns: [
+            { label: "Run" },
+            { label: "Status" },
+            { label: "Batches" },
+            { label: "Auto" },
+            { label: "Pending" },
+            { label: "Duration" },
+            { label: "", width: "w-12" }
+          ] do %>
+      <% if @runs.empty? %>
+        <tr>
+          <td colspan="7">
+            <%= render "admin/shared/components/empty_state",
+                  title: "No runs yet",
+                  description: "Trigger your first run with the button above.",
+                  icon: "refresh_cw" %>
+          </td>
+        </tr>
+      <% else %>
+        <% @runs.each do |run| %>
+          <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+            <td class="px-4 py-3 font-mono text-xs text-muted-foreground">#<%= run.id %></td>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/badge", text: run.status, variant: run.status_tone %>
+            </td>
+            <td class="px-4 py-3 text-sm text-muted-foreground">
+              <%= Array(run.summary["batches"]).size %>
+            </td>
+            <td class="px-4 py-3 font-mono text-sm"><%= run.summary["auto_applied"] || "—" %></td>
+            <td class="px-4 py-3 font-mono text-sm"><%= run.summary["pending_review"] || "—" %></td>
+            <td class="px-4 py-3 text-xs text-muted-foreground">
+              <%= run.duration_seconds ? "#{run.duration_seconds}s" : "—" %>
+            </td>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/dropdown_menu", items: [
+                { label: "View", icon: "eye", href: admin_llm_enrichment_path(run) }
+              ] %>
+            </td>
+          </tr>
+        <% end %>
+      <% end %>
+    <% end %>
+    <%= render "admin/shared/components/pagination", pagy: @pagy %>
+  </div>
+</div>

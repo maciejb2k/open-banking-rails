@@ -17,6 +17,7 @@ class OperationRun < ApplicationRecord
     balance_refresh
     connection_refresh
     account_details_refresh
+    llm_enrichment
   ].freeze
 
   STATUSES = %w[queued running succeeded partial failed].freeze

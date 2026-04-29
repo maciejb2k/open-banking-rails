@@ -1,0 +1,6 @@
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "Edit: #{@merchant.display}",
+        back_path: admin_merchant_path(@merchant) %>
+  <%= render "admin/merchants/form", merchant: @merchant %>
+</div>

@@ -6,6 +6,7 @@ module Admin
 
     layout "admin"
     helper Admin::BaseHelper
+    helper Admin::EnrichmentHelper
     before_action :authenticate_user!
 
     private

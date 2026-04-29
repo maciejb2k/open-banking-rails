@@ -1,0 +1,7 @@
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "New category",
+        back_path: admin_categories_path %>
+
+  <%= render "admin/categories/form", category: @category %>
+</div>

@@ -1,0 +1,96 @@
+<% page_actions = capture do %>
+  <%= render "admin/shared/components/button",
+        label: "New category",
+        href: new_admin_category_path,
+        icon: "plus",
+        variant: :default %>
+<% end %>
+
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "Categories",
+        subtitle: "Hierarchical expense categories. Sub-categories shown indented under their parent. Renaming doesn't change slugs.",
+        actions: page_actions %>
+
+  <div class="admin-section p-0 overflow-hidden">
+    <%= render "admin/shared/components/data_table",
+          columns: [
+            { label: "Name" },
+            { label: "Slug" },
+            { label: "Kind" },
+            { label: "", width: "w-12" }
+          ] do %>
+      <% if @top_level.empty? %>
+        <tr>
+          <td colspan="4">
+            <%= render "admin/shared/components/empty_state",
+                  title: "No categories",
+                  description: "Add your first category to get started.",
+                  action_label: "New category",
+                  action_path: new_admin_category_path,
+                  icon: "shopping_cart" %>
+          </td>
+        </tr>
+      <% else %>
+        <% @top_level.each do |top| %>
+          <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors bg-muted/10">
+            <td class="px-4 py-3 font-semibold text-foreground"><%= top.name %></td>
+            <td class="px-4 py-3 font-mono text-xs text-muted-foreground"><%= top.slug %></td>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/badge", text: top.kind, variant: top.kind == "expense" ? :default : :muted %>
+            </td>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/dropdown_menu", items: [
+                    { label: "Edit", icon: "pencil", href: edit_admin_category_path(top) },
+                    { label: "Add sub-category", icon: "plus", href: new_admin_category_path(parent_id: top.id) },
+                    { divider: true },
+                    { label: "Archive", icon: "eye_off", method: :post, href: archive_admin_category_path(top), variant: :destructive }
+                  ] %>
+            </td>
+          </tr>
+          <% top.children.where(archived_at: nil).sort_by { |c| c.name.downcase }.each do |sub| %>
+            <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+              <td class="px-4 py-2.5 pl-12 text-sm text-foreground/90">
+                <span class="text-muted-foreground/60 mr-2">└</span><%= sub.name %>
+              </td>
+              <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground"><%= sub.slug %></td>
+              <td class="px-4 py-2.5">
+                <%= render "admin/shared/components/badge", text: sub.kind, variant: sub.kind == "expense" ? :default : :muted %>
+              </td>
+              <td class="px-4 py-2.5">
+                <%= render "admin/shared/components/dropdown_menu", items: [
+                      { label: "Edit", icon: "pencil", href: edit_admin_category_path(sub) },
+                      { divider: true },
+                      { label: "Archive", icon: "eye_off", method: :post, href: archive_admin_category_path(sub), variant: :destructive }
+                    ] %>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% if @archived.any? %>
+    <%= render "admin/shared/components/card", title: "Archived", subtitle: "Hidden from forms but historical links are preserved." do %>
+      <ul class="divide-y -mx-4">
+        <% @archived.each do |c| %>
+          <li class="flex items-center justify-between px-4 py-2.5">
+            <div class="min-w-0">
+              <span class="text-sm text-muted-foreground"><%= c.name %></span>
+              <% if c.parent %>
+                <span class="text-xs text-muted-foreground/70">in <%= c.parent.name %></span>
+              <% end %>
+            </div>
+            <%= render "admin/shared/components/button",
+                  label: "Restore",
+                  href: unarchive_admin_category_path(c),
+                  method: :post,
+                  variant: :outline,
+                  size: :sm %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  <% end %>
+</div>

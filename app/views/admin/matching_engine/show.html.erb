@@ -1,0 +1,106 @@
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "Matching engine",
+        subtitle: "Every transaction flows through this cascade top-to-bottom. The first matching rule wins, the rest are skipped." %>
+
+  <%# ── STEP 1: RULES ── %>
+  <%= render "admin/shared/components/card", padding: false do %>
+    <div class="border-b px-4 py-3">
+      <h3 class="font-semibold">1. Match rules (<%= @rules.size %>)</h3>
+      <p class="text-xs text-muted-foreground">Sorted by: source (user → LLM → system) → priority → id. First match wins.</p>
+    </div>
+    <%= render "admin/shared/components/data_table",
+          columns: [
+            { label: "#", width: "w-12" },
+            { label: "Source" },
+            { label: "Rule" },
+            { label: "Merchant" },
+            { label: "Category" },
+            { label: "State" },
+            { label: "Matches", width: "w-24" }
+          ] do %>
+      <% @rules.each_with_index do |rule, idx| %>
+        <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors <%= 'opacity-50' unless rule.enabled? %>">
+          <td class="px-4 py-3 font-mono text-xs text-muted-foreground"><%= idx + 1 %></td>
+          <td class="px-4 py-3">
+            <%= render "admin/shared/components/badge",
+                  text: rule.source,
+                  variant: { "user" => :default, "llm" => :info, "system" => :muted }[rule.source] || :muted %>
+          </td>
+          <td class="px-4 py-3 font-mono text-xs break-all">
+            <span class="text-muted-foreground"><%= rule.field %></span>
+            <span class="text-foreground"><%= rule.kind %></span>
+            <span class="text-foreground <%= sensitive_class %>">"<%= rule.pattern %>"</span>
+          </td>
+          <td class="px-4 py-3 text-sm">
+            <% if rule.merchant %>
+              <span class="<%= sensitive_class %>"><%= link_to rule.merchant.display, admin_merchant_path(rule.merchant), class: "hover:underline" %></span>
+            <% else %>
+              <span class="text-muted-foreground/50">—</span>
+            <% end %>
+          </td>
+          <td class="px-4 py-3 text-xs text-muted-foreground">
+            <% if (cat = rule.merchant&.default_category) %>
+              <%= cat.parent ? "#{cat.parent.name} → #{cat.name}" : cat.name %>
+            <% else %>
+              <span class="text-muted-foreground/50">—</span>
+            <% end %>
+          </td>
+          <td class="px-4 py-3">
+            <% if rule.enabled? %>
+              <%= render "admin/shared/components/badge", text: "enabled", variant: :success %>
+            <% else %>
+              <%= render "admin/shared/components/badge", text: "disabled", variant: :muted %>
+            <% end %>
+          </td>
+          <td class="px-4 py-3 font-mono text-sm tabular-nums">
+            <%= @rule_match_counts[rule.id] || 0 %>
+          </td>
+        </tr>
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <%# ── STEP 2: FALLBACK ── %>
+  <%= render "admin/shared/components/card", padding: false do %>
+    <div class="border-b px-4 py-3">
+      <h3 class="font-semibold">2. Payment-method fallback (<%= @fallback_map.size %>)</h3>
+      <p class="text-xs text-muted-foreground">When no rule matches — we look at <code>payment_method</code> and assign a generic category.</p>
+    </div>
+    <%= render "admin/shared/components/data_table",
+          columns: [
+            { label: "Payment method" },
+            { label: "→ Category" },
+            { label: "Kind", width: "w-24" },
+            { label: "Matches", width: "w-24" }
+          ] do %>
+      <% @fallback_map.each do |pm, cat_slug| %>
+        <% cat = @fallback_categories[cat_slug] %>
+        <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+          <td class="px-4 py-3 font-mono text-xs"><%= pm %></td>
+          <td class="px-4 py-3 text-sm"><%= cat&.name || "<span class='text-destructive'>missing category: #{cat_slug}</span>".html_safe %></td>
+          <td class="px-4 py-3">
+            <% if cat %>
+              <%= render "admin/shared/components/badge",
+                    text: cat.kind,
+                    variant: cat.kind == "ignored" ? :muted : :default %>
+            <% end %>
+          </td>
+          <td class="px-4 py-3 font-mono text-sm tabular-nums">
+            <%= @fallback_counts[pm] || 0 %>
+          </td>
+        </tr>
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <%# ── SUMMARY ── %>
+  <%= render "admin/shared/components/card", title: "Summary" do %>
+    <%= render "admin/shared/components/definition_list", pairs: [
+      { label: "All transactions",        value: @total_count, mono: true },
+      { label: "Classified by rule",      value: @rule_match_counts.values.sum, mono: true },
+      { label: "Classified by fallback",  value: @fallback_counts.values.sum, mono: true },
+      { label: "Unmatched",               value: @unmatched_count, mono: true }
+    ] %>
+  <% end %>
+</div>

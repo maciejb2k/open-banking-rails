@@ -1,0 +1,166 @@
+<% header_actions = capture do %>
+  <%= render "admin/shared/components/button", label: "Edit", href: edit_admin_merchant_path(@merchant), icon: "pencil", variant: :outline %>
+  <% if @merchant.archived? %>
+    <%= render "admin/shared/components/button", label: "Restore", href: unarchive_admin_merchant_path(@merchant), method: :post, variant: :default %>
+  <% else %>
+    <%= render "admin/shared/components/button", label: "Archive", href: archive_admin_merchant_path(@merchant), method: :post, variant: :outline_destructive,
+          data: { turbo_confirm: "Archive this merchant? Its rules will stop matching." } %>
+  <% end %>
+<% end %>
+
+<div class="space-y-6">
+  <% merchant_title = capture do %>
+    <span class="<%= sensitive_class %>"><%= @merchant.display %></span>
+  <% end %>
+  <%= render "admin/shared/components/page_header",
+        title: merchant_title,
+        subtitle: @merchant.notes.presence,
+        browser_title: @merchant.display,
+        back_path: admin_merchants_path,
+        actions: header_actions %>
+
+  <% if @merchant.archived? %>
+    <%= render "admin/shared/components/callout",
+          variant: :warning,
+          title: "Archived",
+          message: "Rules on this merchant only fire if `enabled: true`. Historical matches are preserved." %>
+  <% end %>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div class="lg:col-span-2 space-y-4">
+      <%# Identity %>
+      <%= render "admin/shared/components/card", title: "Identity" do %>
+        <%= render "admin/shared/components/definition_list", pairs: [
+              { label: "Name", value: @merchant.name, sensitive: true },
+              { label: "Display name", value: @merchant.display_name.presence, sensitive: true },
+              { label: "Slug", value: @merchant.slug, mono: true, sensitive: true },
+              { label: "Kind", value: @merchant.kind&.humanize },
+              { label: "Default category", value: @merchant.default_category ? "#{@merchant.default_category.name}#{@merchant.default_category.parent ? " (#{@merchant.default_category.parent.name})" : ''}" : nil },
+              { label: "Source", value: @merchant.source.humanize },
+              { label: "Confidence (LLM)", value: @merchant.confidence ? "#{(@merchant.confidence * 100).round}%" : nil },
+              { label: "Approved at", value: @merchant.approved_at&.to_s }
+            ] %>
+      <% end %>
+
+      <%# Rules %>
+      <%= render "admin/shared/components/card", padding: false do %>
+        <div class="flex items-center justify-between border-b px-4 py-3">
+          <div>
+            <h3 class="font-semibold">Match rules</h3>
+            <p class="text-xs text-muted-foreground">First match wins. Order: user > llm > system, then higher priority within source.</p>
+          </div>
+        </div>
+
+        <% if @rules.any? %>
+          <%= render "admin/shared/components/data_table",
+                columns: [
+                  { label: "Field" },
+                  { label: "Kind" },
+                  { label: "Pattern" },
+                  { label: "Source" },
+                  { label: "Priority", align: :right },
+                  { label: "Enabled" },
+                  { label: "", width: "w-12" }
+                ] do %>
+            <% @rules.each do |rule| %>
+              <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                <td class="px-4 py-3 font-mono text-xs"><%= rule.field %></td>
+                <td class="px-4 py-3 text-sm"><%= rule.kind %></td>
+                <td class="px-4 py-3 font-mono text-xs <%= sensitive_class %>"><%= rule.pattern %></td>
+                <td class="px-4 py-3">
+                  <%= render "admin/shared/components/badge", text: rule.source, variant: rule.source == "user" ? :info : (rule.source == "llm" ? :default : :muted) %>
+                </td>
+                <td class="px-4 py-3 text-right font-mono text-xs"><%= rule.priority %></td>
+                <td class="px-4 py-3">
+                  <% if rule.enabled? %>
+                    <%= render "admin/shared/components/badge", text: "Yes", variant: :success %>
+                  <% else %>
+                    <%= render "admin/shared/components/badge", text: "No", variant: :muted %>
+                  <% end %>
+                </td>
+                <td class="px-4 py-3">
+                  <%= button_to admin_merchant_merchant_rule_path(@merchant, rule),
+                        method: :delete,
+                        form: { data: { turbo_confirm: "Delete this rule? Transactions will be re-classified." } },
+                        class: "rounded-lg p-1 text-muted-foreground hover:bg-card-hover hover:text-destructive transition-colors" do %>
+                    <%= render "admin/shared/icons/x", classes: "h-3.5 w-3.5" %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          <% end %>
+        <% else %>
+          <%= render "admin/shared/components/empty_state",
+                title: "No rules",
+                description: "Add a rule using the form below.",
+                icon: "tag" %>
+        <% end %>
+
+        <%# Inline form to add a new rule %>
+        <div class="border-t px-4 py-3 bg-muted/10">
+          <%= form_with model: @new_rule, url: admin_merchant_merchant_rules_path(@merchant), html: { class: "flex flex-wrap items-end gap-2" } do |f| %>
+            <div class="flex-1 min-w-[140px]">
+              <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Field</label>
+              <%= f.select :field, MerchantRule::FIELDS.map { |x| [ x, x ] }, {}, class: "form-input mt-1" %>
+            </div>
+            <div class="w-32">
+              <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Kind</label>
+              <%= f.select :kind, MerchantRule::KINDS.map { |x| [ x, x ] }, {}, class: "form-input mt-1" %>
+            </div>
+            <div class="flex-1 min-w-[200px]">
+              <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pattern</label>
+              <%= f.text_field :pattern, placeholder: "BIEDRONKA, ^kaufland.*, ...", class: "form-input mt-1" %>
+            </div>
+            <div class="w-24">
+              <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Priority</label>
+              <%= f.number_field :priority, value: 100, class: "form-input mt-1" %>
+            </div>
+            <%= render "admin/shared/components/button", label: "Add", type: :submit, icon: "plus" %>
+          <% end %>
+        </div>
+      <% end %>
+
+      <%# Recent transactions %>
+      <%= render "admin/shared/components/card", padding: false do %>
+        <div class="border-b px-4 py-3">
+          <h3 class="font-semibold">Recent transactions</h3>
+          <p class="text-xs text-muted-foreground"><%= @transaction_count %> total</p>
+        </div>
+        <% if @recent_transactions.any? %>
+          <ul class="divide-y">
+            <% @recent_transactions.each do |tx| %>
+              <li class="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-muted/20 transition-colors">
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm truncate <%= sensitive_class %>"><%= tx.title.presence || "—" %></div>
+                  <div class="text-xs text-muted-foreground"><%= tx.booking_date %> · <%= payment_method_label(tx.payment_method) || tx.type_hint %></div>
+                </div>
+                <div class="text-sm font-mono whitespace-nowrap <%= sensitive_class %> <%= tx.direction == 'credit' ? 'text-success' : 'text-foreground' %>">
+                  <%= tx.direction == "credit" ? "+" : "−" %><%= tx.amount.format(symbol: false, no_cents_if_whole: false) %>
+                  <span class="text-xs text-muted-foreground"><%= tx.currency %></span>
+                </div>
+                <%= link_to admin_bank_transaction_path(tx), class: "text-muted-foreground hover:text-foreground transition-colors" do %>
+                  <%= render "admin/shared/icons/chevron_right", classes: "h-4 w-4" %>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <%= render "admin/shared/components/empty_state",
+                title: "No transactions",
+                description: "No transaction has been matched to this merchant yet.",
+                icon: "dollar_sign" %>
+        <% end %>
+      <% end %>
+    </div>
+
+    <div class="space-y-4">
+      <%= render "admin/shared/components/card", title: "Stats" do %>
+        <%= render "admin/shared/components/definition_list", pairs: [
+              { label: "Transactions", value: @transaction_count.to_s },
+              { label: "Rules", value: @rules.size.to_s },
+              { label: "Rules enabled", value: @rules.count(&:enabled?).to_s }
+            ] %>
+      <% end %>
+    </div>
+  </div>
+</div>

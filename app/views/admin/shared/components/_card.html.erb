@@ -1,10 +1,16 @@
-<%# locals: (title: nil, subtitle: nil, padding: true) %>
+<%# locals: (title: nil, subtitle: nil, padding: true, actions: nil) %>
+<%# actions: optional capture-d markup rendered next to the title (e.g. an Edit button). %>
 <div class="admin-section <%= padding ? "" : "p-0 overflow-hidden" %>">
   <% if title %>
-    <div class="mb-4">
-      <h2 class="text-lg font-semibold text-foreground"><%= title %></h2>
-      <% if subtitle %>
-        <p class="text-sm text-muted-foreground"><%= subtitle %></p>
+    <div class="mb-4 flex items-start justify-between gap-3">
+      <div>
+        <h2 class="text-lg font-semibold text-foreground"><%= title %></h2>
+        <% if subtitle %>
+          <p class="text-sm text-muted-foreground"><%= subtitle %></p>
+        <% end %>
+      </div>
+      <% if actions %>
+        <div class="shrink-0"><%= actions %></div>
       <% end %>
     </div>
   <% end %>

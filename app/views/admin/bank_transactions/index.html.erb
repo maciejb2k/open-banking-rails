@@ -20,18 +20,28 @@
        params.dig(:q, :currency_eq).present?,
        params.dig(:q, :booking_date_gteq).present?,
        params.dig(:q, :booking_date_lteq).present?,
-       params.dig(:q, :title_or_counterparty_name_cont).present?
+       params.dig(:q, :title_or_counterparty_name_or_enrichment_merchant_name_or_enrichment_merchant_display_name_cont).present?,
+       params[:merchant_id].present?,
+       params[:category_id].present?,
+       params[:payment_method].present?,
+       params[:enrichment_source].present?
      ].count(true) %>
 
   <%= search_form_for @q, url: admin_bank_transactions_path, html: { data: { turbo: false } } do |f| %>
     <%= f.hidden_field :s, value: params.dig(:q, :s) %>
+    <%# Enrichment filters live outside the q[] Ransack hash — propagate them
+        as plain hidden fields so submitting the form keeps them. %>
+    <%= hidden_field_tag :merchant_id,        params[:merchant_id],        id: "ef_merchant_id" %>
+    <%= hidden_field_tag :category_id,        params[:category_id],        id: "ef_category_id" %>
+    <%= hidden_field_tag :payment_method,     params[:payment_method],     id: "ef_payment_method" %>
+    <%= hidden_field_tag :enrichment_source,  params[:enrichment_source],  id: "ef_enrichment_source" %>
 
     <%# Search bar + filter trigger %>
     <div class="flex items-center gap-3">
       <div class="relative flex-1 max-w-md">
         <%= render "admin/shared/icons/search", classes: "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" %>
-        <%= f.search_field :title_or_counterparty_name_cont,
-              placeholder: "Search title or counterparty…",
+        <%= f.search_field :title_or_counterparty_name_or_enrichment_merchant_name_or_enrichment_merchant_display_name_cont,
+              placeholder: "Search title, counterparty or merchant…",
               class: "w-full rounded-lg border bg-card pl-9 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" %>
       </div>
 
@@ -46,8 +56,9 @@
         <% if (val = params.dig(:q, :bank_account_id_eq)).present? %>
           <% acc = @user_bank_accounts.find { |a| a.id.to_s == val.to_s } %>
           <%= render "admin/shared/components/filter_chip",
-                label: "Account: #{acc&.display_name || "##{val}"}",
-                remove_path: admin_bank_transactions_path(q: params[:q].to_unsafe_h.except("bank_account_id_eq")) %>
+                remove_path: admin_bank_transactions_path(q: params[:q].to_unsafe_h.except("bank_account_id_eq")) do %>
+            Account: <span class="<%= sensitive_class %>"><%= acc&.display_name || "##{val}" %></span>
+          <% end %>
         <% end %>
         <% if (val = params.dig(:q, :direction_eq)).present? %>
           <%= render "admin/shared/components/filter_chip",
@@ -69,11 +80,33 @@
                 label: "Date: #{params.dig(:q, :booking_date_gteq).presence || "…"} → #{params.dig(:q, :booking_date_lteq).presence || "…"}",
                 remove_path: admin_bank_transactions_path(q: params[:q].to_unsafe_h.except("booking_date_gteq", "booking_date_lteq")) %>
         <% end %>
-        <% if (val = params.dig(:q, :title_or_counterparty_name_cont)).present? %>
+        <% if (val = params.dig(:q, :title_or_counterparty_name_or_enrichment_merchant_name_or_enrichment_merchant_display_name_cont)).present? %>
           <%= render "admin/shared/components/filter_chip",
-                remove_path: admin_bank_transactions_path(q: params[:q].to_unsafe_h.except("title_or_counterparty_name_cont")) do %>
+                remove_path: admin_bank_transactions_path(q: params[:q].to_unsafe_h.except("title_or_counterparty_name_or_enrichment_merchant_name_or_enrichment_merchant_display_name_cont")) do %>
             Search: "<span class="<%= sensitive_class %>"><%= val %></span>"
           <% end %>
+        <% end %>
+        <% if (val = params[:merchant_id]).present? %>
+          <% m = Merchant.find_by(id: val) %>
+          <%= render "admin/shared/components/filter_chip",
+                label: "Merchant: #{m&.display || "##{val}"}",
+                remove_path: admin_bank_transactions_path(request.query_parameters.except("merchant_id")) %>
+        <% end %>
+        <% if (val = params[:category_id]).present? %>
+          <% c = Category.find_by(id: val) %>
+          <%= render "admin/shared/components/filter_chip",
+                label: "Category: #{c&.name || "##{val}"}",
+                remove_path: admin_bank_transactions_path(request.query_parameters.except("category_id")) %>
+        <% end %>
+        <% if (val = params[:payment_method]).present? %>
+          <%= render "admin/shared/components/filter_chip",
+                label: "Method: #{payment_method_label(val)}",
+                remove_path: admin_bank_transactions_path(request.query_parameters.except("payment_method")) %>
+        <% end %>
+        <% if (val = params[:enrichment_source]).present? %>
+          <%= render "admin/shared/components/filter_chip",
+                label: "Source: #{enrichment_source_label(val)}",
+                remove_path: admin_bank_transactions_path(request.query_parameters.except("enrichment_source")) %>
         <% end %>
         <%= link_to "Clear all", admin_bank_transactions_path,
               class: "text-xs text-muted-foreground hover:text-foreground transition-colors" %>
@@ -86,6 +119,8 @@
           active_count: active_filter_count do %>
       <div class="space-y-1.5">
         <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Bank account</label>
+        <%# Native <option> text cannot be blurred by privacy mode (browsers ignore CSS %>
+        <%# on option content). If this becomes an issue, swap for searchable_select. %>
         <%= f.select :bank_account_id_eq,
               [["All accounts", ""]] + @user_bank_accounts.map { |a|
                 bank = a.current_bank_connection&.bank_name || a.current_bank_connection&.bank_slug
@@ -131,6 +166,53 @@
         <%= f.date_field :booking_date_lteq, value: params.dig(:q, :booking_date_lteq),
               class: "form-input" %>
       </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Sprzedawca</label>
+        <%# Plain HTML select bound to the hidden field outside @q via JS.
+            Updates the mirror field on change so Apply submits both. %>
+        <select onchange="document.getElementById('ef_merchant_id').value = this.value"
+                class="form-input">
+          <option value="">Wszyscy sprzedawcy</option>
+          <% Merchant.active.order(:name).each do |m| %>
+            <option value="<%= m.id %>" <%= 'selected' if params[:merchant_id].to_s == m.id.to_s %>><%= m.display %></option>
+          <% end %>
+        </select>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Kategoria</label>
+        <select onchange="document.getElementById('ef_category_id').value = this.value"
+                class="form-input">
+          <option value="">Wszystkie kategorie</option>
+          <% Category.active.includes(:parent).order(:position, :name).each do |c| %>
+            <option value="<%= c.id %>" <%= 'selected' if params[:category_id].to_s == c.id.to_s %>>
+              <%= c.parent ? "#{c.parent.name} → #{c.name}" : c.name %>
+            </option>
+          <% end %>
+        </select>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Payment method</label>
+        <select onchange="document.getElementById('ef_payment_method').value = this.value"
+                class="form-input">
+          <% payment_method_options.each do |label, value| %>
+            <option value="<%= value %>" <%= 'selected' if params[:payment_method].to_s == value.to_s %>><%= label %></option>
+          <% end %>
+        </select>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Classification source</label>
+        <select onchange="document.getElementById('ef_enrichment_source').value = this.value"
+                class="form-input">
+          <option value="">All</option>
+          <% TransactionEnrichment::SOURCES.each do |s| %>
+            <option value="<%= s %>" <%= 'selected' if params[:enrichment_source].to_s == s %>><%= enrichment_source_label(s) %></option>
+          <% end %>
+        </select>
+      </div>
     <% end %>
   <% end %>
 
@@ -140,15 +222,16 @@
           columns: [
             { label: "Date", sortable: "booking_date" },
             { label: "Account" },
-            { label: "Title" },
-            { label: "Counterparty" },
+            { label: "Merchant / Title" },
+            { label: "Category" },
+            { label: "Method" },
             { label: "Status", sortable: "status" },
             { label: "Amount", sortable: "amount_cents", align: :right },
             { label: "", width: "w-12" }
           ] do %>
       <% if @collection.empty? %>
         <tr>
-          <td colspan="7">
+          <td colspan="8">
             <%= render "admin/shared/components/empty_state",
                   title: "No transactions",
                   description: active_filter_count > 0 ? "No transactions match your filters." : "Run a sync above to pull data from your banks.",
@@ -174,21 +257,37 @@
               </div>
             </td>
             <td class="px-4 py-3 max-w-xs">
-              <div class="text-foreground truncate <%= sensitive_class if tx.title.present? %>"><%= tx.title.presence || "—" %></div>
-              <% if tx.type_hint.present? %>
-                <div class="text-xs text-muted-foreground truncate"><%= tx.type_hint %></div>
+              <% if tx.merchant %>
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="font-medium truncate <%= sensitive_class %>"><%= tx.merchant.display %></span>
+                  <%= enrichment_source_badge(tx.enrichment&.source) %>
+                </div>
+                <% if tx.title.present? %>
+                  <div class="text-xs text-muted-foreground truncate <%= sensitive_class %>"><%= tx.title %></div>
+                <% end %>
+              <% else %>
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="truncate <%= sensitive_class if tx.title.present? %>"><%= tx.title.presence || "—" %></span>
+                  <%= enrichment_source_badge(tx.enrichment&.source || "unmatched") %>
+                </div>
+                <% if tx.counterparty_name.present? %>
+                  <div class="text-xs text-muted-foreground truncate <%= sensitive_class %>"><%= tx.counterparty_name %></div>
+                <% end %>
               <% end %>
             </td>
             <td class="px-4 py-3 text-xs">
-              <% if tx.counterparty_name.present? %>
-                <div class="text-foreground truncate max-w-[18ch] <%= sensitive_class %>"><%= tx.counterparty_name %></div>
-              <% end %>
-              <% if tx.counterparty_iban.present? %>
-                <div class="font-mono text-muted-foreground/80 <%= sensitive_class %>"><%= tx.counterparty_iban %></div>
-              <% end %>
-              <% if tx.counterparty_name.blank? && tx.counterparty_iban.blank? %>
+              <% cat = tx.effective_category %>
+              <% if cat %>
+                <div><%= cat.name %></div>
+                <% if cat.parent %>
+                  <div class="text-muted-foreground"><%= cat.parent.name %></div>
+                <% end %>
+              <% else %>
                 <span class="text-muted-foreground/50">—</span>
               <% end %>
+            </td>
+            <td class="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+              <%= payment_method_label(tx.payment_method) || "—" %>
             </td>
             <td class="px-4 py-3">
               <%= render "admin/shared/components/badge",

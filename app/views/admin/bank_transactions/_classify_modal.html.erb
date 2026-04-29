@@ -1,0 +1,92 @@
+<%# locals: (transaction:, merchant_options:) %>
+<%# Modal for editing classification with three propagation modes:
+    only_this / all_for_merchant / create_rule. Stimulus-free — uses
+    radio inputs to drive visibility of the rule fields. %>
+
+<%
+  current_merchant_id = transaction.enrichment&.merchant_id
+  current_category_id = transaction.enrichment&.category_id || transaction.merchant&.default_category_id
+  default_pattern = transaction.title.to_s.upcase.strip
+%>
+
+<%= render "admin/shared/components/modal", id: "classify-modal", title: "Edit classification", size: :lg do %>
+  <%= form_with url: admin_bank_transaction_enrichment_path(transaction), method: :patch, html: { class: "space-y-5" } do |f| %>
+    <div class="space-y-1.5">
+      <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Merchant</label>
+      <select name="enrichment[merchant_id]" class="form-input">
+        <option value="">— select —</option>
+        <% merchant_options.each do |m| %>
+          <option value="<%= m.id %>" <%= 'selected' if m.id == current_merchant_id %>>
+            <%= m.display %><%= " (#{m.default_category.name})" if m.default_category %>
+          </option>
+        <% end %>
+      </select>
+      <p class="text-xs text-muted-foreground">
+        Missing merchant? <%= link_to "Add new", new_admin_merchant_path, target: "_blank", class: "text-primary hover:underline" %>.
+      </p>
+    </div>
+
+    <div class="space-y-1.5">
+      <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Category (override)</label>
+      <select name="enrichment[category_id]" class="form-input">
+        <option value="">— use merchant's default —</option>
+        <% Category.active.includes(:parent).order(:position, :name).each do |c| %>
+          <option value="<%= c.id %>" <%= 'selected' if c.id == current_category_id %>>
+            <%= c.parent ? "#{c.parent.name} → #{c.name}" : c.name %>
+          </option>
+        <% end %>
+      </select>
+    </div>
+
+    <div class="space-y-2 border-t pt-4" data-controller="propagation">
+      <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Apply to</label>
+
+      <label class="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/20 cursor-pointer transition-colors">
+        <input type="radio" name="enrichment[mode]" value="only_this" class="mt-0.5" data-action="change->propagation#switch" data-propagation-target="onlyThis">
+        <div>
+          <div class="text-sm font-medium">This transaction only</div>
+          <div class="text-xs text-muted-foreground">Override on this one transaction. Marked manual — won't be overwritten by future rules.</div>
+        </div>
+      </label>
+
+      <label class="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/20 cursor-pointer transition-colors">
+        <input type="radio" name="enrichment[mode]" value="all_for_merchant" class="mt-0.5" checked data-action="change->propagation#switch" data-propagation-target="allMerchant">
+        <div>
+          <div class="text-sm font-medium">All transactions for this merchant</div>
+          <div class="text-xs text-muted-foreground">Updates the merchant's default category. Applies retroactively and going forward.</div>
+        </div>
+      </label>
+
+      <label class="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/20 cursor-pointer transition-colors">
+        <input type="radio" name="enrichment[mode]" value="create_rule" class="mt-0.5" data-action="change->propagation#switch" data-propagation-target="createRule">
+        <div class="flex-1">
+          <div class="text-sm font-medium">Create a new rule for this pattern</div>
+          <div class="text-xs text-muted-foreground mb-2">A user-source rule will match every existing and future transaction matching this pattern.</div>
+          <div class="grid grid-cols-3 gap-2 hidden" data-propagation-target="ruleFields">
+            <select name="enrichment[rule_field]" class="form-input col-span-1 text-sm">
+              <% MerchantRule::FIELDS.each do |fld| %>
+                <option value="<%= fld %>" <%= 'selected' if fld == "title" %>><%= fld %></option>
+              <% end %>
+            </select>
+            <select name="enrichment[rule_kind]" class="form-input col-span-1 text-sm">
+              <% MerchantRule::KINDS.each do |k| %>
+                <option value="<%= k %>" <%= 'selected' if k == "contains" %>><%= k %></option>
+              <% end %>
+            </select>
+            <input type="text" name="enrichment[rule_pattern]" placeholder="<%= default_pattern %>" value="<%= default_pattern %>"
+                   class="form-input col-span-1 text-sm font-mono">
+          </div>
+        </div>
+      </label>
+    </div>
+
+    <div class="flex justify-end gap-3 pt-2 border-t">
+      <button type="button"
+              onclick="document.getElementById('classify-modal').classList.add('hidden')"
+              class="rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-card-hover transition-colors">
+        Cancel
+      </button>
+      <%= render "admin/shared/components/button", label: "Apply", type: :submit %>
+    </div>
+  <% end %>
+<% end %>

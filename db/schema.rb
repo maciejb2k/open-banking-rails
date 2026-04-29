@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_28_220217) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_29_190000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -84,6 +84,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_28_220217) do
     t.string "direction", null: false
     t.string "external_id", null: false
     t.datetime "fetched_at", null: false
+    t.string "payment_method"
     t.text "raw_payload", null: false
     t.string "status", default: "booked", null: false
     t.text "title"
@@ -94,7 +95,71 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_28_220217) do
     t.index ["bank_account_id", "booking_date"], name: "index_bank_transactions_on_bank_account_id_and_booking_date"
     t.index ["bank_account_id", "external_id"], name: "index_bank_transactions_on_bank_account_id_and_external_id", unique: true
     t.index ["bank_account_id"], name: "index_bank_transactions_on_bank_account_id"
+    t.index ["payment_method"], name: "index_bank_transactions_on_payment_method"
     t.index ["status"], name: "index_bank_transactions_on_status"
+  end
+
+  create_table "categories", force: :cascade do |t|
+    t.datetime "archived_at"
+    t.string "color"
+    t.datetime "created_at", null: false
+    t.string "icon"
+    t.string "kind", default: "expense", null: false
+    t.string "name", null: false
+    t.bigint "parent_id"
+    t.integer "position", default: 0, null: false
+    t.string "slug", null: false
+    t.datetime "updated_at", null: false
+    t.index ["archived_at"], name: "index_categories_on_archived_at"
+    t.index ["parent_id", "position"], name: "index_categories_on_parent_id_and_position"
+    t.index ["parent_id"], name: "index_categories_on_parent_id"
+    t.index ["slug"], name: "index_categories_on_slug", unique: true
+  end
+
+  create_table "merchant_rules", force: :cascade do |t|
+    t.datetime "approved_at"
+    t.bigint "approved_by_id"
+    t.boolean "case_sensitive", default: false, null: false
+    t.decimal "confidence", precision: 4, scale: 3
+    t.datetime "created_at", null: false
+    t.boolean "enabled", default: true, null: false
+    t.string "field", null: false
+    t.string "kind", null: false
+    t.bigint "merchant_id", null: false
+    t.string "model"
+    t.string "pattern", null: false
+    t.integer "priority", default: 0, null: false
+    t.string "source", null: false
+    t.datetime "updated_at", null: false
+    t.index ["approved_by_id"], name: "index_merchant_rules_on_approved_by_id"
+    t.index ["enabled", "priority"], name: "index_merchant_rules_on_enabled_and_priority"
+    t.index ["field", "pattern"], name: "index_merchant_rules_on_field_and_pattern"
+    t.index ["merchant_id"], name: "index_merchant_rules_on_merchant_id"
+    t.index ["source"], name: "index_merchant_rules_on_source"
+  end
+
+  create_table "merchants", force: :cascade do |t|
+    t.datetime "approved_at"
+    t.bigint "approved_by_id"
+    t.datetime "archived_at"
+    t.decimal "confidence", precision: 4, scale: 3
+    t.datetime "created_at", null: false
+    t.bigint "default_category_id"
+    t.string "display_name"
+    t.string "kind"
+    t.string "logo_url"
+    t.string "model"
+    t.string "name", null: false
+    t.text "notes"
+    t.string "slug", null: false
+    t.string "source", null: false
+    t.datetime "updated_at", null: false
+    t.index ["approved_by_id"], name: "index_merchants_on_approved_by_id"
+    t.index ["archived_at"], name: "index_merchants_on_archived_at"
+    t.index ["default_category_id"], name: "index_merchants_on_default_category_id"
+    t.index ["name"], name: "index_merchants_on_name"
+    t.index ["slug"], name: "index_merchants_on_slug", unique: true
+    t.index ["source"], name: "index_merchants_on_source"
   end
 
   create_table "operation_runs", force: :cascade do |t|
@@ -142,6 +207,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_28_220217) do
     t.index ["user_id"], name: "index_tpp_credentials_on_user_id"
   end
 
+  create_table "transaction_enrichments", force: :cascade do |t|
+    t.bigint "category_id"
+    t.boolean "category_overridden", default: false, null: false
+    t.decimal "confidence", precision: 4, scale: 3
+    t.datetime "created_at", null: false
+    t.bigint "enrichable_id", null: false
+    t.string "enrichable_type", null: false
+    t.datetime "enriched_at"
+    t.bigint "merchant_id"
+    t.bigint "merchant_rule_id"
+    t.string "model"
+    t.text "notes"
+    t.string "source", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category_id"], name: "index_transaction_enrichments_on_category_id"
+    t.index ["enrichable_type", "enrichable_id"], name: "idx_enrichments_on_enrichable", unique: true
+    t.index ["enrichable_type", "enrichable_id"], name: "index_transaction_enrichments_on_enrichable"
+    t.index ["merchant_id"], name: "index_transaction_enrichments_on_merchant_id"
+    t.index ["merchant_rule_id"], name: "index_transaction_enrichments_on_merchant_rule_id"
+    t.index ["source"], name: "index_transaction_enrichments_on_source"
+  end
+
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email", default: "", null: false
@@ -171,6 +258,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_28_220217) do
   add_foreign_key "bank_connections", "bank_connections", column: "replaces_id"
   add_foreign_key "bank_connections", "tpp_credentials"
   add_foreign_key "bank_transactions", "bank_accounts"
+  add_foreign_key "categories", "categories", column: "parent_id"
+  add_foreign_key "merchant_rules", "merchants"
+  add_foreign_key "merchant_rules", "users", column: "approved_by_id"
+  add_foreign_key "merchants", "categories", column: "default_category_id"
+  add_foreign_key "merchants", "users", column: "approved_by_id"
   add_foreign_key "operation_runs", "users", column: "triggered_by_user_id"
   add_foreign_key "tpp_credentials", "users"
+  add_foreign_key "transaction_enrichments", "categories"
+  add_foreign_key "transaction_enrichments", "merchant_rules"
+  add_foreign_key "transaction_enrichments", "merchants"
 end

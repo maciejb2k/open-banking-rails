@@ -11,13 +11,16 @@
         subtitle: header_subtitle,
         browser_title: "Transaction #{@transaction.external_id}" %>
 
-  <div class="flex items-center gap-3">
+  <div class="flex items-center gap-3 flex-wrap">
     <%= render "admin/shared/components/badge",
           text: @transaction.direction,
           variant: @transaction.direction == "credit" ? :success : :muted %>
     <%= render "admin/shared/components/badge",
           text: @transaction.status,
           variant: @transaction.status == "booked" ? :success : :info %>
+    <% if @transaction.payment_method.present? %>
+      <%= render "admin/shared/components/badge", text: payment_method_label(@transaction.payment_method), variant: :info %>
+    <% end %>
     <% if @transaction.bank_transaction_code.present? %>
       <%= render "admin/shared/components/badge", text: @transaction.bank_transaction_code, variant: :default %>
     <% end %>
@@ -69,6 +72,37 @@
       ] %>
     <% end %>
   </div>
+
+  <% classify_action = capture do %>
+    <button type="button"
+            onclick="document.getElementById('classify-modal').classList.remove('hidden')"
+            class="rounded-lg border bg-card px-3 py-1.5 text-sm font-medium hover:bg-card-hover transition-colors flex items-center gap-2">
+      <%= render "admin/shared/icons/pencil", classes: "h-3.5 w-3.5" %>
+      Edit
+    </button>
+  <% end %>
+  <%= render "admin/shared/components/card",
+        title: "Classification",
+        subtitle: "Merchant, category, decision source.",
+        actions: classify_action do %>
+    <%= render "admin/shared/components/definition_list", pairs: [
+      { label: "Merchant",
+        value: @transaction.merchant && link_to(@transaction.merchant.display, admin_merchant_path(@transaction.merchant), class: "text-primary hover:underline"),
+        sensitive: true },
+      { label: "Category",
+        value: (cat = @transaction.effective_category) && (cat.parent ? "#{cat.parent.name} → #{cat.name}" : cat.name) },
+      { label: "Source",
+        value: enrichment_source_badge(@transaction.enrichment&.source || "unmatched") },
+      { label: "Rule",
+        value: @transaction.enrichment&.merchant_rule && "#{@transaction.enrichment.merchant_rule.field} #{@transaction.enrichment.merchant_rule.kind} \"#{@transaction.enrichment.merchant_rule.pattern}\"",
+        mono: true, wrap: true, sensitive: true },
+      { label: "Confidence",
+        value: @transaction.enrichment&.confidence && "#{(@transaction.enrichment.confidence * 100).round}%",
+        mono: true }
+    ] %>
+  <% end %>
+
+  <%= render "admin/bank_transactions/classify_modal", transaction: @transaction, merchant_options: @merchant_options %>
 
   <%= render "admin/shared/components/card", title: "Raw payload (from Enable Banking)" do %>
     <p class="text-xs text-muted-foreground mb-3">

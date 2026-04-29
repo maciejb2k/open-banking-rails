@@ -1,0 +1,12 @@
+<%= turbo_stream_from "operation_run_#{@run.id}" %>
+
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "AI Enrichment Run ##{@run.id}",
+        subtitle: "Live progress — processing in batches of #{Llm::MerchantSuggester::BATCH_SIZE} groups.",
+        actions: render("admin/shared/components/button",
+          label: "All runs", href: admin_llm_enrichments_path,
+          variant: :outline, icon: "arrow_left") %>
+
+  <%= render "run_progress", run: @run %>
+</div>

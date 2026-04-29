@@ -1,0 +1,51 @@
+<%# locals: (category:) %>
+<%= form_with model: category, url: category.persisted? ? admin_category_path(category) : admin_categories_path, html: { class: "space-y-6" } do |f| %>
+  <%= render "admin/shared/form/error_summary", object: category %>
+
+  <div class="admin-section max-w-2xl space-y-5">
+    <%= render "admin/shared/form/text_field",
+          form: f, field: :name,
+          label: "Name",
+          placeholder: "e.g. Restaurants",
+          required: true %>
+
+    <%= render "admin/shared/form/text_field",
+          form: f, field: :slug,
+          label: "Slug",
+          hint: category.persisted? ? "Slug is stable — don't change it if rules or exports rely on it." : "Leave blank — generated from the name.",
+          placeholder: "restaurants" %>
+
+    <%= render "admin/shared/form/select",
+          form: f, field: :parent_id,
+          label: "Parent category",
+          include_blank: "— top-level —",
+          options: Category.top_level.active.where.not(id: category.id).ordered.map { |c| [ c.name, c.id ] },
+          hint: "Empty = top-level. Hierarchy is limited to two levels." %>
+
+    <%= render "admin/shared/form/select",
+          form: f, field: :kind,
+          label: "Kind",
+          options: Category::KINDS.map { |k| [ k.humanize, k ] },
+          hint: "expense = counts toward spending. transfer/ignored = excluded from analytics." %>
+
+    <%= render "admin/shared/form/text_field",
+          form: f, field: :color,
+          label: "Color (token)",
+          placeholder: "emerald, blue, rose..." %>
+
+    <%= render "admin/shared/form/text_field",
+          form: f, field: :icon,
+          label: "Icon (file name from shared/icons/)",
+          placeholder: "shopping-cart" %>
+
+    <%= render "admin/shared/form/number_field",
+          form: f, field: :position,
+          label: "Position",
+          hint: "Lower = higher on the list." %>
+  </div>
+
+  <div class="flex items-center justify-end gap-3">
+    <%= render "admin/shared/components/button", label: "Cancel", href: admin_categories_path, variant: :outline %>
+    <%= render "admin/shared/components/button", label: category.persisted? ? "Save changes" : "Create category", type: :submit %>
+  </div>
+<% end %>

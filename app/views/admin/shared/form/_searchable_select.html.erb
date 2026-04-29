@@ -5,7 +5,7 @@
        data-searchable-select-options-value="<%= options.to_json %>">
     <input type="text"
            data-searchable-select-target="search"
-           data-action="input->searchable-select#filter focus->searchable-select#open"
+           data-action="input->searchable-select#filter focus->searchable-select#focus"
            placeholder="<%= placeholder %>"
            class="form-input <%= error ? "border-destructive focus:ring-destructive/20" : "" %>">
     <div data-searchable-select-target="dropdown"

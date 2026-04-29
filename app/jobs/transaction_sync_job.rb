@@ -32,12 +32,38 @@ class TransactionSyncJob < ApplicationJob
     invoke_operation(run, on_progress)
 
     OperationRunFinalizer.call(run, summary)
+
+    # Enrichment runs after sync finalization — idempotent and only touches
+    # rows without an existing enrichment, so it's safe even on partial
+    # failures (failed accounts contribute no new transactions).
+    enrich_new_transactions(run)
   rescue StandardError => e
     run&.fail!(error: "#{e.class.name}: #{e.message}", summary: summary)
     raise
   end
 
   private
+
+  # Scopes the enricher to whichever account(s) this run touched, so a
+  # per-account run doesn't scan the whole table. Failures here are logged
+  # but don't fail the run — sync already succeeded; enrichment can be
+  # retried separately.
+  def enrich_new_transactions(run)
+    scope = scoped_pending_transactions(run)
+    return if scope.nil?
+    Enrichment::TransactionEnricher.enrich_pending(scope)
+  rescue StandardError => e
+    Rails.logger.error("[TransactionSyncJob] Enrichment failed for run=#{run.id}: #{e.class}: #{e.message}")
+  end
+
+  def scoped_pending_transactions(run)
+    base = BankTransaction.without_enrichment
+    case run.subject
+    when BankAccount    then base.where(bank_account_id: run.subject.id)
+    when BankConnection then base.where(bank_account_id: run.subject.current_bank_accounts.select(:id))
+    when User           then base.for_user(run.subject)
+    end
+  end
 
   # Dispatch to the right domain operation based on what the run is scoped to.
   def invoke_operation(run, on_progress)

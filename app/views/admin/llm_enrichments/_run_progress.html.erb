@@ -1,0 +1,115 @@
+<%# locals: (run:, **) %>
+<%# Re-rendered live via Turbo Streams on every run.update! (after each batch). %>
+<%= tag.div id: dom_id(run, :progress), class: "space-y-6" do %>
+  <div class="flex items-center gap-3">
+    <%= render "admin/shared/components/badge", text: run.status, variant: run.status_tone %>
+    <% batches = Array(run.summary["batches"]) %>
+    <% if run.running? %>
+      <span class="inline-flex items-center gap-2 text-xs text-muted-foreground">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-info opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-info"></span>
+        </span>
+        Batch <%= batches.size %> done…
+      </span>
+    <% elsif run.terminal? && run.finished_at %>
+      <span class="text-xs text-muted-foreground">Finished in <%= run.duration_seconds %>s</span>
+    <% end %>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <%= render "admin/shared/components/card", title: "Summary" do %>
+      <%= render "admin/shared/components/definition_list", pairs: [
+        { label: "Status",         value: run.status },
+        { label: "Trigger",        value: run.trigger },
+        { label: "Group limit",    value: run.params["limit"], mono: true },
+        { label: "Total groups",   value: run.summary["total_groups"] },
+        { label: "Auto-applied",   value: run.summary["auto_applied"] },
+        { label: "Pending review", value: run.summary["pending_review"] },
+        { label: "Skipped",        value: run.summary["skipped"] },
+        { label: "Started at",     value: run.started_at&.to_s },
+        { label: "Finished at",    value: run.finished_at&.to_s },
+        { label: "Duration",       value: run.duration_seconds && "#{run.duration_seconds}s" }
+      ] %>
+    <% end %>
+
+    <% if run.error.present? %>
+      <%= render "admin/shared/components/card", title: "Error" do %>
+        <pre class="text-sm text-destructive whitespace-pre-wrap break-all"><%= run.error %></pre>
+      <% end %>
+    <% end %>
+  </div>
+
+  <%= render "admin/shared/components/card", padding: false do %>
+    <div class="border-b px-4 py-3">
+      <h3 class="font-semibold">Batches (<%= batches.size %>)</h3>
+      <p class="text-xs text-muted-foreground">Each batch is a single OpenAI call with up to <%= Llm::MerchantSuggester::BATCH_SIZE %> groups.</p>
+    </div>
+    <% if batches.empty? %>
+      <p class="px-4 py-6 text-sm text-muted-foreground">
+        <%= run.queued? ? "Run is queued — waiting for the worker to pick it up." : "Processing hasn't started yet." %>
+      </p>
+    <% else %>
+      <%= render "admin/shared/components/data_table",
+            columns: [
+              { label: "#" },
+              { label: "Groups" },
+              { label: "Status" },
+              { label: "Auto" },
+              { label: "Pending" },
+              { label: "Skipped" },
+              { label: "Errors" }
+            ] do %>
+        <% batches.each do |b| %>
+          <tr class="border-b last:border-0">
+            <td class="px-4 py-3 font-mono text-xs text-muted-foreground"><%= b["index"] + 1 %></td>
+            <td class="px-4 py-3 text-sm"><%= b["size"] %></td>
+            <td class="px-4 py-3">
+              <% variant = b["status"] == "succeeded" ? :success : :destructive %>
+              <%= render "admin/shared/components/badge", text: b["status"], variant: variant %>
+            </td>
+            <td class="px-4 py-3 font-mono text-sm"><%= b["auto"] %></td>
+            <td class="px-4 py-3 font-mono text-sm"><%= b["pending"] %></td>
+            <td class="px-4 py-3 font-mono text-sm text-muted-foreground"><%= b["skipped"] %></td>
+            <td class="px-4 py-3">
+              <% errs = Array(b["errors"]) %>
+              <% if errs.any? %>
+                <details class="text-xs">
+                  <summary class="cursor-pointer text-destructive"><%= errs.size %> error(s)</summary>
+                  <ul class="mt-1 space-y-0.5 text-muted-foreground">
+                    <% errs.each do |e| %>
+                      <li class="font-mono break-all"><%= e["title"] %>: <%= e["error"].truncate(120) %></li>
+                    <% end %>
+                  </ul>
+                </details>
+              <% else %>
+                <span class="text-xs text-muted-foreground">—</span>
+              <% end %>
+            </td>
+          </tr>
+          <% if b["request"].present? || b["response"].present? %>
+            <tr class="border-b last:border-0 bg-muted/10">
+              <td colspan="7" class="px-4 py-3">
+                <details class="text-xs">
+                  <summary class="cursor-pointer text-muted-foreground hover:text-foreground">
+                    Show LLM I/O (batch <%= b["index"] + 1 %>)
+                  </summary>
+                  <div class="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <div>
+                      <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Sent (input)</p>
+                      <%= render "admin/shared/components/json_viewer", json: b["request"], sensitive: false %>
+                    </div>
+                    <div>
+                      <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">LLM response</p>
+                      <%= render "admin/shared/components/json_viewer", json: b["response"], sensitive: false %>
+                    </div>
+                  </div>
+                </details>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>

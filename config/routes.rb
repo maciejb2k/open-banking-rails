@@ -34,7 +34,32 @@ Rails.application.routes.draw do
 
     resources :versions, only: [ :index, :show ]
 
-    resources :bank_transactions, only: [ :index, :show ]
+    resources :bank_transactions, only: [ :index, :show ] do
+      resource :enrichment, only: [ :update ], controller: "transaction_enrichments"
+    end
+
+    resources :categories, except: [ :show ] do
+      member do
+        post :archive
+        post :unarchive
+      end
+    end
+
+    resources :merchants do
+      member do
+        post :archive
+        post :unarchive
+        post :approve
+      end
+      resources :merchant_rules, only: [ :create, :update, :destroy ]
+    end
+
+    # LLM enrichment: dashboard (index/create) + per-run live progress (show).
+    resources :llm_enrichments, only: [ :index, :show, :create ]
+
+    # Visualization of the entire enrichment pipeline: rules in execution
+    # order + payment-method fallback map. Read-only, debugging aid.
+    get "matching_engine", to: "matching_engine#show"
 
     # Each OperationRun kind gets its own admin surface — the underlying
     # OperationRun model is shared, but the UI is concern-specific.

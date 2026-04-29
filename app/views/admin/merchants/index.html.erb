@@ -1,0 +1,104 @@
+<% page_actions = capture do %>
+  <%= render "admin/shared/components/button",
+        label: "New merchant",
+        href: new_admin_merchant_path,
+        icon: "plus" %>
+<% end %>
+
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "Merchants",
+        subtitle: "Stores and payment recipients. Rules link transactions to merchants; merchants supply a default category.",
+        actions: page_actions %>
+
+  <%# Filter bar — simpler than a panel since few options %>
+  <%= form_with url: admin_merchants_path, method: :get, html: { data: { turbo: false }, class: "flex flex-wrap items-center gap-3" } do |f| %>
+    <div class="relative flex-1 max-w-md">
+      <%= render "admin/shared/icons/search", classes: "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" %>
+      <%= f.search_field :q, value: params[:q],
+            placeholder: "Search by name…",
+            class: "form-input pl-9" %>
+    </div>
+
+    <%= f.select :source,
+          [ [ "All sources", "" ] ] + Merchant::SOURCES.map { |s| [ s.humanize, s ] },
+          { selected: params[:source] },
+          class: "form-input w-40" %>
+
+    <%= f.select :category_id,
+          [ [ "All categories", "" ] ] + Category.active.top_level.ordered.map { |c| [ c.name, c.id ] },
+          { selected: params[:category_id] },
+          class: "form-input w-48" %>
+
+    <label class="flex items-center gap-2 text-sm">
+      <%= f.check_box :show_archived, { checked: params[:show_archived] == "1" }, "1", "0" %>
+      Show archived
+    </label>
+
+    <%= render "admin/shared/components/button", label: "Filter", type: :submit, variant: :outline %>
+  <% end %>
+
+  <div class="admin-section p-0 overflow-hidden">
+    <%= render "admin/shared/components/data_table",
+          columns: [
+            { label: "Merchant" },
+            { label: "Category" },
+            { label: "Rules" },
+            { label: "Source" },
+            { label: "Transactions", align: :right },
+            { label: "", width: "w-12" }
+          ] do %>
+      <% if @collection.empty? %>
+        <tr>
+          <td colspan="6">
+            <%= render "admin/shared/components/empty_state",
+                  title: "No merchants",
+                  description: "Add your first merchant, or sync transactions to let system rules pick some up.",
+                  action_label: "New merchant",
+                  action_path: new_admin_merchant_path,
+                  icon: "tag" %>
+          </td>
+        </tr>
+      <% else %>
+        <% @collection.each do |m| %>
+          <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors <%= 'opacity-60' if m.archived? %>">
+            <td class="px-4 py-3">
+              <div class="font-medium <%= sensitive_class %>"><%= link_to m.display, admin_merchant_path(m), class: "hover:underline" %></div>
+              <% if m.kind.present? %>
+                <div class="text-xs text-muted-foreground"><%= m.kind %></div>
+              <% end %>
+            </td>
+            <td class="px-4 py-3 text-sm">
+              <% if m.default_category %>
+                <%= m.default_category.name %>
+                <% if m.default_category.parent %>
+                  <span class="text-xs text-muted-foreground">(<%= m.default_category.parent.name %>)</span>
+                <% end %>
+              <% else %>
+                <span class="text-muted-foreground/60">—</span>
+              <% end %>
+            </td>
+            <td class="px-4 py-3 text-sm text-muted-foreground"><%= m.merchant_rules.size %></td>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/badge", text: m.source, variant: m.source == "user" ? :info : (m.source == "llm" ? :default : :muted) %>
+            </td>
+            <td class="px-4 py-3 text-right font-mono text-xs">
+              <%= @transaction_counts[m.id] || 0 %>
+            </td>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/dropdown_menu", items: [
+                    { label: "View", icon: "eye", href: admin_merchant_path(m) },
+                    { label: "Edit", icon: "pencil", href: edit_admin_merchant_path(m) },
+                    { divider: true },
+                    m.archived? ?
+                      { label: "Restore", icon: "refresh_cw", method: :post, href: unarchive_admin_merchant_path(m) } :
+                      { label: "Archive", icon: "eye_off", method: :post, href: archive_admin_merchant_path(m), variant: :destructive }
+                  ] %>
+            </td>
+          </tr>
+        <% end %>
+      <% end %>
+    <% end %>
+    <%= render "admin/shared/components/pagination", pagy: @pagy %>
+  </div>
+</div>

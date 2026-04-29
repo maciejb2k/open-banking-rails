@@ -19,6 +19,15 @@ module Admin
           ]
         },
         {
+          title: "Classification",
+          items: [
+            { name: "Merchants", path: admin_merchants_path, icon: "tag" },
+            { name: "Categories", path: admin_categories_path, icon: "shopping_cart" },
+            { name: "AI Enrichment", path: admin_llm_enrichments_path, icon: "sparkles" },
+            { name: "Matching engine", path: admin_matching_engine_path, icon: "search" }
+          ]
+        },
+        {
           title: "Settings",
           items: [
             { name: "TPP Credentials", path: admin_settings_tpp_credentials_path, icon: "file_text" },

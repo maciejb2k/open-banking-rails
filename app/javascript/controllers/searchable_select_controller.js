@@ -7,6 +7,24 @@ export default class extends Controller {
   connect() {
     this.boundClose = this.closeOnOutside.bind(this)
     this.render(this.optionsValue)
+    // Populate the visible search input from the existing hidden value
+    // so editing a record shows the current selection by label, not blank.
+    this.restoreLabel()
+  }
+
+  clear() {
+    this.hiddenTarget.value = ""
+    this.searchTarget.value = ""
+    this.render(this.optionsValue)
+  }
+
+  // On focus we wipe the visible input so the user can start typing
+  // immediately. The hidden value is preserved — if the user closes
+  // without picking, restoreLabel() puts the previous label back.
+  focus() {
+    this.searchTarget.value = ""
+    this.render(this.optionsValue)
+    this.open()
   }
 
   open() {
@@ -46,7 +64,20 @@ export default class extends Controller {
   }
 
   closeOnOutside(event) {
-    if (!this.element.contains(event.target)) this.close()
+    if (!this.element.contains(event.target)) {
+      this.restoreLabel()
+      this.close()
+    }
+  }
+
+  restoreLabel() {
+    const current = this.hiddenTarget.value
+    if (current) {
+      const match = this.optionsValue.find(o => String(o.value) === String(current))
+      if (match) this.searchTarget.value = match.label
+    } else {
+      this.searchTarget.value = ""
+    }
   }
 
   disconnect() {

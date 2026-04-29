@@ -34,6 +34,10 @@ gem "paper_trail"
 gem "sidekiq", "~> 7.0"
 gem "connection_pool", "~> 2.4"
 
+# LLM client — multi-provider abstraction (we use Gemini Flash on free tier;
+# swap providers in config/initializers/ruby_llm.rb).
+gem "ruby_llm", "~> 1.10"
+
 # Logging / observability
 gem "lograge"
 gem "opentelemetry-sdk", "~> 1.10"

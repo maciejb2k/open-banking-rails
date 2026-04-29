@@ -36,6 +36,19 @@ module EnableBanking
       currency = @payload.dig("transaction_amount", "currency")
       amount_cents = to_cents(@payload.dig("transaction_amount", "amount"), currency)
 
+      title             = Array(@payload["remittance_information"])[0]
+      type_hint         = Array(@payload["remittance_information"])[1]
+      counterparty_name = counterparty_node&.dig("name")
+      bank_code         = @payload.dig("bank_transaction_code", "code")
+
+      payment_method = PaymentMethodInferer.call(
+        type_hint: type_hint,
+        bank_transaction_code: bank_code,
+        title: title,
+        counterparty_name: counterparty_name,
+        direction: direction
+      )
+
       {
         bank_account_id: @bank_account.id,
         external_id: extract_external_id,
@@ -46,11 +59,12 @@ module EnableBanking
         currency: currency,
         direction: direction,
         status: STATUS_MAP.fetch(@payload["status"], "booked"),
-        title: Array(@payload["remittance_information"])[0],
-        type_hint: Array(@payload["remittance_information"])[1],
-        counterparty_name: counterparty_node&.dig("name"),
+        title: title,
+        type_hint: type_hint,
+        counterparty_name: counterparty_name,
         counterparty_iban: extract_iban(counterparty_account_node),
-        bank_transaction_code: @payload.dig("bank_transaction_code", "code"),
+        bank_transaction_code: bank_code,
+        payment_method: payment_method,
         raw_payload: @payload.to_json,
         fetched_at: @fetched_at
       }

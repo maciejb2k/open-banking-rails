@@ -1,0 +1,55 @@
+<%# locals: (merchant:) %>
+<%= form_with model: merchant, url: merchant.persisted? ? admin_merchant_path(merchant) : admin_merchants_path, html: { class: "space-y-6" } do |f| %>
+  <%= render "admin/shared/form/error_summary", object: merchant %>
+
+  <div class="admin-section max-w-2xl space-y-5">
+    <%= render "admin/shared/form/text_field",
+          form: f, field: :name,
+          label: "Canonical name",
+          placeholder: "Biedronka",
+          required: true %>
+
+    <%= render "admin/shared/form/text_field",
+          form: f, field: :display_name,
+          label: "Display name",
+          hint: "Leave blank to use the canonical name." %>
+
+    <% if merchant.persisted? %>
+      <%= render "admin/shared/form/text_field",
+            form: f, field: :slug,
+            label: "Slug",
+            hint: "URL identifier — generated automatically, don't change.",
+            html: { readonly: true, class: "form-input bg-muted/40 cursor-not-allowed" } %>
+    <% end %>
+
+    <%= render "admin/shared/form/searchable_select",
+          form: f, field: :default_category_id,
+          label: "Default category",
+          placeholder: "Type to search categories…",
+          options: Category.active.includes(:parent).map { |c|
+            label = c.parent ? "#{c.parent.name} → #{c.name}" : c.name
+            { value: c.id, label: label }
+          }.sort_by { |o| o[:label].downcase } %>
+
+    <%= render "admin/shared/form/select",
+          form: f, field: :kind,
+          label: "Kind",
+          include_blank: "—",
+          options: Merchant::KINDS.map { |k| [ k.humanize, k ] } %>
+
+    <%= render "admin/shared/form/text_field",
+          form: f, field: :logo_url,
+          label: "Logo URL",
+          placeholder: "https://..." %>
+
+    <%= render "admin/shared/form/textarea",
+          form: f, field: :notes,
+          label: "Notes",
+          rows: 3 %>
+  </div>
+
+  <div class="flex items-center justify-end gap-3">
+    <%= render "admin/shared/components/button", label: "Cancel", href: merchant.persisted? ? admin_merchant_path(merchant) : admin_merchants_path, variant: :outline %>
+    <%= render "admin/shared/components/button", label: merchant.persisted? ? "Save changes" : "Create merchant", type: :submit %>
+  </div>
+<% end %>
