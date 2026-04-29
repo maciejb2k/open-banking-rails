@@ -1,0 +1,15 @@
+<%# locals: (label:, remove_path: nil) %>
+<%# Active-filter pill shown above tables. remove_path: omit for non-removable chip. %>
+<%# Block content overrides the label (for custom markup like sensitive spans). %>
+<span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+  <% if block_given? %>
+    <%= yield %>
+  <% else %>
+    <%= label %>
+  <% end %>
+  <% if remove_path %>
+    <%= link_to remove_path, class: "ml-0.5 hover:text-primary/70 transition-colors" do %>
+      <%= render "admin/shared/icons/x", classes: "h-3 w-3" %>
+    <% end %>
+  <% end %>
+</span>

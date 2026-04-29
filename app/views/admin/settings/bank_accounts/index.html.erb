@@ -20,7 +20,7 @@
               { label: "Type", sortable: "cash_account_type" },
               { label: "Connection" },
               { label: "Status", sortable: "status" },
-              { label: "" }
+              { label: "", width: "w-12" }
             ] do %>
         <% @collection.each do |account| %>
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
@@ -52,9 +52,10 @@
                     text: account.status,
                     variant: { "active" => :success, "inactive" => :muted, "revoked" => :destructive }.fetch(account.status, :muted) %>
             </td>
-            <td class="px-4 py-3 text-right">
-              <%= link_to "View", admin_settings_bank_account_path(account),
-                    class: "text-sm text-primary hover:underline" %>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/dropdown_menu", items: [
+                { label: "View", icon: "eye", href: admin_settings_bank_account_path(account) }
+              ] %>
             </td>
           </tr>
         <% end %>

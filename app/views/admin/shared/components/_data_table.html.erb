@@ -1,14 +1,18 @@
 <%# locals: (columns:, rows: nil) %>
-<%# col may declare sortable as: %>
-<%#   "field"  → renders sort_link helper (real Ransack sorting) %>
-<%#   true     → arrow icon only (decorative, legacy) %>
-<%#   omitted  → plain header %>
+<%# Column hash supports: %>
+<%#   label:    column header text %>
+<%#   sortable: "field" → renders sort_link helper (real Ransack sorting) %>
+<%#             true    → arrow icon only (decorative, legacy) %>
+<%#             omit    → plain header %>
+<%#   align:    :right → right-aligns the header (set tdcell alignment in row) %>
+<%#   width:    e.g. "w-12" — extra th class %>
 <div class="overflow-x-auto">
   <table class="w-full text-sm">
     <thead>
       <tr class="border-b bg-muted/30">
         <% columns.each do |col| %>
-          <th class="px-4 py-3 text-left font-medium text-muted-foreground">
+          <% align_cls = col[:align] == :right ? "text-right" : "text-left" %>
+          <th class="px-4 py-3 <%= align_cls %> font-medium text-muted-foreground <%= col[:width] %>">
             <% if col[:sortable].is_a?(String) || col[:sortable].is_a?(Symbol) %>
               <%= sort_link col[:label], col[:sortable] %>
             <% elsif col[:sortable] %>

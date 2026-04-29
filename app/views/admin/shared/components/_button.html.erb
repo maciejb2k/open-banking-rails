@@ -1,10 +1,11 @@
-<%# locals: (label:, href: nil, variant: :default, size: :default, icon: nil, method: nil, data: {}, type: nil) %>
+<%# locals: (label:, href: nil, variant: :default, size: :default, icon: nil, method: nil, data: {}, type: nil, block: false, name: nil, value: nil) %>
 <%
   base = "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 cursor-pointer"
   variants = {
     default: "bg-primary text-primary-foreground hover:bg-primary/90",
     outline: "border bg-card hover:bg-card-hover text-foreground",
     destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+    outline_destructive: "border border-destructive/50 text-destructive hover:bg-destructive/5",
     ghost: "hover:bg-card-hover text-foreground"
   }
   sizes = {
@@ -12,28 +13,24 @@
     sm: "h-8 px-3 py-1.5 text-xs",
     lg: "h-11 px-6 py-2.5 text-sm"
   }
-  cls = [ base, variants.fetch(variant.to_sym, variants[:default]), sizes.fetch(size.to_sym, sizes[:default]) ].join(" ")
+  variant_key = variant.to_s.tr("-", "_").to_sym
+  cls = [
+    base,
+    variants.fetch(variant_key, variants[:default]),
+    sizes.fetch(size.to_sym, sizes[:default]),
+    ("w-full" if block)
+  ].compact.join(" ")
+
+  inner = capture do
+    concat(render("admin/shared/icons/#{icon}", classes: "h-4 w-4")) if icon
+    concat(label)
+  end
 %>
 <% if href && method %>
   <%# State-changing action — renders a real form (button_to) so non-GET methods + CSRF work %>
-  <%= button_to href, method: method, data: data, class: cls do %>
-    <% if icon %>
-      <%= render "admin/shared/icons/#{icon}", classes: "h-4 w-4" %>
-    <% end %>
-    <%= label %>
-  <% end %>
+  <%= button_to inner, href, method: method, data: data, class: cls %>
 <% elsif href %>
-  <%= link_to href, class: cls, data: data do %>
-    <% if icon %>
-      <%= render "admin/shared/icons/#{icon}", classes: "h-4 w-4" %>
-    <% end %>
-    <%= label %>
-  <% end %>
+  <%= link_to inner, href, class: cls, data: data %>
 <% else %>
-  <button type="<%= type || "button" %>" class="<%= cls %>">
-    <% if icon %>
-      <%= render "admin/shared/icons/#{icon}", classes: "h-4 w-4" %>
-    <% end %>
-    <%= label %>
-  </button>
+  <%= button_tag inner, type: (type || "button"), class: cls, name: name, value: value %>
 <% end %>

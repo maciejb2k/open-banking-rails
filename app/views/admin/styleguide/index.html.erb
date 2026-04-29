@@ -23,11 +23,15 @@
       <%= render "admin/shared/components/button", label: "Primary", variant: :default %>
       <%= render "admin/shared/components/button", label: "Outline", variant: :outline %>
       <%= render "admin/shared/components/button", label: "Destructive", variant: :destructive %>
+      <%= render "admin/shared/components/button", label: "Outline Destructive", variant: :outline_destructive %>
       <%= render "admin/shared/components/button", label: "Ghost", variant: :ghost %>
       <%= render "admin/shared/components/button", label: "With Icon", variant: :default, icon: "plus" %>
       <%= render "admin/shared/components/button", label: "Small", variant: :outline, size: :sm %>
       <%= render "admin/shared/components/button", label: "Large", variant: :default, size: :lg %>
       <%= render "admin/shared/components/button", label: "As Link", variant: :outline, href: "#" %>
+    </div>
+    <div class="max-w-sm">
+      <%= render "admin/shared/components/button", label: "Block (full width)", block: true %>
     </div>
   </section>
 
@@ -39,6 +43,10 @@
       <%= render "admin/shared/components/page_header",
             title: "With subtitle",
             subtitle: "A short description of this page." %>
+      <%= render "admin/shared/components/page_header",
+            title: "With back link",
+            subtitle: "back_path: renders an arrow that links to the parent page.",
+            back_path: "#" %>
       <%= render "admin/shared/components/page_header",
             title: "With actions",
             subtitle: "Includes action buttons on the right.",
@@ -113,18 +121,27 @@
     </div>
   </section>
 
-  <%# ── FLASH / ALERTS ── %>
+  <%# ── CALLOUT ── %>
   <section class="space-y-3">
-    <h2 class="text-lg font-semibold border-b pb-2">Flash / Alerts</h2>
-    <div class="flex items-center justify-between gap-3 rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
-      User was saved successfully.
-    </div>
-    <div class="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-      Something went wrong. Please try again.
-    </div>
-    <div class="flex items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
-      Your session expires in 5 minutes.
-    </div>
+    <h2 class="text-lg font-semibold border-b pb-2">Callout</h2>
+    <p class="text-sm text-muted-foreground">
+      Static, non-dismissible inline alert. Use for context-bound notices inside a page (e.g. validation hints, "this resource is in re-auth mode").
+      For top-of-page Rails flash, see <code class="bg-muted px-1 rounded text-xs">admin/shared/_flash.html.erb</code> — auto-dismissible, reads from <code class="bg-muted px-1 rounded text-xs">flash[:notice|:alert|:warning]</code> and is rendered once in the layout.
+    </p>
+    <%= render "admin/shared/components/callout",
+          variant: :info,
+          title: "Heads up",
+          message: "Re-auth flow: linked accounts will be re-attached to the new connection automatically." %>
+    <%= render "admin/shared/components/callout",
+          variant: :warning,
+          message: "⚠ Your local redirect_url doesn't match anything in the EB allowed list." %>
+    <%= render "admin/shared/components/callout",
+          variant: :destructive,
+          title: "Last verification failed",
+          message: "401 Unauthorized — check the application_id and certificate." %>
+    <%= render "admin/shared/components/callout",
+          variant: :success,
+          message: "Connection verified successfully." %>
   </section>
 
   <%# ── TOAST ── %>
@@ -189,11 +206,29 @@
     <% end %>
   </section>
 
+  <%# ── FILTER TRIGGER + CHIP ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Filter Trigger &amp; Chip</h2>
+    <p class="text-sm text-muted-foreground">
+      Standalone primitives. <code class="bg-muted px-1 rounded text-xs">filter_trigger</code> opens the slide-out panel and shows the active count badge.
+      <code class="bg-muted px-1 rounded text-xs">filter_chip</code> renders an active filter pill with optional remove link.
+    </p>
+    <div class="flex flex-wrap items-center gap-2">
+      <%= render "admin/shared/components/filter_trigger", active_count: 0 %>
+      <%= render "admin/shared/components/filter_trigger", active_count: 3 %>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <%= render "admin/shared/components/filter_chip", label: "Status: Active", remove_path: "#" %>
+      <%= render "admin/shared/components/filter_chip", label: "Currency: EUR", remove_path: "#" %>
+      <%= render "admin/shared/components/filter_chip", label: "Read-only chip" %>
+    </div>
+  </section>
+
   <%# ── FILTER PANEL ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Filter Panel</h2>
     <p class="text-sm text-muted-foreground">
-      Slide-out panel triggered by the Filters button. Wrap the index content in
+      Slide-out panel triggered by <code class="bg-muted px-1 rounded text-xs">filter_trigger</code>. Wrap the index content in
       <code class="bg-muted px-1 rounded text-xs">data-controller="filter-panel"</code>.
       The panel must live inside the filter <code class="bg-muted px-1 rounded text-xs">form_with</code> block —
       the Apply button submits the enclosing form. Clear navigates to the base path.
@@ -204,24 +239,14 @@
         <div class="flex items-center gap-3">
           <div class="relative flex-1 max-w-md">
             <%= render "admin/shared/icons/search", classes: "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" %>
-            <input type="text" placeholder="Quick search..." class="w-full rounded-lg border bg-card pl-9 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+            <input type="text" placeholder="Quick search..." class="form-input pl-9">
           </div>
-          <button type="button" data-action="filter-panel#open"
-                  class="inline-flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-card-hover transition-colors border-primary/40 text-primary">
-            <%= render "admin/shared/icons/sliders_horizontal", classes: "h-4 w-4" %>
-            Filters
-            <span class="inline-flex items-center justify-center rounded-full bg-primary px-1.5 min-w-5 h-5 text-xs font-bold text-primary-foreground">1</span>
-          </button>
+          <%= render "admin/shared/components/filter_trigger", active_count: 1 %>
         </div>
 
         <%# Active chip example %>
         <div class="flex flex-wrap items-center gap-2 mt-3">
-          <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            Status: Active
-            <button type="button" class="ml-0.5 hover:text-primary/70 transition-colors">
-              <%= render "admin/shared/icons/x", classes: "h-3 w-3" %>
-            </button>
-          </span>
+          <%= render "admin/shared/components/filter_chip", label: "Status: Active", remove_path: "#" %>
           <span class="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">Clear all</span>
         </div>
 
@@ -229,7 +254,7 @@
         <%= render "admin/shared/components/filter_panel", clear_url: "#", active_count: 1 do %>
           <div class="space-y-1.5">
             <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
-            <select class="w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+            <select class="form-input">
               <option value="">All statuses</option>
               <option value="active" selected>Active</option>
               <option value="inactive">Inactive</option>
@@ -237,7 +262,7 @@
           </div>
           <div class="space-y-1.5">
             <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Event</label>
-            <select class="w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition">
+            <select class="form-input">
               <option value="">All events</option>
               <option value="create">Create</option>
               <option value="update">Update</option>
@@ -333,7 +358,10 @@
   <%# ── PAGINATION ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Pagination</h2>
-    <p class="text-sm text-muted-foreground">Rendered by Pagy. Requires <code class="bg-muted px-1 rounded text-xs">@pagy</code> from <code class="bg-muted px-1 rounded text-xs">pagy(:offset, scope)</code> in the controller.</p>
+    <p class="text-sm text-muted-foreground">
+      Rendered by <code class="bg-muted px-1 rounded text-xs">_pagination.html.erb</code>. Requires <code class="bg-muted px-1 rounded text-xs">@pagy</code> from <code class="bg-muted px-1 rounded text-xs">pagy(:offset, scope)</code> in the controller — pass it as <code class="bg-muted px-1 rounded text-xs">pagy:</code>.
+      Live preview is static markup because Pagy's <code class="bg-muted px-1 rounded text-xs">series_nav</code> needs a real request context.
+    </p>
     <div class="admin-section">
       <div class="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <span class="text-sm text-muted-foreground">Showing 21–40 of 100 results</span>
@@ -622,25 +650,87 @@
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Form Footer</h2>
     <p class="text-sm text-muted-foreground">
-      Sticky action bar used in new/edit views. Lives inside a <code class="bg-muted px-1 rounded text-xs">max-w-2xl</code> form wrapper so it stays aligned with the form content.
-      Add secondary actions (e.g. Delete) before Cancel in the same flex row.
+      Action bar used at the bottom of new/edit forms. Compose with the <code class="bg-muted px-1 rounded text-xs">button</code> component:
+      Cancel as <code class="bg-muted px-1 rounded text-xs">variant: :outline, href: ...</code>, primary submit as <code class="bg-muted px-1 rounded text-xs">type: :submit</code>.
+      Add secondary destructive actions (e.g. Delete) on the left of Cancel using <code class="bg-muted px-1 rounded text-xs">variant: :outline_destructive</code>.
     </p>
-    <div class="max-w-2xl">
-      <div class="bg-card/95 backdrop-blur-sm border rounded-xl px-4 py-3">
-        <div class="flex items-center justify-end gap-2">
-          <a href="#" class="rounded-lg border px-4 py-2 text-sm font-medium text-foreground hover:bg-card-hover transition-colors">Cancel</a>
-          <button type="button" class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer">Save Changes</button>
-        </div>
-      </div>
+    <div class="flex items-center justify-end gap-3">
+      <%= render "admin/shared/components/button", label: "Cancel", href: "#", variant: :outline %>
+      <%= render "admin/shared/components/button", label: "Save Changes", type: :submit %>
     </div>
-    <div class="max-w-2xl">
-      <div class="bg-card/95 backdrop-blur-sm border rounded-xl px-4 py-3">
-        <div class="flex items-center justify-end gap-2">
-          <button type="button" class="rounded-lg border border-destructive/30 px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/5 transition-colors">Delete</button>
-          <a href="#" class="rounded-lg border px-4 py-2 text-sm font-medium text-foreground hover:bg-card-hover transition-colors">Cancel</a>
-          <button type="button" class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer">Save Changes</button>
-        </div>
-      </div>
+    <div class="flex items-center justify-end gap-3">
+      <%= render "admin/shared/components/button", label: "Delete", href: "#", method: :delete, variant: :outline_destructive,
+            data: { turbo_confirm: "Are you sure?" } %>
+      <%= render "admin/shared/components/button", label: "Cancel", href: "#", variant: :outline %>
+      <%= render "admin/shared/components/button", label: "Save Changes", type: :submit %>
     </div>
+  </section>
+
+  <%# ── ACTION TOOLBAR ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Action Toolbar</h2>
+    <p class="text-sm text-muted-foreground">
+      Two-slot horizontal toolbar — primary actions on the left, secondary on the right. Both slots accept <code class="bg-muted px-1 rounded text-xs">capture do ... end</code> output.
+    </p>
+    <%= render "admin/shared/components/action_toolbar",
+          left: capture {
+            concat render("admin/shared/components/button", label: "Refresh", icon: "refresh_cw", variant: :outline)
+            concat render("admin/shared/components/button", label: "Reauth", variant: :default)
+            concat render("admin/shared/components/button", label: "Close", variant: :destructive)
+          },
+          right: capture {
+            concat render("admin/shared/components/button", label: "Edit", icon: "pencil", variant: :outline)
+          } %>
+  </section>
+
+  <%# ── DEFINITION LIST ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Definition List</h2>
+    <p class="text-sm text-muted-foreground">
+      Label/value pairs for show pages. Each pair: <code class="bg-muted px-1 rounded text-xs">{ label:, value:, mono: false, wrap: false, hint: nil, sensitive: nil }</code>.
+      Empty values render as a muted dash. The <code class="bg-muted px-1 rounded text-xs">sensitive:</code> key wires into the privacy-mode helper.
+    </p>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <%= render "admin/shared/components/card", title: "Identity" do %>
+        <%= render "admin/shared/components/definition_list", pairs: [
+          { label: "Name", value: "Acme Corp" },
+          { label: "Provider", value: "enable_banking", mono: true },
+          { label: "Application ID", value: "b67f59d9-4630-4032-bc92-bb7ae9ae91be", mono: true, wrap: true },
+          { label: "Empty", value: nil },
+          { label: "With hint", value: "180", hint: "(days)" }
+        ] %>
+      <% end %>
+      <%= render "admin/shared/components/card", title: "Compact" do %>
+        <%= render "admin/shared/components/definition_list", pairs: [
+          { label: "Status", value: "Active" },
+          { label: "Created", value: "14 Mar 2026" },
+          { label: "By", value: "admin@example.com" }
+        ] %>
+      <% end %>
+    </div>
+  </section>
+
+  <%# ── BREADCRUMBS ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Breadcrumbs</h2>
+    <p class="text-sm text-muted-foreground">
+      Navigation trail. Each item: <code class="bg-muted px-1 rounded text-xs">{ label:, path:, sensitive: nil }</code>. The last item renders as plain text (current page).
+    </p>
+    <div class="flex items-center gap-1 text-sm">
+      <%= render "admin/shared/breadcrumbs", items: [
+        { label: "Settings", path: "#" },
+        { label: "Bank connections", path: "#" },
+        { label: "Acme Bank" }
+      ] %>
+    </div>
+  </section>
+
+  <%# ── COMMAND PALETTE ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Command Palette</h2>
+    <p class="text-sm text-muted-foreground">
+      Global keyboard-triggered search rendered once in the layout (<code class="bg-muted px-1 rounded text-xs">layouts/admin.html.erb</code>). Open with <kbd class="rounded border bg-muted px-1.5 py-0.5 text-xs">Cmd/Ctrl + K</kbd>.
+      Items come from <code class="bg-muted px-1 rounded text-xs">admin_nav_sections</code> helper. No extra props — already wired up.
+    </p>
   </section>
 </div>

@@ -1,27 +1,15 @@
 <div class="space-y-6">
-  <%# Page header %>
-  <div class="flex items-center gap-3">
-    <%= link_to admin_versions_path,
-          class: "rounded-lg p-2 text-muted-foreground hover:bg-card-hover transition-colors" do %>
-      <%= render "admin/shared/icons/arrow_left", classes: "h-5 w-5" %>
-    <% end %>
-    <div>
-      <div class="flex items-center gap-2">
-        <h1 class="text-2xl font-bold text-foreground">Version #<%= @version.id %></h1>
-        <% case @version.event %>
-        <% when "create" %>
-          <span class="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">create</span>
-        <% when "update" %>
-          <span class="inline-flex items-center gap-1.5 rounded-full bg-info/10 px-2.5 py-0.5 text-xs font-medium text-info">update</span>
-        <% when "destroy" %>
-          <span class="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive">destroy</span>
-        <% end %>
-      </div>
-      <p class="text-sm text-muted-foreground mt-0.5">
-        <%= @version.item_type %> #<%= @version.item_id %> &mdash; <%= l(@version.created_at, format: :long) %>
-      </p>
-    </div>
-  </div>
+  <% header_title = capture do %>
+    Version #<%= @version.id %>
+    <%= render "admin/shared/components/badge",
+          text: @version.event,
+          variant: { "create" => :success, "update" => :info, "destroy" => :destructive }.fetch(@version.event, :muted) %>
+  <% end %>
+  <%= render "admin/shared/components/page_header",
+        title: header_title,
+        subtitle: "#{@version.item_type} ##{@version.item_id} — #{l(@version.created_at, format: :long)}",
+        back_path: admin_versions_path,
+        browser_title: "Version ##{@version.id}" %>
 
   <%# Metadata %>
   <div class="admin-section max-w-2xl space-y-4">

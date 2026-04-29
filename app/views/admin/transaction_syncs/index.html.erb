@@ -22,42 +22,22 @@
     <%= f.hidden_field :s, value: params.dig(:q, :s) %>
 
     <div class="flex items-center gap-3">
-      <button type="button" data-action="filter-panel#open"
-              class="inline-flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-card-hover transition-colors <%= "border-primary/40 text-primary" if active_filter_count > 0 %>">
-        <%= render "admin/shared/icons/sliders_horizontal", classes: "h-4 w-4" %>
-        Filters
-        <% if active_filter_count > 0 %>
-          <span class="inline-flex items-center justify-center rounded-full bg-primary px-1.5 min-w-5 h-5 text-xs font-bold text-primary-foreground">
-            <%= active_filter_count %>
-          </span>
-        <% end %>
-      </button>
+      <%= render "admin/shared/components/filter_trigger", active_count: active_filter_count %>
 
-      <button type="submit"
-              class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer">
-        Apply
-      </button>
+      <%= render "admin/shared/components/button", label: "Apply", type: :submit %>
     </div>
 
     <% if active_filter_count > 0 %>
       <div class="flex flex-wrap items-center gap-2 mt-3">
         <% if (val = params.dig(:q, :status_eq)).present? %>
-          <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            Status: <%= val.humanize %>
-            <%= link_to admin_transaction_syncs_path(q: params[:q].to_unsafe_h.except("status_eq")),
-                  class: "ml-0.5 hover:text-primary/70 transition-colors" do %>
-              <%= render "admin/shared/icons/x", classes: "h-3 w-3" %>
-            <% end %>
-          </span>
+          <%= render "admin/shared/components/filter_chip",
+                label: "Status: #{val.humanize}",
+                remove_path: admin_transaction_syncs_path(q: params[:q].to_unsafe_h.except("status_eq")) %>
         <% end %>
         <% if (val = params.dig(:q, :trigger_eq)).present? %>
-          <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            Trigger: <%= val.humanize %>
-            <%= link_to admin_transaction_syncs_path(q: params[:q].to_unsafe_h.except("trigger_eq")),
-                  class: "ml-0.5 hover:text-primary/70 transition-colors" do %>
-              <%= render "admin/shared/icons/x", classes: "h-3 w-3" %>
-            <% end %>
-          </span>
+          <%= render "admin/shared/components/filter_chip",
+                label: "Trigger: #{val.humanize}",
+                remove_path: admin_transaction_syncs_path(q: params[:q].to_unsafe_h.except("trigger_eq")) %>
         <% end %>
         <%= link_to "Clear all", admin_transaction_syncs_path,
               class: "text-xs text-muted-foreground hover:text-foreground transition-colors" %>
@@ -72,7 +52,7 @@
         <%= f.select :status_eq,
               [["All", ""]] + OperationRun::STATUSES.map { |s| [s.humanize, s] },
               { selected: params.dig(:q, :status_eq) },
-              class: "w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" %>
+              class: "form-input" %>
       </div>
 
       <div class="space-y-1.5">
@@ -80,87 +60,81 @@
         <%= f.select :trigger_eq,
               [["All", ""]] + OperationRun::TRIGGERS.map { |t| [t.humanize, t] },
               { selected: params.dig(:q, :trigger_eq) },
-              class: "w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" %>
+              class: "form-input" %>
       </div>
 
       <div class="space-y-1.5">
         <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Created — from</label>
         <%= f.date_field :created_at_gteq, value: params.dig(:q, :created_at_gteq),
-              class: "w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" %>
+              class: "form-input" %>
       </div>
 
       <div class="space-y-1.5">
         <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Created — to</label>
         <%= f.date_field :created_at_lteq, value: params.dig(:q, :created_at_lteq),
-              class: "w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" %>
+              class: "form-input" %>
       </div>
     <% end %>
   <% end %>
 
   <div class="admin-section p-0 overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="border-b bg-muted/30">
-            <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "ID", "id" %></th>
-            <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "Status", "status" %></th>
-            <th class="px-4 py-3 text-left font-medium text-muted-foreground">Scope</th>
-            <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "Trigger", "trigger" %></th>
-            <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "Started", "started_at" %></th>
-            <th class="px-4 py-3 text-left font-medium text-muted-foreground">Duration</th>
-            <th class="w-12 px-4 py-3"></th>
+    <%= render "admin/shared/components/data_table",
+          columns: [
+            { label: "ID", sortable: "id" },
+            { label: "Status", sortable: "status" },
+            { label: "Scope" },
+            { label: "Trigger", sortable: "trigger" },
+            { label: "Started", sortable: "started_at" },
+            { label: "Duration" },
+            { label: "", width: "w-12" }
+          ] do %>
+      <% if @collection.empty? %>
+        <tr>
+          <td colspan="7">
+            <%= render "admin/shared/components/empty_state",
+                  title: "No syncs yet",
+                  description: "Trigger a sync above to pull transactions from your banks.",
+                  icon: "shield" %>
+          </td>
+        </tr>
+      <% else %>
+        <% @collection.each do |run| %>
+          <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+            <td class="px-4 py-3 font-mono text-xs text-muted-foreground">#<%= run.id %></td>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/badge", text: run.status, variant: run.status_tone %>
+            </td>
+            <td class="px-4 py-3 text-xs">
+              <% if run.subject.is_a?(User) %>
+                <span class="text-foreground">All my connections</span>
+              <% elsif run.subject.is_a?(BankConnection) %>
+                <span class="text-foreground"><%= run.subject.bank_name.presence || run.subject.bank_slug %></span>
+              <% elsif run.subject.is_a?(BankAccount) %>
+                <span class="text-foreground"><%= run.subject.display_name %></span>
+              <% else %>
+                <span class="text-muted-foreground/50">—</span>
+              <% end %>
+            </td>
+            <td class="px-4 py-3 text-muted-foreground"><%= run.trigger %></td>
+            <td class="px-4 py-3 text-muted-foreground text-xs">
+              <%= run.started_at ? l(run.started_at, format: :short) : "—" %>
+            </td>
+            <td class="px-4 py-3 text-muted-foreground text-xs">
+              <% if (d = run.duration_seconds) %>
+                <%= d %>s
+              <% else %>
+                —
+              <% end %>
+            </td>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/dropdown_menu", items: [
+                { label: "View", icon: "eye", href: admin_transaction_sync_path(run) }
+              ] %>
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          <% if @collection.empty? %>
-            <tr>
-              <td colspan="7">
-                <%= render "admin/shared/components/empty_state",
-                      title: "No syncs yet",
-                      description: "Trigger a sync above to pull transactions from your banks.",
-                      icon: "shield" %>
-              </td>
-            </tr>
-          <% else %>
-            <% @collection.each do |run| %>
-              <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                <td class="px-4 py-3 font-mono text-xs text-muted-foreground">#<%= run.id %></td>
-                <td class="px-4 py-3">
-                  <%= render "admin/shared/components/badge", text: run.status, variant: run.status_tone %>
-                </td>
-                <td class="px-4 py-3 text-xs">
-                  <% if run.subject.is_a?(User) %>
-                    <span class="text-foreground">All my connections</span>
-                  <% elsif run.subject.is_a?(BankConnection) %>
-                    <span class="text-foreground"><%= run.subject.bank_name.presence || run.subject.bank_slug %></span>
-                  <% elsif run.subject.is_a?(BankAccount) %>
-                    <span class="text-foreground"><%= run.subject.display_name %></span>
-                  <% else %>
-                    <span class="text-muted-foreground/50">—</span>
-                  <% end %>
-                </td>
-                <td class="px-4 py-3 text-muted-foreground"><%= run.trigger %></td>
-                <td class="px-4 py-3 text-muted-foreground text-xs">
-                  <%= run.started_at ? l(run.started_at, format: :short) : "—" %>
-                </td>
-                <td class="px-4 py-3 text-muted-foreground text-xs">
-                  <% if (d = run.duration_seconds) %>
-                    <%= d %>s
-                  <% else %>
-                    —
-                  <% end %>
-                </td>
-                <td class="px-4 py-3">
-                  <%= render "admin/shared/components/dropdown_menu", items: [
-                    { label: "View", icon: "eye", href: admin_transaction_sync_path(run) }
-                  ] %>
-                </td>
-              </tr>
-            <% end %>
-          <% end %>
-        </tbody>
-      </table>
-    </div>
+        <% end %>
+      <% end %>
+    <% end %>
 
     <%= render "admin/shared/components/pagination", pagy: @pagy %>
   </div>

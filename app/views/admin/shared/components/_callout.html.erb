@@ -1,0 +1,22 @@
+<%# locals: (variant: :info, title: nil, message: nil) %>
+<%# Static, non-dismissible inline alert. Block content overrides message:. %>
+<%# For dismissible flash, use admin/shared/_flash.html.erb. %>
+<%
+  variants = {
+    info: "border-info/30 bg-info/5 text-info",
+    warning: "border-warning/30 bg-warning/5 text-warning",
+    destructive: "border-destructive/30 bg-destructive/5 text-destructive",
+    success: "border-success/30 bg-success/5 text-success"
+  }
+  cls = variants.fetch(variant.to_sym, variants[:info])
+%>
+<div class="rounded-lg border p-3 <%= cls %>">
+  <% if title %>
+    <p class="text-sm font-medium"><%= title %></p>
+  <% end %>
+  <% if block_given? %>
+    <div class="text-xs<%= " mt-1" if title %>"><%= yield %></div>
+  <% elsif message %>
+    <p class="text-xs<%= " mt-1" if title %>"><%= message %></p>
+  <% end %>
+</div>

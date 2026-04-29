@@ -8,12 +8,9 @@
           "Pick a bank and authorize via the bank's login (SCA). You'll be redirected back when done.") %>
 
   <% if reauth_mode %>
-    <div class="rounded-lg border border-info/30 bg-info/5 p-3">
-      <p class="text-xs text-info">
-        Re-auth flow: linked accounts (matched by EB UID) will be re-attached to the new connection automatically.
-        The old connection stays as a historical record (status: replaced).
-      </p>
-    </div>
+    <%= render "admin/shared/components/callout",
+          variant: :info,
+          message: "Re-auth flow: linked accounts (matched by EB UID) will be re-attached to the new connection automatically. The old connection stays as a historical record (status: replaced)." %>
   <% end %>
 
   <%= form_with model: @form, url: admin_settings_bank_connections_path, method: :post, local: true, class: "space-y-6" do |f| %>
@@ -62,13 +59,11 @@
       ] %>
 
       <% if mismatch %>
-        <div class="rounded-lg border border-warning/30 bg-warning/5 p-3">
-          <p class="text-xs text-warning">
-            ⚠ Your local <code>redirect_url</code> doesn't match anything in EB's allowed list.
-            <%= link_to "Edit credential", edit_admin_settings_tpp_credential_path(@primary_credential), class: "underline" %>
-            and set it to: <code><%= redirect_in_eb.first %></code>
-          </p>
-        </div>
+        <%= render "admin/shared/components/callout", variant: :warning do %>
+          ⚠ Your local <code>redirect_url</code> doesn't match anything in EB's allowed list.
+          <%= link_to "Edit credential", edit_admin_settings_tpp_credential_path(@primary_credential), class: "underline" %>
+          and set it to: <code><%= redirect_in_eb.first %></code>
+        <% end %>
       <% end %>
     </div>
 
@@ -77,8 +72,9 @@
             label: "Cancel",
             href: admin_settings_bank_connections_path,
             variant: :outline %>
-      <%= f.submit "Continue to bank →",
-            class: "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 text-sm" %>
+      <%= render "admin/shared/components/button",
+            label: "Continue to bank →",
+            type: :submit %>
     </div>
   <% end %>
 </div>

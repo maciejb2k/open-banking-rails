@@ -27,7 +27,7 @@
               { label: "PSU type", sortable: "psu_type" },
               { label: "Valid until", sortable: "valid_until" },
               { label: "Status", sortable: "status" },
-              { label: "" }
+              { label: "", width: "w-12" }
             ] do %>
         <% @collection.each do |bc| %>
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
@@ -55,9 +55,11 @@
                     text: bc.status,
                     variant: bc.status_tone %>
             </td>
-            <td class="px-4 py-3 text-right">
-              <%= link_to "View", admin_settings_bank_connection_path(bc),
-                    class: "text-sm text-primary hover:underline" %>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/dropdown_menu", items: [
+                { label: "View", icon: "eye", href: admin_settings_bank_connection_path(bc) },
+                { label: "Edit", icon: "pencil", href: edit_admin_settings_bank_connection_path(bc) }
+              ] %>
             </td>
           </tr>
         <% end %>

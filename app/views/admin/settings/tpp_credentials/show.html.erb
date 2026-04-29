@@ -6,10 +6,9 @@
         subtitle: "TPP credential — #{@credential.provider} (#{@credential.environment || 'environment not set'})" %>
 
   <% if @credential.last_verification_error.present? %>
-    <div class="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-      <p class="text-sm font-medium text-destructive">Last verification failed</p>
-      <p class="text-sm text-muted-foreground mt-1 font-mono break-all <%= sensitive_class kind: :strong %>"><%= @credential.last_verification_error %></p>
-    </div>
+    <%= render "admin/shared/components/callout", variant: :destructive, title: "Last verification failed" do %>
+      <span class="font-mono break-all <%= sensitive_class kind: :strong %>"><%= @credential.last_verification_error %></span>
+    <% end %>
   <% end %>
 
   <div class="flex items-center gap-3">

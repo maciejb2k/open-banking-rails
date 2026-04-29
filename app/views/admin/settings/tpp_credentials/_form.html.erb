@@ -1,7 +1,5 @@
 <%= form_with model: @credential, url: form_url, class: "space-y-6", local: true do |f| %>
-  <% if @credential.errors.any? %>
-    <%= render "admin/shared/form/error_summary", errors: @credential.errors.full_messages %>
-  <% end %>
+  <%= render "admin/shared/form/error_summary", object: @credential %>
 
   <div class="admin-section space-y-4">
     <h2 class="text-base font-semibold text-foreground">Identity</h2>
@@ -63,7 +61,8 @@
           label: "Cancel",
           href: (@credential.persisted? ? admin_settings_tpp_credential_path(@credential) : admin_settings_tpp_credentials_path),
           variant: :outline %>
-    <%= f.submit (@credential.persisted? ? "Save changes" : "Create credential"),
-          class: "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 text-sm" %>
+    <%= render "admin/shared/components/button",
+          label: (@credential.persisted? ? "Save changes" : "Create credential"),
+          type: :submit %>
   </div>
 <% end %>

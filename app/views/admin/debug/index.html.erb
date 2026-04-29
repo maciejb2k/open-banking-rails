@@ -22,10 +22,11 @@
             <p class="text-sm font-medium text-foreground"><%= item[:label] %></p>
             <p class="text-xs text-muted-foreground font-mono truncate"><%= item[:description] %></p>
           </div>
-          <%= link_to item[:path],
-                class: "shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-destructive/50 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/5 transition-colors" do %>
-            Raise
-          <% end %>
+          <%= render "admin/shared/components/button",
+                label: "Raise",
+                href: item[:path],
+                variant: :outline_destructive,
+                size: :sm %>
         </div>
       <% end %>
     </div>
@@ -50,11 +51,12 @@
             <p class="text-sm font-medium text-foreground"><%= item[:label] %></p>
             <p class="text-xs text-muted-foreground font-mono truncate"><%= item[:description] %></p>
           </div>
-          <%= button_to admin_debug_enqueue_failing_job_path,
-                params: { error_type: item[:error_type] },
-                class: "shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-destructive/50 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/5 transition-colors" do %>
-            Enqueue
-          <% end %>
+          <%= render "admin/shared/components/button",
+                label: "Enqueue",
+                href: admin_debug_enqueue_failing_job_path(error_type: item[:error_type]),
+                method: :post,
+                variant: :outline_destructive,
+                size: :sm %>
         </div>
       <% end %>
     </div>

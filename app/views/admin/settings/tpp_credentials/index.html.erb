@@ -27,7 +27,7 @@
               { label: "Environment", sortable: "environment" },
               { label: "Cert expires", sortable: "cert_expires_at" },
               { label: "Status", sortable: "status" },
-              { label: "" }
+              { label: "", width: "w-12" }
             ] do %>
         <% @collection.each do |c| %>
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
@@ -54,8 +54,11 @@
                     text: c.status,
                     variant: { "active" => :success, "error" => :destructive, "pending" => :info }.fetch(c.status, :muted) %>
             </td>
-            <td class="px-4 py-3 text-right">
-              <%= link_to "View", admin_settings_tpp_credential_path(c), class: "text-sm text-primary hover:underline" %>
+            <td class="px-4 py-3">
+              <%= render "admin/shared/components/dropdown_menu", items: [
+                { label: "View", icon: "eye", href: admin_settings_tpp_credential_path(c) },
+                { label: "Edit", icon: "pencil", href: edit_admin_settings_tpp_credential_path(c) }
+              ] %>
             </td>
           </tr>
         <% end %>
