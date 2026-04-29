@@ -1,3 +1,7 @@
-<%# Locals: json (Hash/Array/nil) %>
+<%# Locals: json (Hash/Array/nil), sensitive: (default true → :strong blur). %>
+<%# Pass sensitive: false to opt out, or a symbol (:blur/:redact/:strong) for a custom kind. %>
+<% sensitive = local_assigns.fetch(:sensitive, true) %>
+<% kind = sensitive == true ? :strong : sensitive %>
+<% extra_classes = sensitive_prop(kind) %>
 <% json_string = json.present? ? JSON.pretty_generate(json) : "null" %>
-<pre class="rounded-lg border bg-muted/30 p-4 text-xs font-mono overflow-auto resize-y min-h-24 max-h-[32rem]"><%= json_string %></pre>
+<pre class="rounded-lg border bg-muted/30 p-4 text-xs font-mono overflow-auto resize-y min-h-24 max-h-[32rem] <%= extra_classes %>"><%= json_string %></pre>

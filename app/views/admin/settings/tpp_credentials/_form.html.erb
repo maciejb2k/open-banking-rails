@@ -32,24 +32,30 @@
       Sensitive values — encrypted at rest. Never logged or shown after save.
     </p>
 
-    <%= render "admin/shared/form/text_field",
-          form: f, field: :application_id, label: "Application ID (kid)", required: true,
-          placeholder: "b67f59d9-4630-4032-bc92-bb7ae9ae91be",
-          hint: "UUID from the provider's Control Panel after uploading your public certificate." %>
+    <div class="<%= sensitive_class %>">
+      <%= render "admin/shared/form/text_field",
+            form: f, field: :application_id, label: "Application ID (kid)", required: true,
+            placeholder: "b67f59d9-4630-4032-bc92-bb7ae9ae91be",
+            hint: "UUID from the provider's Control Panel after uploading your public certificate." %>
+    </div>
 
-    <%= render "admin/shared/form/textarea",
-          form: f, field: :private_key_pem, label: "Private key (PEM)", required: true,
-          rows: 10,
-          placeholder: "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
-          hint: "RSA key used to sign JWTs. Must be 2048+ bits.",
-          html: { class: "font-mono text-xs" } %>
+    <div class="<%= sensitive_class kind: :strong %>">
+      <%= render "admin/shared/form/textarea",
+            form: f, field: :private_key_pem, label: "Private key (PEM)", required: true,
+            rows: 10,
+            placeholder: "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
+            hint: "RSA key used to sign JWTs. Must be 2048+ bits.",
+            html: { class: "font-mono text-xs" } %>
+    </div>
 
-    <%= render "admin/shared/form/textarea",
-          form: f, field: :public_cert_pem, label: "Public certificate (PEM)",
-          rows: 8,
-          placeholder: "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
-          hint: "Optional. If pasted, the app shows certificate metadata (subject, expiry) without an API call.",
-          html: { class: "font-mono text-xs" } %>
+    <div class="<%= sensitive_class kind: :strong %>">
+      <%= render "admin/shared/form/textarea",
+            form: f, field: :public_cert_pem, label: "Public certificate (PEM)",
+            rows: 8,
+            placeholder: "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
+            hint: "Optional. If pasted, the app shows certificate metadata (subject, expiry) without an API call.",
+            html: { class: "font-mono text-xs" } %>
+    </div>
   </div>
 
   <div class="flex items-center justify-end gap-3">

@@ -10,8 +10,13 @@ class BankTransaction < ApplicationRecord
 
   encrypts :raw_payload
 
+  # `amount` returns a Money built from (amount_cents, currency). Arithmetic
+  # between mismatched currencies raises — no silent PLN+EUR sums.
+  monetize :amount_cents, with_model_currency: :currency
+
   validates :external_id, presence: true, uniqueness: { scope: :bank_account_id }
-  validates :booking_date, :amount, :currency, presence: true
+  validates :booking_date, :amount_cents, :currency, presence: true
+  validates :currency, inclusion: { in: Money::Currency.all.map(&:iso_code) }
   validates :direction, inclusion: { in: DIRECTIONS }
   validates :status,    inclusion: { in: STATUSES }
 
@@ -23,7 +28,7 @@ class BankTransaction < ApplicationRecord
   scope :for_user, ->(user) { joins(bank_account: :tpp_credential).where(tpp_credentials: { user_id: user.id }) }
 
   def self.ransackable_attributes(_auth_object = nil)
-    %w[id external_id booking_date value_date transaction_date amount currency
+    %w[id external_id booking_date value_date transaction_date amount_cents currency
        direction status title type_hint counterparty_name counterparty_iban
        bank_transaction_code bank_account_id created_at updated_at]
   end

@@ -20,6 +20,10 @@ gem "devise"
 gem "faraday", "~> 2.9"
 gem "jwt", "~> 2.8"
 
+# Money handling — encapsulates (amount, currency) pair with proper precision
+# (cents under the hood, currency-aware formatting/arithmetic).
+gem "money-rails", "~> 3.0"
+
 # Admin / pagination / search / audit
 gem "pagy", "~> 43.3"
 gem "rack-cors"

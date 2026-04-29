@@ -91,6 +91,81 @@
     @apply w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-muted-foreground;
   }
 
+  /* ── Privacy mode ─────────────────────────────────────────────────────────
+     Toggled from the topbar; adds .privacy-mode on <html>.
+     See app/helpers/admin/privacy_helper.rb for usage. */
+  .sensitive {
+    transition: filter .12s ease, color .12s ease, background-color .12s ease;
+  }
+  html.privacy-mode .sensitive {
+    cursor: help;
+  }
+
+  /* :blur — light blur, hover-to-reveal (default for short values) */
+  html.privacy-mode .sensitive--blur {
+    filter: blur(6px);
+  }
+  html.privacy-mode .sensitive--blur:hover:not(.sensitive--no-reveal) {
+    filter: none;
+  }
+
+  /* :strong — text-only blur via text-shadow.
+     Border, background, padding and layout stay sharp — only the characters
+     get smudged. Used for JSON viewers / raw payloads / errors. */
+  html.privacy-mode .sensitive--strong {
+    color: transparent !important;
+    text-shadow: 0 0 8px var(--color-foreground);
+    user-select: none;
+    cursor: not-allowed;
+  }
+  html.privacy-mode .sensitive--strong * {
+    color: transparent !important;
+    text-shadow: 0 0 8px var(--color-foreground);
+  }
+
+  /* :redact — solid block, no reveal (inline secrets like keys) */
+  html.privacy-mode .sensitive--redact {
+    color: transparent !important;
+    background: var(--color-muted-foreground);
+    border-radius: 4px;
+    user-select: none;
+    cursor: not-allowed;
+  }
+  html.privacy-mode .sensitive--redact * {
+    color: transparent !important;
+    text-decoration: none !important;
+  }
+
+  /* :mask — dotted bullets (for fixed-format short values) */
+  html.privacy-mode .sensitive--mask {
+    position: relative;
+    color: transparent !important;
+    user-select: none;
+  }
+  html.privacy-mode .sensitive--mask::after {
+    content: "••••••••";
+    position: absolute;
+    inset: 0;
+    color: var(--color-muted-foreground);
+    letter-spacing: 0.1em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  /* Active-state highlight for any preference-toggle button */
+  button[data-controller~="preference-toggle"][aria-pressed="true"] {
+    color: var(--color-primary);
+    background: color-mix(in oklab, var(--color-primary) 12%, transparent);
+  }
+
+  /* Avatar / circular containers — neutralize background + initials */
+  html.privacy-mode .sensitive-avatar {
+    background: var(--color-muted) !important;
+    color: var(--color-muted-foreground) !important;
+  }
+  html.privacy-mode .sensitive-avatar > * {
+    visibility: hidden;
+  }
+
   /* Pagy series_nav styling */
   nav.pagy.series-nav {
     @apply flex items-center gap-1;

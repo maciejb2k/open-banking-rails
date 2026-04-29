@@ -8,7 +8,7 @@
   <% if @credential.last_verification_error.present? %>
     <div class="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
       <p class="text-sm font-medium text-destructive">Last verification failed</p>
-      <p class="text-sm text-muted-foreground mt-1 font-mono break-all"><%= @credential.last_verification_error %></p>
+      <p class="text-sm text-muted-foreground mt-1 font-mono break-all <%= sensitive_class kind: :strong %>"><%= @credential.last_verification_error %></p>
     </div>
   <% end %>
 
@@ -60,16 +60,18 @@
       <%= render "admin/shared/components/definition_list", pairs: [
         { label: "Provider", value: @credential.provider, mono: true },
         { label: "Environment", value: @credential.environment },
-        { label: "Application ID (kid)", value: @credential.application_id, mono: true, wrap: true },
+        { label: "Application ID (kid)", value: @credential.application_id, mono: true, wrap: true, sensitive: :redact },
         { label: "Redirect URL (sent in /auth)",
           value: @credential.redirect_url,
           mono: true,
           wrap: true,
-          hint: (redirect_mismatch ? "⚠ not in EB allowed list" : nil) },
+          hint: (redirect_mismatch ? "⚠ not in EB allowed list" : nil),
+          sensitive: true },
         { label: "Registered in EB",
           value: (registered_urls.any? ? registered_urls.join(", ") : nil),
           mono: true,
-          wrap: true },
+          wrap: true,
+          sensitive: true },
         { label: "Last verified", value: @credential.last_verified_at ? "#{time_ago_in_words(@credential.last_verified_at)} ago" : "never" }
       ] %>
 
@@ -87,8 +89,8 @@
     <%= render "admin/shared/components/card", title: "Certificate metadata" do %>
       <% if cert %>
         <%= render "admin/shared/components/definition_list", pairs: [
-          { label: "Subject", value: cert[:subject], mono: true, wrap: true },
-          { label: "Issuer", value: cert[:issuer], mono: true, wrap: true },
+          { label: "Subject", value: cert[:subject], mono: true, wrap: true, sensitive: true },
+          { label: "Issuer", value: cert[:issuer], mono: true, wrap: true, sensitive: true },
           { label: "Valid from", value: cert[:not_before].to_date.to_s },
           { label: "Valid until", value: cert[:not_after].to_date.to_s, hint: "(#{cert[:days_remaining]} days)" },
           { label: "Key size", value: "#{cert[:key_size]} bits" },
@@ -104,7 +106,7 @@
 
   <%= render "admin/shared/components/card", title: "Provider metadata (cached from GET /application)" do %>
     <% if @credential.metadata.present? %>
-      <%= render "admin/shared/components/json_viewer", json: @credential.metadata %>
+      <%= render "admin/shared/components/json_viewer", json: @credential.metadata, sensitive: false %>
     <% else %>
       <p class="text-sm text-muted-foreground">
         Run "Test connection" to fetch live metadata from the provider.

@@ -33,14 +33,17 @@ module EnableBanking
       counterparty_node = direction == "credit" ? @payload["debtor"] : @payload["creditor"]
       counterparty_account_node = direction == "credit" ? @payload["debtor_account"] : @payload["creditor_account"]
 
+      currency = @payload.dig("transaction_amount", "currency")
+      amount_cents = to_cents(@payload.dig("transaction_amount", "amount"), currency)
+
       {
         bank_account_id: @bank_account.id,
         external_id: extract_external_id,
         booking_date: parse_date(@payload["booking_date"]),
         value_date: parse_date(@payload["value_date"]),
         transaction_date: parse_date(@payload["transaction_date"]),
-        amount: @payload.dig("transaction_amount", "amount"),
-        currency: @payload.dig("transaction_amount", "currency"),
+        amount_cents: amount_cents,
+        currency: currency,
         direction: direction,
         status: STATUS_MAP.fetch(@payload["status"], "booked"),
         title: Array(@payload["remittance_information"])[0],
@@ -91,6 +94,19 @@ module EnableBanking
       Date.parse(value)
     rescue ArgumentError
       nil
+    end
+
+    # Enable Banking sends the amount as a decimal string. Some banks signal
+    # debits with a leading minus, others rely solely on credit_debit_indicator;
+    # we normalize to the magnitude here and let `direction` carry the sign,
+    # so BankTransaction#signed_amount is the single source of truth for sign.
+    # BigDecimal preserves precision; Money.from_amount honors the currency's
+    # subunit scale (PLN/EUR=2, JPY=0, BHD=3) so a wrong-scale value can never
+    # be stored.
+    def to_cents(amount_string, currency)
+      raise ArgumentError, "Missing transaction_amount.amount" if amount_string.blank?
+      raise ArgumentError, "Missing transaction_amount.currency" if currency.blank?
+      Money.from_amount(BigDecimal(amount_string.to_s).abs, currency).cents
     end
   end
 end

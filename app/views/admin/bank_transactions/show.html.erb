@@ -1,7 +1,15 @@
 <div class="space-y-6">
+  <% header_title = capture do %>
+    <span class="<%= sensitive_class %>"><%= @transaction.direction == "credit" ? "+" : "−" %><%= @transaction.amount.format(symbol: false, no_cents_if_whole: false) %></span>
+    <%= @transaction.currency %>
+  <% end %>
+  <% header_subtitle = capture do %>
+    <span class="<%= sensitive_class %>"><%= @transaction.title.presence || @transaction.external_id %></span> — <%= @transaction.booking_date %>
+  <% end %>
   <%= render "admin/shared/components/page_header",
-        title: "#{@transaction.direction == 'credit' ? '+' : '−'}#{number_with_precision(@transaction.amount, precision: 2)} #{@transaction.currency}",
-        subtitle: "#{@transaction.title.presence || @transaction.external_id} — #{@transaction.booking_date}" %>
+        title: header_title,
+        subtitle: header_subtitle,
+        browser_title: "Transaction #{@transaction.external_id}" %>
 
   <div class="flex items-center gap-3">
     <%= render "admin/shared/components/badge",
@@ -22,11 +30,12 @@
     <%= render "admin/shared/components/card", title: "Transaction" do %>
       <%= render "admin/shared/components/definition_list", pairs: [
         { label: "Amount",
-          value: "#{@transaction.direction == 'credit' ? '+' : '−'}#{number_with_precision(@transaction.amount, precision: 2)} #{@transaction.currency}",
-          mono: true },
+          value: "#{@transaction.direction == 'credit' ? '+' : '−'}#{@transaction.amount.format(symbol: false, no_cents_if_whole: false)} #{@transaction.currency}",
+          mono: true,
+          sensitive: true },
         { label: "Direction", value: @transaction.direction },
         { label: "Status", value: @transaction.status },
-        { label: "Title", value: @transaction.title, wrap: true },
+        { label: "Title", value: @transaction.title, wrap: true, sensitive: true },
         { label: "Type hint", value: @transaction.type_hint, hint: "(remittance_information[1] — bank-specific)" },
         { label: "Bank txn code", value: @transaction.bank_transaction_code, mono: true, hint: "(Berlin Group, only Revolut populates)" },
         { label: "Booking date", value: @transaction.booking_date&.to_s, mono: true },
@@ -39,14 +48,15 @@
 
     <%= render "admin/shared/components/card", title: "Counterparty & account" do %>
       <%= render "admin/shared/components/definition_list", pairs: [
-        { label: "Counterparty", value: @transaction.counterparty_name },
+        { label: "Counterparty", value: @transaction.counterparty_name, sensitive: true },
         { label: "Counterparty IBAN", value: @transaction.counterparty_iban, mono: true, wrap: true,
-          hint: "(mBank: derived from BBAN by prepending 'PL')" },
+          hint: "(mBank: derived from BBAN by prepending 'PL')", sensitive: true },
         { label: "Bank account",
           value: link_to(@transaction.bank_account.display_name,
                          admin_settings_bank_account_path(@transaction.bank_account),
-                         class: "text-primary hover:underline") },
-        { label: "Account IBAN", value: @transaction.bank_account.iban, mono: true, wrap: true },
+                         class: "text-primary hover:underline"),
+          sensitive: true },
+        { label: "Account IBAN", value: @transaction.bank_account.iban, mono: true, wrap: true, sensitive: true },
         { label: "Bank",
           value: (
             if (bc = @transaction.bank_account.current_bank_connection)

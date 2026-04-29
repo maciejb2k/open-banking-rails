@@ -13,8 +13,15 @@ class CreateBankTransactions < ActiveRecord::Migration[8.1]
       t.date :booking_date,     null: false
       t.date :value_date
       t.date :transaction_date
-      t.decimal :amount, precision: 15, scale: 2, null: false
+
+      # Money pattern: amount in minor units (cents/grosze), currency is the
+      # ISO 4217 code that determines the subunit scale. Always read together
+      # via `monetize :amount_cents, with_model_currency: :currency`.
+      # bigint chosen so a single transaction can represent values up to
+      # ~92 quadrillion minor units — safe for any realistic bank entry.
+      t.bigint :amount_cents, null: false
       t.string :currency, null: false, limit: 3
+
       t.string :direction, null: false                  # "credit" | "debit"
       t.string :status, null: false, default: "booked"  # "booked" | "pending"
 

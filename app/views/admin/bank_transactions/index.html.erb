@@ -103,7 +103,7 @@
         <% end %>
         <% if (val = params.dig(:q, :title_or_counterparty_name_cont)).present? %>
           <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            Search: "<%= val %>"
+            Search: "<span class="<%= sensitive_class %>"><%= val %></span>"
             <%= link_to admin_bank_transactions_path(q: params[:q].to_unsafe_h.except("title_or_counterparty_name_cont")),
                   class: "ml-0.5 hover:text-primary/70 transition-colors" do %>
               <%= render "admin/shared/icons/x", classes: "h-3 w-3" %>
@@ -180,7 +180,7 @@
             <th class="px-4 py-3 text-left font-medium text-muted-foreground">Title</th>
             <th class="px-4 py-3 text-left font-medium text-muted-foreground">Counterparty</th>
             <th class="px-4 py-3 text-left font-medium text-muted-foreground"><%= sort_link "Status", "status" %></th>
-            <th class="px-4 py-3 text-right font-medium text-muted-foreground"><%= sort_link "Amount", "amount" %></th>
+            <th class="px-4 py-3 text-right font-medium text-muted-foreground"><%= sort_link "Amount", "amount_cents" %></th>
             <th class="w-12 px-4 py-3"></th>
           </tr>
         </thead>
@@ -201,20 +201,20 @@
                 <td class="px-4 py-3 text-xs text-muted-foreground">
                   <% bank = tx.bank_account.current_bank_connection&.bank_name || tx.bank_account.current_bank_connection&.bank_slug %>
                   <div class="text-foreground"><%= bank %></div>
-                  <div class="font-mono text-muted-foreground/70"><%= tx.bank_account.iban || tx.bank_account.uid %></div>
+                  <div class="font-mono text-muted-foreground/70 <%= sensitive_class %>"><%= tx.bank_account.iban || tx.bank_account.uid %></div>
                 </td>
                 <td class="px-4 py-3 max-w-xs">
-                  <div class="text-foreground truncate"><%= tx.title.presence || "—" %></div>
+                  <div class="text-foreground truncate <%= sensitive_class if tx.title.present? %>"><%= tx.title.presence || "—" %></div>
                   <% if tx.type_hint.present? %>
                     <div class="text-xs text-muted-foreground truncate"><%= tx.type_hint %></div>
                   <% end %>
                 </td>
                 <td class="px-4 py-3 text-xs">
                   <% if tx.counterparty_name.present? %>
-                    <div class="text-foreground truncate max-w-[18ch]"><%= tx.counterparty_name %></div>
+                    <div class="text-foreground truncate max-w-[18ch] <%= sensitive_class %>"><%= tx.counterparty_name %></div>
                   <% end %>
                   <% if tx.counterparty_iban.present? %>
-                    <div class="font-mono text-muted-foreground/80"><%= tx.counterparty_iban %></div>
+                    <div class="font-mono text-muted-foreground/80 <%= sensitive_class %>"><%= tx.counterparty_iban %></div>
                   <% end %>
                   <% if tx.counterparty_name.blank? && tx.counterparty_iban.blank? %>
                     <span class="text-muted-foreground/50">—</span>
@@ -226,7 +226,7 @@
                         variant: tx.status == "booked" ? :success : :info %>
                 </td>
                 <td class="px-4 py-3 text-right font-mono whitespace-nowrap <%= tx.direction == 'credit' ? 'text-success' : 'text-foreground' %>">
-                  <%= tx.direction == "credit" ? "+" : "−" %><%= number_with_precision(tx.amount, precision: 2) %>
+                  <span class="<%= sensitive_class %>"><%= tx.direction == "credit" ? "+" : "−" %><%= tx.amount.format(symbol: false, no_cents_if_whole: false) %></span>
                   <span class="text-muted-foreground text-xs"><%= tx.currency %></span>
                 </td>
                 <td class="px-4 py-3">

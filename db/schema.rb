@@ -73,7 +73,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_28_220217) do
   end
 
   create_table "bank_transactions", force: :cascade do |t|
-    t.decimal "amount", precision: 15, scale: 2, null: false
+    t.bigint "amount_cents", null: false
     t.bigint "bank_account_id", null: false
     t.string "bank_transaction_code"
     t.date "booking_date", null: false

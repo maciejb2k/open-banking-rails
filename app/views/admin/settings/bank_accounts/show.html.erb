@@ -1,7 +1,11 @@
 <div class="space-y-6">
+  <% account_subtitle = capture do %>
+    Bank account — <span class="<%= sensitive_class %>"><%= @account.iban || @account.uid %></span>
+  <% end %>
   <%= render "admin/shared/components/page_header",
-        title: @account.display_name,
-        subtitle: "Bank account — #{@account.iban || @account.uid}" %>
+        title: sensitive(@account.display_name),
+        subtitle: account_subtitle,
+        browser_title: "Bank account #{@account.uid}" %>
 
   <div class="flex items-center gap-3">
     <%= render "admin/shared/components/badge",
@@ -30,11 +34,11 @@
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <%= render "admin/shared/components/card", title: "Identity" do %>
       <%= render "admin/shared/components/definition_list", pairs: [
-        { label: "IBAN", value: @account.iban, mono: true, wrap: true },
-        { label: "BBAN", value: @account.bban, mono: true },
-        { label: "EB UID", value: @account.uid, mono: true, wrap: true },
+        { label: "IBAN", value: @account.iban, mono: true, wrap: true, sensitive: true },
+        { label: "BBAN", value: @account.bban, mono: true, sensitive: true },
+        { label: "EB UID", value: @account.uid, mono: true, wrap: true, sensitive: true },
         { label: "Currency", value: @account.currency },
-        { label: "Holder", value: @account.name },
+        { label: "Holder", value: @account.name, sensitive: true },
         { label: "Product", value: @account.product },
         { label: "Description", value: @account.details },
         { label: "Type", value: @account.cash_account_type, mono: true },
@@ -46,7 +50,7 @@
           <p class="text-xs text-muted-foreground mb-2">Alternate IBAN-y (np. Revolut PL+LT):</p>
           <ul class="space-y-1">
             <% @account.alternate_ibans.each do |alt| %>
-              <li class="font-mono text-xs break-all"><%= alt %></li>
+              <li class="font-mono text-xs break-all <%= sensitive_class %>"><%= alt %></li>
             <% end %>
           </ul>
         </div>
@@ -55,7 +59,7 @@
 
     <%= render "admin/shared/components/card", title: "Servicer & connection" do %>
       <%= render "admin/shared/components/definition_list", pairs: [
-        { label: "BIC", value: @account.bic, mono: true },
+        { label: "BIC", value: @account.bic, mono: true, sensitive: true },
         { label: "Bank", value: @account.account_servicer&.dig("name") },
         { label: "Credential",
           value: link_to(@account.tpp_credential.name, admin_settings_tpp_credential_path(@account.tpp_credential), class: "text-primary hover:underline") },
@@ -89,12 +93,13 @@
               { label: "Reference date" }
             ] do %>
         <% balances.each do |b| %>
+          <% balance_money = Money.from_amount(BigDecimal(b.dig("balance_amount", "amount").to_s), b.dig("balance_amount", "currency")) %>
           <tr class="border-b last:border-0">
             <td class="px-4 py-3 font-mono text-xs"><%= b["balance_type"] %></td>
             <td class="px-4 py-3 text-muted-foreground text-xs"><%= b["name"] %></td>
             <td class="px-4 py-3 font-mono">
-              <%= number_with_precision(b.dig("balance_amount", "amount").to_f, precision: 2) %>
-              <span class="text-muted-foreground text-xs"><%= b.dig("balance_amount", "currency") %></span>
+              <span class="<%= sensitive_class %>"><%= balance_money.format(symbol: false, no_cents_if_whole: false) %></span>
+              <span class="text-muted-foreground text-xs"><%= balance_money.currency.iso_code %></span>
             </td>
             <td class="px-4 py-3 text-muted-foreground text-xs">
               <%= b["reference_date"] || b["last_change_date_time"] || "—" %>

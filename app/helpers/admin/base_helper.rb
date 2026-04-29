@@ -72,7 +72,7 @@ module Admin
 
         if numeric_id?(seg) && i.positive?
           label = breadcrumb_label_for_id(parent_segment: segments[i - 1], id: seg) || seg
-          { label: label, path: path }
+          { label: label, path: path, sensitive: true }
         else
           item = nav_labels[seg]
           { label: item&.fetch(:label, nil) || seg.humanize, path: item&.fetch(:path, nil) || path }

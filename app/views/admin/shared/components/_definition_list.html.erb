@@ -1,12 +1,18 @@
-<%# locals: (pairs:) — array of hashes: {label:, value:, mono: false, wrap: false, hint: nil} %>
-<%# Nils skipped, blank values render as muted dash. See styleguide for examples. %>
+<%# locals: (pairs:) %>
+<%# Each pair: { label:, value:, mono: false, wrap: false, hint: nil, sensitive: nil } %>
+<%# sensitive: accepts nil/false, true, a kind symbol, or a hash. See admin/privacy_helper.rb %>
 <dl class="space-y-2 text-sm">
   <% Array(pairs).compact.each do |pair| %>
     <div class="flex justify-between gap-4">
       <dt class="text-muted-foreground shrink-0"><%= pair[:label] %></dt>
       <dd class="text-right<%= " font-mono" if pair[:mono] %><%= " break-all" if pair[:wrap] %>">
         <% if pair[:value].present? %>
-          <%= pair[:value] %>
+          <% sensitive_classes = sensitive_prop(pair[:sensitive]) %>
+          <% if sensitive_classes %>
+            <span class="<%= sensitive_classes %>"><%= pair[:value] %></span>
+          <% else %>
+            <%= pair[:value] %>
+          <% end %>
           <% if pair[:hint].present? %>
             <span class="text-xs text-muted-foreground ml-1"><%= pair[:hint] %></span>
           <% end %>

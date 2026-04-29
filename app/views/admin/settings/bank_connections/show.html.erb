@@ -50,7 +50,7 @@
         { label: "Bank slug", value: @connection.bank_slug, mono: true },
         { label: "Bank country", value: @connection.bank_country },
         { label: "PSU type", value: @connection.psu_type },
-        { label: "Session ID", value: @connection.session_id, mono: true, wrap: true },
+        { label: "Session ID", value: @connection.session_id, mono: true, wrap: true, sensitive: :redact },
         { label: "Access scope", value: [
             ("balances" if @connection.access_balances),
             ("transactions" if @connection.access_transactions)
@@ -80,8 +80,8 @@
           <li>
             <%= link_to admin_settings_bank_account_path(account), class: "flex items-center justify-between rounded-lg border bg-card p-3 hover:bg-card-hover transition-colors" do %>
               <div>
-                <p class="font-mono text-xs text-foreground"><%= account.iban || account.uid %></p>
-                <p class="text-xs text-muted-foreground"><%= account.display_name %> · <%= account.currency %></p>
+                <p class="font-mono text-xs text-foreground <%= sensitive_class %>"><%= account.iban || account.uid %></p>
+                <p class="text-xs text-muted-foreground"><span class="<%= sensitive_class %>"><%= account.display_name %></span> · <%= account.currency %></p>
               </div>
               <%= render "admin/shared/components/badge", text: account.cash_account_type || "—", variant: :muted %>
             <% end %>
@@ -97,7 +97,7 @@
 
   <% if @connection.last_error.present? %>
     <%= render "admin/shared/components/card", title: "Last error" do %>
-      <pre class="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-xs font-mono overflow-auto text-destructive"><%= @connection.last_error %></pre>
+      <pre class="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-xs font-mono overflow-auto text-destructive <%= sensitive_class kind: :strong %>"><%= @connection.last_error %></pre>
     <% end %>
   <% end %>
 </div>

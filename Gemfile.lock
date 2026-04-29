@@ -199,6 +199,16 @@ GEM
     minitest (6.0.5)
       drb (~> 2.0)
       prism (~> 1.5)
+    monetize (2.0.0)
+      money (~> 7.0)
+    money (7.0.2)
+      bigdecimal
+      i18n (~> 1.9)
+    money-rails (3.0.0)
+      activesupport (>= 7.0)
+      monetize (~> 2.0)
+      money (~> 7.0)
+      railties (>= 7.0)
     msgpack (1.8.0)
     net-http (0.9.1)
       uri (>= 0.11.1)
@@ -662,6 +672,7 @@ DEPENDENCIES
   importmap-rails
   jwt (~> 2.8)
   lograge
+  money-rails (~> 3.0)
   opentelemetry-exporter-otlp (~> 0.32.0)
   opentelemetry-exporter-otlp-logs (~> 0.3.0)
   opentelemetry-exporter-otlp-metrics (~> 0.7.0)

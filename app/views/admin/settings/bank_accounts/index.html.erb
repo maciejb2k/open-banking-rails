@@ -26,12 +26,12 @@
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
             <td class="px-4 py-3">
               <%= link_to admin_settings_bank_account_path(account),
-                    class: "font-mono text-xs text-foreground hover:text-primary" do %>
+                    class: "font-mono text-xs text-foreground hover:text-primary #{sensitive_class}" do %>
                 <%= account.iban || account.uid %>
               <% end %>
             </td>
             <td class="px-4 py-3 text-muted-foreground">
-              <%= account.display_name %>
+              <span class="<%= sensitive_class %>"><%= account.display_name %></span>
               <% if account.alternate_ibans.any? %>
                 <span class="text-xs text-muted-foreground/70">+<%= account.alternate_ibans.size %></span>
               <% end %>
