@@ -3,7 +3,9 @@
 <div class="space-y-6">
   <%= render "admin/shared/components/page_header",
         title: (@connection.bank_name.presence || @connection.bank_slug),
-        subtitle: "Bank connection — credential: #{@connection.tpp_credential.name}" %>
+        subtitle: "Bank connection — credential: #{@connection.tpp_credential.name}",
+        media: render("admin/shared/components/bank_logo",
+          slug: @connection.bank_slug, name: @connection.bank_name, size: :xl) %>
 
   <div class="flex items-center gap-3">
     <%= render "admin/shared/components/badge",

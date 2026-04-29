@@ -39,10 +39,14 @@
             <td class="px-4 py-3 text-muted-foreground"><%= account.currency %></td>
             <td class="px-4 py-3 text-muted-foreground"><%= account.cash_account_type %></td>
             <td class="px-4 py-3">
-              <% if account.current_bank_connection %>
-                <%= link_to account.current_bank_connection.bank_name.presence || account.current_bank_connection.bank_slug,
-                      admin_settings_bank_connection_path(account.current_bank_connection),
-                      class: "text-sm text-primary hover:underline" %>
+              <% if (bc = account.current_bank_connection) %>
+                <div class="flex items-center gap-2">
+                  <%= render "admin/shared/components/bank_logo",
+                        slug: bc.bank_slug, name: bc.bank_name, size: :sm %>
+                  <%= link_to bc.bank_name.presence || bc.bank_slug,
+                        admin_settings_bank_connection_path(bc),
+                        class: "text-sm text-primary hover:underline" %>
+                </div>
               <% else %>
                 <span class="text-muted-foreground/50">—</span>
               <% end %>

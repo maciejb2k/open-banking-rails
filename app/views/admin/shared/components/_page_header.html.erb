@@ -1,13 +1,17 @@
-<%# locals: (title:, subtitle: nil, actions: nil, browser_title: nil, back_path: nil) %>
-<%# Browser <title> defaults to page H1; override via browser_title: when they should differ. %>
+<%# locals: (title:, subtitle: nil, actions: nil, browser_title: nil, back_path: nil, media: nil) %>
+<%# Browser <title> defaults to page H1; override via browser_title: when they should differ.
+    media: pre-rendered slot (e.g. bank_logo, avatar, icon tile) shown left of the title. %>
 <% content_for :title, "#{browser_title || title} · Open Banking" %>
 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-  <div class="flex items-center gap-3">
+  <div class="flex items-center <%= media ? "gap-4" : "gap-3" %>">
     <% if back_path %>
       <%= link_to back_path,
             class: "rounded-lg p-2 text-muted-foreground hover:bg-card-hover transition-colors shrink-0" do %>
         <%= render "admin/shared/icons/arrow_left", classes: "h-5 w-5" %>
       <% end %>
+    <% end %>
+    <% if media %>
+      <div class="shrink-0"><%= media %></div>
     <% end %>
     <div>
       <h1 class="text-2xl font-bold text-foreground"><%= title %></h1>

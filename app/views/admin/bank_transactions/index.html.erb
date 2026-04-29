@@ -160,9 +160,18 @@
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
             <td class="px-4 py-3 font-mono text-xs whitespace-nowrap"><%= tx.booking_date %></td>
             <td class="px-4 py-3 text-xs text-muted-foreground">
-              <% bank = tx.bank_account.current_bank_connection&.bank_name || tx.bank_account.current_bank_connection&.bank_slug %>
-              <div class="text-foreground"><%= bank %></div>
-              <div class="font-mono text-muted-foreground/70 <%= sensitive_class %>"><%= tx.bank_account.iban || tx.bank_account.uid %></div>
+              <% bc = tx.bank_account.current_bank_connection %>
+              <% bank = bc&.bank_name || bc&.bank_slug %>
+              <div class="flex items-center gap-2">
+                <% if bc %>
+                  <%= render "admin/shared/components/bank_logo",
+                        slug: bc.bank_slug, name: bc.bank_name, size: :sm %>
+                <% end %>
+                <div class="min-w-0">
+                  <div class="text-foreground truncate"><%= bank %></div>
+                  <div class="font-mono text-muted-foreground/70 truncate <%= sensitive_class %>"><%= tx.bank_account.iban || tx.bank_account.uid %></div>
+                </div>
+              </div>
             </td>
             <td class="px-4 py-3 max-w-xs">
               <div class="text-foreground truncate <%= sensitive_class if tx.title.present? %>"><%= tx.title.presence || "—" %></div>

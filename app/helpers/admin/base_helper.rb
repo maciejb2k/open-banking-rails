@@ -55,6 +55,16 @@ module Admin
       end
     end
 
+    # Returns the Propshaft asset path for a bank logo if the file exists,
+    # otherwise nil — components fall back to an initials tile.
+    # Files live in app/assets/images/banks/{bank_slug}.svg (slug from
+    # BankConnection#bank_slug, e.g. "mbank", "revolut", "pko_bank_polski").
+    def bank_logo_asset_path(slug)
+      return nil if slug.blank?
+      asset = Rails.application.assets.load_path.find("banks/#{slug}.svg")
+      asset ? asset_path("banks/#{slug}.svg") : nil
+    end
+
     def breadcrumb_items
       segments = request.path.split("/").reject(&:empty?)
 

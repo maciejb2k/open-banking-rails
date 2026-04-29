@@ -1,0 +1,23 @@
+<%# locals: (slug:, name: nil, size: :md) %>
+<%# Square logo tile. Loads app/assets/images/banks/{slug}.svg via Propshaft;
+    falls back to first 1–3 letters of name/slug on bg-muted when missing. %>
+<%
+  size_classes = {
+    sm: "size-6 text-[10px]",
+    md: "size-8 text-xs",
+    lg: "size-12 text-sm",
+    xl: "size-16 text-base"
+  }
+  size_cls = size_classes.fetch(size.to_sym, size_classes[:md])
+  logo_path = bank_logo_asset_path(slug)
+  label = (name.presence || slug.to_s.tr("_", " ")).to_s
+  initials = label.split(/\s+/).first(3).map { |w| w[0] }.join.upcase.presence || "?"
+%>
+<span class="inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md <%= "border bg-muted" unless logo_path %> <%= size_cls %>"
+      title="<%= label %>">
+  <% if logo_path %>
+    <%= image_tag logo_path, alt: label, class: "size-full object-contain" %>
+  <% else %>
+    <span class="font-semibold text-muted-foreground tracking-tight"><%= initials %></span>
+  <% end %>
+</span>

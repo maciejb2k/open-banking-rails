@@ -2,10 +2,13 @@
   <% account_subtitle = capture do %>
     Bank account — <span class="<%= sensitive_class %>"><%= @account.iban || @account.uid %></span>
   <% end %>
+  <% bc = @account.current_bank_connection %>
   <%= render "admin/shared/components/page_header",
         title: sensitive(@account.display_name),
         subtitle: account_subtitle,
-        browser_title: "Bank account #{@account.uid}" %>
+        browser_title: "Bank account #{@account.uid}",
+        media: (bc && render("admin/shared/components/bank_logo",
+          slug: bc.bank_slug, name: bc.bank_name, size: :xl)) %>
 
   <div class="flex items-center gap-3">
     <%= render "admin/shared/components/badge",

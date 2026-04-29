@@ -54,6 +54,10 @@
               concat render("admin/shared/components/button", label: "Export", variant: :outline, icon: "download")
               concat render("admin/shared/components/button", label: "Add New", variant: :default, icon: "plus")
             } %>
+      <%= render "admin/shared/components/page_header",
+            title: "With media slot",
+            subtitle: "media: accepts any pre-rendered HTML — logo, avatar, icon tile.",
+            media: render("admin/shared/components/bank_logo", slug: "mbank", name: "mBank", size: :xl) %>
     </div>
   </section>
 
@@ -707,6 +711,43 @@
           { label: "By", value: "admin@example.com" }
         ] %>
       <% end %>
+    </div>
+  </section>
+
+  <%# ── BANK LOGO ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Bank Logo</h2>
+    <p class="text-sm text-muted-foreground">
+      Square tile keyed by <code class="bg-muted px-1 rounded text-xs">bank_slug</code>. Loads
+      <code class="bg-muted px-1 rounded text-xs">app/assets/images/banks/{slug}.svg</code> if present, otherwise renders initials on
+      <code class="bg-muted px-1 rounded text-xs">bg-muted</code>. Sizes: <code class="bg-muted px-1 rounded text-xs">:sm :md :lg :xl</code>.
+    </p>
+    <div class="space-y-4">
+      <div class="space-y-2">
+        <p class="text-xs text-muted-foreground uppercase tracking-wider">Sizes (mBank)</p>
+        <div class="flex items-center gap-3">
+          <%= render "admin/shared/components/bank_logo", slug: "mbank", name: "mBank", size: :sm %>
+          <%= render "admin/shared/components/bank_logo", slug: "mbank", name: "mBank", size: :md %>
+          <%= render "admin/shared/components/bank_logo", slug: "mbank", name: "mBank", size: :lg %>
+          <%= render "admin/shared/components/bank_logo", slug: "mbank", name: "mBank", size: :xl %>
+        </div>
+      </div>
+      <div class="space-y-2">
+        <p class="text-xs text-muted-foreground uppercase tracking-wider">Supported banks (md)</p>
+        <div class="flex items-center gap-3">
+          <%= render "admin/shared/components/bank_logo", slug: "mbank", name: "mBank" %>
+          <%= render "admin/shared/components/bank_logo", slug: "revolut", name: "Revolut" %>
+          <%= render "admin/shared/components/bank_logo", slug: "pko_bank_polski", name: "PKO Bank Polski" %>
+        </div>
+      </div>
+      <div class="space-y-2">
+        <p class="text-xs text-muted-foreground uppercase tracking-wider">Fallback (no asset for slug)</p>
+        <div class="flex items-center gap-3">
+          <%= render "admin/shared/components/bank_logo", slug: "santander", name: "Santander", size: :sm %>
+          <%= render "admin/shared/components/bank_logo", slug: "ing_bank_slaski", name: "ING Bank Śląski", size: :md %>
+          <%= render "admin/shared/components/bank_logo", slug: "unknown_bank", size: :lg %>
+        </div>
+      </div>
     </div>
   </section>
 
