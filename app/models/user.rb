@@ -6,6 +6,9 @@ class User < ApplicationRecord
   has_many :tpp_credentials, dependent: :destroy
   has_many :bank_connections, through: :tpp_credentials
   has_many :bank_accounts, through: :tpp_credentials
+  has_many :cash_wallets, -> { where(manual: true) },
+           class_name: "BankAccount", foreign_key: :manual_owner_id, dependent: :destroy
+  has_many :manual_transactions, through: :cash_wallets
 
   def primary_tpp_credential
     tpp_credentials.find_by(primary: true)

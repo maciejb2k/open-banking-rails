@@ -1,15 +1,18 @@
 # frozen_string_literal: true
 
 # Marker + delegation concern for anything that participates in the user's
-# financial ledger. Today: BankTransaction. Tomorrow: ManualTransaction
-# (cash), potentially RecurringTransaction (forecasts).
+# financial ledger. Today: BankTransaction, ManualTransaction. Future:
+# RecurringTransaction (forecasts).
 #
 # Carrying the polymorphic `enrichment` association here means callers can
 # treat any ledger entry uniformly: `entry.merchant`, `entry.category`,
-# `entry.payment_method` work regardless of the concrete class. The eventual
-# `ledger_entries` Postgres view (Phase 4) joins on `enrichable_type` /
-# `enrichable_id` directly.
-module LedgerEntry
+# `entry.payment_method` work regardless of the concrete class.
+#
+# NOTE: This concern is the *write-side* of the ledger (persisted records
+# with associations + callbacks). The *read-side* for analytics lives in
+# the `LedgerEntry` model (PG view at db/views/ledger_entries_v01.sql),
+# which UNIONs both ledger sources into a single read-only relation.
+module LedgerEntryConcern
   extend ActiveSupport::Concern
 
   included do

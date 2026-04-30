@@ -1,0 +1,153 @@
+<%# locals: () %>
+<%# Form for ManualTransaction. Categories are rendered as a grouped <select>
+    (parent → children) which the shared form/_select doesn't model — kept as
+    a one-off here. Currency on edit is locked (moving an entry between
+    currencies = moving between wallets, which is destructive). %>
+<%
+  amount_value =
+    if @cash_transaction.amount_cents.present?
+      format("%.2f", @cash_transaction.amount_cents.to_d / 100)
+    else
+      ""
+    end
+  form_url = @cash_transaction.persisted? ?
+    admin_cash_transaction_path(@cash_transaction) :
+    admin_cash_transactions_path
+%>
+
+<%= form_with model: @cash_transaction,
+              url: form_url,
+              scope: :cash_transaction,
+              class: "space-y-6", local: true do |f| %>
+  <%= render "admin/shared/form/error_summary", object: @cash_transaction %>
+
+  <div class="admin-section space-y-4">
+    <h2 class="text-base font-semibold text-foreground">Entry type</h2>
+
+    <%= render "admin/shared/form/radio_group",
+          form: f, field: :direction,
+          label: "Type",
+          options: [
+            { value: "debit",  label: "Expense (cash leaves your wallet)" },
+            { value: "credit", label: "Income (cash enters your wallet)" }
+          ],
+          hint: "Use Income for refunds from a friend, gifts, found cash." %>
+  </div>
+
+  <div class="admin-section space-y-4">
+    <h2 class="text-base font-semibold text-foreground">Amount and date</h2>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div>
+        <%= render "admin/shared/form/form_group",
+              label: "Amount", required: true,
+              error: @cash_transaction.errors[:amount_cents].first do %>
+          <div class="<%= sensitive_class %>">
+            <%= f.text_field :amount,
+                  value: amount_value,
+                  inputmode: "decimal",
+                  placeholder: "0.00",
+                  class: "form-input font-mono" %>
+          </div>
+        <% end %>
+      </div>
+
+      <div>
+        <% if @cash_transaction.persisted? %>
+          <%# Custom: read-only mirror of the wallet's currency. form/_select
+              would imply editability; a disabled <input> communicates the
+              lock more honestly. If a second locked field appears, extract
+              shared/form/_locked_field. %>
+          <%= render "admin/shared/form/form_group", label: "Currency" do %>
+            <input type="text" value="<%= @cash_transaction.currency %>" disabled
+                   class="form-input bg-muted/30 font-mono">
+            <%= f.hidden_field :currency %>
+          <% end %>
+        <% else %>
+          <%= render "admin/shared/form/select",
+                form: f, field: :currency, label: "Currency", required: true,
+                options: @currency_options.map { |c| [ c, c ] } %>
+        <% end %>
+      </div>
+
+      <div>
+        <%= render "admin/shared/form/date_picker",
+              form: f, field: :booking_date,
+              label: "Date", required: true %>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-section space-y-4">
+    <h2 class="text-base font-semibold text-foreground">Classification</h2>
+
+    <%# Custom: grouped optgroups (parent → children) — form/_select takes
+        a flat options array. If a third grouped select appears, extract
+        form/_grouped_select. %>
+    <%= render "admin/shared/form/form_group",
+          label: "Category",
+          hint: "Without a category the entry lands in Uncategorized." do %>
+      <%= f.select :category_id,
+            grouped_options_for_select(
+              @category_options.group_by { |c| c.parent&.name || "Top level" }.map { |group, cats|
+                [ group, cats.map { |c| [ c.name, c.id ] } ]
+              },
+              @cash_transaction.enrichment&.category_id
+            ),
+            { include_blank: "—" },
+            class: "form-input" %>
+    <% end %>
+
+    <%= render "admin/shared/form/select",
+          form: f, field: :merchant_id,
+          label: "Merchant / counterparty",
+          options: @merchant_options.map { |m| [ m.display, m.id ] },
+          include_blank: "—",
+          hint: "Optional. Helps later analysis and rule learning." %>
+  </div>
+
+  <div class="admin-section space-y-4">
+    <h2 class="text-base font-semibold text-foreground">Details (optional)</h2>
+
+    <%= render "admin/shared/form/text_field",
+          form: f, field: :title,
+          label: "Short description",
+          placeholder: "e.g. Coffee after the gym" %>
+
+    <%= render "admin/shared/form/text_field",
+          form: f, field: :counterparty_name,
+          label: "Place / person",
+          placeholder: "e.g. Costa Coffee, Marek" %>
+
+    <%= render "admin/shared/form/textarea",
+          form: f, field: :note,
+          label: "Note", rows: 3,
+          placeholder: "Private note — only visible to you." %>
+  </div>
+
+  <%= f.hidden_field :payment_method, value: @cash_transaction.payment_method.presence || "cash" %>
+
+  <div class="flex items-center justify-between gap-3">
+    <% if @cash_transaction.persisted? %>
+      <%= render "admin/shared/components/button",
+            label: "Delete",
+            href: admin_cash_transaction_path(@cash_transaction),
+            method: :delete,
+            icon: "trash_2",
+            variant: :outline_destructive,
+            data: { turbo_confirm: "Delete this transaction?" } %>
+    <% else %>
+      <span></span>
+    <% end %>
+
+    <div class="flex items-center gap-3">
+      <%= render "admin/shared/components/button",
+            label: "Cancel",
+            href: admin_cash_transactions_path,
+            variant: :outline %>
+      <%= render "admin/shared/components/button",
+            label: @cash_transaction.persisted? ? "Save changes" : "Save transaction",
+            type: :submit %>
+    </div>
+  </div>
+<% end %>

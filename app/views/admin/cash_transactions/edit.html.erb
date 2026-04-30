@@ -1,0 +1,8 @@
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "Edit cash transaction",
+        subtitle: "#{@cash_transaction.bank_account.display_name} · #{@cash_transaction.booking_date}",
+        back_path: admin_cash_transactions_path %>
+
+  <%= render "admin/cash_transactions/form" %>
+</div>

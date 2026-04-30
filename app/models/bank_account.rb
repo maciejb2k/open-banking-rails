@@ -4,33 +4,53 @@ class BankAccount < ApplicationRecord
   STATUSES = %w[active inactive revoked].freeze
   CASH_ACCOUNT_TYPES = %w[CACC CARD CASH LOAN OTHR SVGS].freeze
 
-  belongs_to :tpp_credential
+  # Two ownership shapes, mutually exclusive (DB-enforced via
+  # bank_accounts_ownership_xor check constraint):
+  #   - Synced bank account: tpp_credential set, manual_owner nil, manual=false
+  #   - Cash wallet:         manual_owner set, tpp_credential nil, manual=true
+  belongs_to :tpp_credential, optional: true
+  belongs_to :manual_owner, class_name: "User", optional: true
   belongs_to :current_bank_connection, class_name: "BankConnection", optional: true
-  has_one :user, through: :tpp_credential
+
+  has_one :synced_user, through: :tpp_credential, source: :user
   has_many :bank_transactions, dependent: :destroy
+  has_many :manual_transactions, dependent: :destroy
 
   encrypts :raw_balances
 
   validates :uid, presence: true, uniqueness: true
   validates :status, presence: true, inclusion: { in: STATUSES }
   validates :cash_account_type, inclusion: { in: CASH_ACCOUNT_TYPES }, allow_blank: true
+  validate  :ownership_consistency
 
   has_paper_trail
 
   scope :active, -> { where(status: "active") }
+  scope :synced, -> { where(manual: false) }
+  scope :wallets, -> { where(manual: true) }
 
   def self.ransackable_attributes(_auth_object = nil)
     %w[id uid iban bban currency name product details cash_account_type usage
-       status details_fetched_at balances_synced_at transactions_synced_at
-       tpp_credential_id current_bank_connection_id created_at updated_at]
+       status manual details_fetched_at balances_synced_at transactions_synced_at
+       tpp_credential_id manual_owner_id current_bank_connection_id created_at updated_at]
   end
 
   def self.ransackable_associations(_auth_object = nil)
-    %w[tpp_credential current_bank_connection]
+    %w[tpp_credential current_bank_connection manual_owner]
   end
 
   def display_name
     name.presence || product.presence || details.presence || iban.presence || uid
+  end
+
+  # Resolves the human owner irrespective of ownership shape. Use this instead
+  # of `tpp_credential.user` whenever cash wallets might be in scope.
+  def owner
+    manual? ? manual_owner : tpp_credential&.user
+  end
+
+  def cash_wallet?
+    manual?
   end
 
   def alternate_ibans
@@ -62,5 +82,18 @@ class BankAccount < ApplicationRecord
     other = account_id_payload&.dig("other")
     return nil unless other.is_a?(Hash) && other["scheme_name"] == "BBAN"
     other["identification"]
+  end
+
+  private
+
+  # Mirrors the DB check constraint so AR surfaces a friendly message.
+  def ownership_consistency
+    if manual?
+      errors.add(:tpp_credential_id, "must be blank for a cash wallet") if tpp_credential_id.present?
+      errors.add(:manual_owner_id, "is required for a cash wallet") if manual_owner_id.blank?
+    else
+      errors.add(:manual_owner_id, "must be blank for a synced account") if manual_owner_id.present?
+      errors.add(:tpp_credential_id, "is required for a synced account") if tpp_credential_id.blank?
+    end
   end
 end

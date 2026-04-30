@@ -1,0 +1,222 @@
+<% new_buttons = capture do %>
+  <%= render "admin/shared/components/button",
+        label: "Add expense",
+        href: new_admin_cash_transaction_path(direction: "debit"),
+        icon: "plus" %>
+  <%= render "admin/shared/components/button",
+        label: "Add income",
+        href: new_admin_cash_transaction_path(direction: "credit"),
+        icon: "plus",
+        variant: :outline %>
+<% end %>
+
+<div class="space-y-6" data-controller="filter-panel">
+  <%= render "admin/shared/components/page_header",
+        title: "Cash transactions",
+        subtitle: "Off-bank entries you typed in by hand. Same enrichment pipeline as bank rows.",
+        actions: new_buttons %>
+
+  <%# ── Wallet summary ── %>
+  <% if @user_wallets.any? %>
+    <%# Custom: wallet card with conditional negative-balance hint. Not a
+        stat_card (no change/trend metric); not a generic card (the warning
+        flips the value color and shows an inline message). Padding/shape
+        mirror _stat_card so the grid feels native. If a second
+        balance-with-warning surface appears, extract _balance_card. %>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <% @user_wallets.each do |wallet| %>
+        <% balance = @wallet_balances[wallet.id] %>
+        <% negative = balance&.negative? %>
+        <div class="admin-card p-5">
+          <div class="flex items-center gap-2">
+            <div class="rounded-lg bg-primary/10 p-2">
+              <%= render "admin/shared/icons/banknote", classes: "h-5 w-5 text-primary" %>
+            </div>
+            <span class="text-xs uppercase tracking-wider text-muted-foreground truncate">
+              <%= wallet.display_name %>
+            </span>
+          </div>
+          <p class="mt-3 text-2xl font-bold <%= negative ? "text-destructive" : "text-foreground" %> <%= sensitive_class %>">
+            <%= balance ? balance.format : "—" %>
+          </p>
+          <% if negative %>
+            <p class="mt-2 text-xs text-destructive">
+              Negative balance — you've logged more expenses than top-ups.
+              Likely missing a cash income entry.
+            </p>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <%= render "admin/shared/components/callout",
+          variant: :info,
+          title: "No cash wallet yet" do %>
+      A PLN wallet is created automatically the moment you log your first
+      cash entry — no setup needed. Use <strong>Add expense</strong> or
+      <strong>Add income</strong> above to start.
+      <% unless current_user.track_cash? %>
+        <br>
+        Want ATM withdrawals auto-mirrored as wallet top-ups?
+        Enable cash tracking in
+        <%= link_to "Preferences", edit_admin_settings_preferences_path, class: "underline" %>.
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <%# ── Filters ── %>
+  <% active_filter_count = [
+       params[:wallet_id].present?,
+       params[:direction].present?,
+       params[:from].present?,
+       params[:to].present?
+     ].count(true) %>
+
+  <%= form_with url: admin_cash_transactions_path, method: :get, scope: nil,
+                local: true, html: { data: { turbo: false } } do %>
+    <div class="flex items-center gap-3">
+      <%= render "admin/shared/components/filter_trigger", active_count: active_filter_count %>
+      <%= render "admin/shared/components/button", label: "Apply", type: :submit %>
+    </div>
+
+    <% if active_filter_count > 0 %>
+      <div class="flex flex-wrap items-center gap-2 mt-3">
+        <% if (val = params[:wallet_id]).present? %>
+          <% w = @user_wallets.find { |x| x.id.to_s == val.to_s } %>
+          <%= render "admin/shared/components/filter_chip",
+                remove_path: admin_cash_transactions_path(request.query_parameters.except("wallet_id")) do %>
+            Wallet: <span class="<%= sensitive_class %>"><%= w&.display_name || "##{val}" %></span>
+          <% end %>
+        <% end %>
+        <% if (val = params[:direction]).present? %>
+          <%= render "admin/shared/components/filter_chip",
+                label: "Direction: #{val == "debit" ? "Expenses" : "Income"}",
+                remove_path: admin_cash_transactions_path(request.query_parameters.except("direction")) %>
+        <% end %>
+        <% if params[:from].present? || params[:to].present? %>
+          <%= render "admin/shared/components/filter_chip",
+                label: "Date: #{params[:from].presence || "…"} → #{params[:to].presence || "…"}",
+                remove_path: admin_cash_transactions_path(request.query_parameters.except("from", "to")) %>
+        <% end %>
+        <%= link_to "Clear all", admin_cash_transactions_path,
+              class: "text-xs text-muted-foreground hover:text-foreground transition-colors" %>
+      </div>
+    <% end %>
+
+    <%= render "admin/shared/components/filter_panel",
+          clear_url: admin_cash_transactions_path,
+          active_count: active_filter_count do %>
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Wallet</label>
+        <select name="wallet_id" class="form-input">
+          <option value="">All wallets</option>
+          <% @user_wallets.each do |w| %>
+            <option value="<%= w.id %>" <%= "selected" if params[:wallet_id].to_s == w.id.to_s %>>
+              <%= w.display_name %>
+            </option>
+          <% end %>
+        </select>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Direction</label>
+        <select name="direction" class="form-input">
+          <option value="">All</option>
+          <option value="debit"  <%= "selected" if params[:direction] == "debit"  %>>Expenses</option>
+          <option value="credit" <%= "selected" if params[:direction] == "credit" %>>Income</option>
+        </select>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">From</label>
+        <input type="date" name="from" value="<%= params[:from] %>" class="form-input">
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">To</label>
+        <input type="date" name="to" value="<%= params[:to] %>" class="form-input">
+      </div>
+    <% end %>
+  <% end %>
+
+  <%# ── Table ── %>
+  <div class="admin-section p-0 overflow-hidden">
+    <%= render "admin/shared/components/data_table",
+          columns: [
+            { label: "Date", sortable: "booking_date" },
+            { label: "Wallet" },
+            { label: "Title / Counterparty" },
+            { label: "Category" },
+            { label: "Source" },
+            { label: "Amount", sortable: "amount_cents", align: :right },
+            { label: "", width: "w-12" }
+          ] do %>
+      <% if @collection.empty? %>
+        <tr>
+          <td colspan="7">
+            <%= render "admin/shared/components/empty_state",
+                  title: "No cash transactions",
+                  description: active_filter_count > 0 ? "Nothing matches your filters." : "Use Add expense or Add income above to log your first cash entry.",
+                  icon: "dollar_sign" %>
+          </td>
+        </tr>
+      <% else %>
+        <% @collection.each do |tx| %>
+          <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+            <td class="px-4 py-3 font-mono text-xs whitespace-nowrap"><%= tx.booking_date %></td>
+            <td class="px-4 py-3 text-xs text-muted-foreground">
+              <span class="<%= sensitive_class %>"><%= tx.bank_account.display_name %></span>
+            </td>
+            <td class="px-4 py-3 max-w-xs">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="truncate <%= sensitive_class if tx.title.present? %>">
+                  <%= tx.title.presence || "—" %>
+                </span>
+                <% if tx.enrichment&.merchant %>
+                  <%= render "admin/shared/components/badge",
+                        text: tx.enrichment.merchant.display, variant: :info %>
+                <% end %>
+              </div>
+              <% if tx.counterparty_name.present? %>
+                <div class="text-xs text-muted-foreground truncate <%= sensitive_class %>">
+                  <%= tx.counterparty_name %>
+                </div>
+              <% end %>
+            </td>
+            <td class="px-4 py-3 text-xs">
+              <% cat = tx.effective_category %>
+              <% if cat %>
+                <div><%= cat.name %></div>
+                <% if cat.parent %>
+                  <div class="text-muted-foreground"><%= cat.parent.name %></div>
+                <% end %>
+              <% else %>
+                <span class="text-muted-foreground/50">—</span>
+              <% end %>
+            </td>
+            <td class="px-4 py-3 text-xs">
+              <%= render "admin/shared/components/badge",
+                    text: tx.source.humanize,
+                    variant: tx.source == "manual" ? :success : :muted %>
+            </td>
+            <td class="px-4 py-3 text-right font-mono whitespace-nowrap <%= tx.direction == "credit" ? "text-success" : "text-foreground" %>">
+              <span class="<%= sensitive_class %>">
+                <%= tx.direction == "credit" ? "+" : "−" %><%= tx.amount.format(symbol: false, no_cents_if_whole: false) %>
+              </span>
+              <span class="text-muted-foreground text-xs"><%= tx.currency %></span>
+            </td>
+            <td class="px-4 py-3">
+              <% if tx.source == "manual" %>
+                <%= render "admin/shared/components/dropdown_menu", items: [
+                  { label: "Edit", icon: "pencil", href: edit_admin_cash_transaction_path(tx) }
+                ] %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      <% end %>
+    <% end %>
+
+    <%= render "admin/shared/components/pagination", pagy: @pagy %>
+  </div>
+</div>

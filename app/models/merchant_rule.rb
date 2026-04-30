@@ -15,7 +15,11 @@
 # with `enabled: false` and surfaced in a review queue.
 class MerchantRule < ApplicationRecord
   KINDS   = %w[contains regex exact prefix iban].freeze
-  FIELDS  = %w[title counterparty_name counterparty_iban].freeze
+  # Fields on the ledger entry a rule can match against. payment_method is
+  # included so canonical (already-normalized) signals like blik_atm don't
+  # need bank-specific title patterns. The enricher tolerates models that
+  # don't expose a given field (e.g. ManualTransaction has no counterparty_iban).
+  FIELDS  = %w[title counterparty_name counterparty_iban payment_method].freeze
   SOURCES = %w[system user llm].freeze
 
   # Higher = applied first; matches the precedence we want when sorting in SQL.

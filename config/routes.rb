@@ -38,6 +38,8 @@ Rails.application.routes.draw do
       resource :enrichment, only: [ :update ], controller: "transaction_enrichments"
     end
 
+    resources :cash_transactions
+
     resources :categories, except: [ :show ] do
       member do
         post :archive
@@ -67,6 +69,8 @@ Rails.application.routes.draw do
 
     namespace :settings do
       get "/", to: redirect("/admin/settings/tpp_credentials"), as: :root
+
+      resource :preferences, only: %i[edit update]
 
       resources :tpp_credentials do
         member do

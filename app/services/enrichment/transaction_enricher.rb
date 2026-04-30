@@ -40,7 +40,13 @@ module Enrichment
       "transfer"           => "transfers",
       "internal_transfer"  => "transfers",
       "topup"              => "transfers",
-      "fee"                => "fees"
+      "fee"                => "fees",
+      # ManualTransaction (cash) — see ManualTransaction::PAYMENT_METHODS.
+      "cash"               => "cash_unmatched",
+      "cash_atm_topup"     => "cash_atm_topup",
+      "cash_deposit"       => "transfers",
+      "cash_fx_conversion" => "transfers",
+      "cash_adjustment"    => "cash_discrepancy"
     }.freeze
 
     def self.call(transaction) = new.enrich(transaction)
@@ -119,6 +125,11 @@ module Enrichment
 
     def first_matching_rule(transaction)
       @rules.find do |rule|
+        # Polymorphic enrichables — a rule's field may not exist on every
+        # ledger entry shape (ManualTransaction has no counterparty_iban,
+        # for example). Treat missing fields as a non-match instead of a
+        # NoMethodError. Skips silently; expected case, not an error.
+        next false unless transaction.respond_to?(rule.field)
         value = transaction.public_send(rule.field)
         value.present? && rule.matches?(value)
       end

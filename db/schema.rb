@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_29_190000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_30_210000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -26,22 +26,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_29_190000) do
     t.string "details"
     t.datetime "details_fetched_at"
     t.string "iban"
+    t.boolean "manual", default: false, null: false
+    t.bigint "manual_owner_id"
     t.string "name"
     t.string "product"
     t.jsonb "raw_account_resource"
     t.text "raw_balances"
     t.jsonb "raw_details"
     t.string "status", default: "active", null: false
-    t.bigint "tpp_credential_id", null: false
+    t.bigint "tpp_credential_id"
     t.datetime "transactions_synced_at"
     t.string "uid", null: false
     t.datetime "updated_at", null: false
     t.string "usage"
     t.index ["current_bank_connection_id"], name: "index_bank_accounts_on_current_bank_connection_id"
     t.index ["iban"], name: "index_bank_accounts_on_iban"
+    t.index ["manual"], name: "index_bank_accounts_on_manual"
+    t.index ["manual_owner_id"], name: "index_bank_accounts_on_manual_owner_id"
     t.index ["status"], name: "index_bank_accounts_on_status"
     t.index ["tpp_credential_id"], name: "index_bank_accounts_on_tpp_credential_id"
     t.index ["uid"], name: "index_bank_accounts_on_uid", unique: true
+    t.check_constraint "manual = true AND tpp_credential_id IS NULL AND manual_owner_id IS NOT NULL OR manual = false AND tpp_credential_id IS NOT NULL AND manual_owner_id IS NULL", name: "bank_accounts_ownership_xor"
   end
 
   create_table "bank_connections", force: :cascade do |t|
@@ -114,6 +119,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_29_190000) do
     t.index ["parent_id", "position"], name: "index_categories_on_parent_id_and_position"
     t.index ["parent_id"], name: "index_categories_on_parent_id"
     t.index ["slug"], name: "index_categories_on_slug", unique: true
+  end
+
+  create_table "manual_transactions", force: :cascade do |t|
+    t.bigint "amount_cents", null: false
+    t.bigint "bank_account_id", null: false
+    t.date "booking_date", null: false
+    t.string "counterparty_name"
+    t.datetime "created_at", null: false
+    t.bigint "created_by_user_id", null: false
+    t.string "currency", limit: 3, null: false
+    t.string "direction", null: false
+    t.bigint "linked_bank_transaction_id"
+    t.text "note"
+    t.string "payment_method"
+    t.string "source", default: "manual", null: false
+    t.string "status", default: "booked", null: false
+    t.text "title"
+    t.date "transaction_date"
+    t.datetime "updated_at", null: false
+    t.index ["bank_account_id", "booking_date"], name: "index_manual_transactions_on_bank_account_id_and_booking_date"
+    t.index ["bank_account_id"], name: "index_manual_transactions_on_bank_account_id"
+    t.index ["created_by_user_id"], name: "index_manual_transactions_on_created_by_user_id"
+    t.index ["linked_bank_transaction_id"], name: "idx_manual_transactions_one_per_linked_bank_tx", unique: true, where: "(linked_bank_transaction_id IS NOT NULL)"
+    t.index ["linked_bank_transaction_id"], name: "index_manual_transactions_on_linked_bank_transaction_id"
+    t.index ["payment_method"], name: "index_manual_transactions_on_payment_method"
+    t.index ["status"], name: "index_manual_transactions_on_status"
   end
 
   create_table "merchant_rules", force: :cascade do |t|
@@ -237,6 +268,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_29_190000) do
     t.datetime "remember_created_at"
     t.datetime "reset_password_sent_at"
     t.string "reset_password_token"
+    t.boolean "track_cash", default: false, null: false
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
@@ -255,10 +287,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_29_190000) do
 
   add_foreign_key "bank_accounts", "bank_connections", column: "current_bank_connection_id"
   add_foreign_key "bank_accounts", "tpp_credentials"
+  add_foreign_key "bank_accounts", "users", column: "manual_owner_id"
   add_foreign_key "bank_connections", "bank_connections", column: "replaces_id"
   add_foreign_key "bank_connections", "tpp_credentials"
   add_foreign_key "bank_transactions", "bank_accounts"
   add_foreign_key "categories", "categories", column: "parent_id"
+  add_foreign_key "manual_transactions", "bank_accounts"
+  add_foreign_key "manual_transactions", "bank_transactions", column: "linked_bank_transaction_id"
+  add_foreign_key "manual_transactions", "users", column: "created_by_user_id"
   add_foreign_key "merchant_rules", "merchants"
   add_foreign_key "merchant_rules", "users", column: "approved_by_id"
   add_foreign_key "merchants", "categories", column: "default_category_id"
@@ -268,4 +304,54 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_29_190000) do
   add_foreign_key "transaction_enrichments", "categories"
   add_foreign_key "transaction_enrichments", "merchant_rules"
   add_foreign_key "transaction_enrichments", "merchants"
+
+  create_view "ledger_entries", sql_definition: <<-SQL
+      SELECT 'BankTransaction'::text AS source_type,
+      bt.id AS source_id,
+      bt.bank_account_id,
+      bt.amount_cents,
+      bt.currency,
+      bt.direction,
+          CASE bt.direction
+              WHEN 'credit'::text THEN bt.amount_cents
+              ELSE (- bt.amount_cents)
+          END AS signed_amount_cents,
+      bt.status,
+      bt.booking_date,
+      bt.transaction_date,
+      bt.payment_method,
+      bt.title,
+      bt.counterparty_name,
+      te.id AS enrichment_id,
+      te.merchant_id,
+      COALESCE(te.category_id, m.default_category_id) AS effective_category_id,
+      te.source AS enrichment_source
+     FROM ((bank_transactions bt
+       LEFT JOIN transaction_enrichments te ON ((((te.enrichable_type)::text = 'BankTransaction'::text) AND (te.enrichable_id = bt.id))))
+       LEFT JOIN merchants m ON ((m.id = te.merchant_id)))
+  UNION ALL
+   SELECT 'ManualTransaction'::text AS source_type,
+      mt.id AS source_id,
+      mt.bank_account_id,
+      mt.amount_cents,
+      mt.currency,
+      mt.direction,
+          CASE mt.direction
+              WHEN 'credit'::text THEN mt.amount_cents
+              ELSE (- mt.amount_cents)
+          END AS signed_amount_cents,
+      mt.status,
+      mt.booking_date,
+      mt.transaction_date,
+      mt.payment_method,
+      mt.title,
+      mt.counterparty_name,
+      te.id AS enrichment_id,
+      te.merchant_id,
+      COALESCE(te.category_id, m.default_category_id) AS effective_category_id,
+      te.source AS enrichment_source
+     FROM ((manual_transactions mt
+       LEFT JOIN transaction_enrichments te ON ((((te.enrichable_type)::text = 'ManualTransaction'::text) AND (te.enrichable_id = mt.id))))
+       LEFT JOIN merchants m ON ((m.id = te.merchant_id)));
+  SQL
 end

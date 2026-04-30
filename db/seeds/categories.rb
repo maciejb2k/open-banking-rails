@@ -37,6 +37,14 @@ CATEGORIES = [
   { slug: "card_unmatched",      name: "Płatność kartą (inne)",     kind: "expense",  color: "neutral", icon: "credit-card" },
   { slug: "private_transfers",   name: "Przelewy prywatne",         kind: "transfer", color: "sky",     icon: "users" },
 
+  # Cash-tracking fallbacks (used when User#track_cash is on; see Cash module).
+  # cash_atm_topup is `transfer` because the ATM withdrawal + cash topup pair
+  # is a location change, not a spend; cash_discrepancy is `ignored` so
+  # reconciliation noise doesn't pollute month-over-month spend.
+  { slug: "cash_atm_topup",      name: "Wypłata do portfela",       kind: "transfer", color: "stone",   icon: "wallet" },
+  { slug: "cash_discrepancy",    name: "Korekta salda gotówki",     kind: "ignored",  color: "zinc",    icon: "scale" },
+  { slug: "cash_unmatched",      name: "Wydatek gotówkowy (inny)",  kind: "expense",  color: "neutral", icon: "banknote" },
+
   # Sub-categories under groceries
   { slug: "supermarkets",       name: "Supermarkety",          kind: "expense", parent_slug: "groceries" },
   { slug: "convenience_stores", name: "Sklepy osiedlowe",      kind: "expense", parent_slug: "groceries" },

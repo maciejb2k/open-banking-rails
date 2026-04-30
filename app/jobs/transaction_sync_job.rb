@@ -52,8 +52,42 @@ class TransactionSyncJob < ApplicationJob
     scope = scoped_pending_transactions(run)
     return if scope.nil?
     Enrichment::TransactionEnricher.enrich_pending(scope)
+    link_atm_withdrawals(run)
   rescue StandardError => e
     Rails.logger.error("[TransactionSyncJob] Enrichment failed for run=#{run.id}: #{e.class}: #{e.message}")
+  end
+
+  # Materializes cash topups for every BLIK ATM withdrawal touched by this
+  # run, but only when the owning user has cash tracking enabled. Best-effort:
+  # one row failing doesn't abort the rest, and any error is swallowed by the
+  # caller's rescue (sync already succeeded — link state is recoverable later
+  # via the cash:backfill_atm_links rake task).
+  def link_atm_withdrawals(run)
+    user = scoped_user(run)
+    return unless user&.track_cash?
+
+    scope = BankTransaction.for_user(user)
+                           .where(payment_method: "blik_atm", direction: "debit")
+    case run.subject
+    when BankAccount
+      scope = scope.where(bank_account_id: run.subject.id)
+    when BankConnection
+      scope = scope.where(bank_account_id: run.subject.current_bank_accounts.select(:id))
+    end
+
+    scope.find_each do |tx|
+      Cash::AtmWithdrawalLinker.link!(tx)
+    rescue StandardError => e
+      Rails.logger.error("[TransactionSyncJob] ATM link failed for tx=#{tx.id}: #{e.class}: #{e.message}")
+    end
+  end
+
+  def scoped_user(run)
+    case run.subject
+    when User           then run.subject
+    when BankConnection then run.subject.tpp_credential&.user
+    when BankAccount    then run.subject.tpp_credential&.user
+    end
   end
 
   def scoped_pending_transactions(run)

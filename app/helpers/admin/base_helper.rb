@@ -15,6 +15,7 @@ module Admin
           items: [
             { name: "Dashboard", path: admin_root_path, icon: "layout_dashboard" },
             { name: "Bank Transactions", path: admin_bank_transactions_path, icon: "dollar_sign" },
+            { name: "Cash Transactions", path: admin_cash_transactions_path, icon: "banknote" },
             { name: "Sync Transactions", path: admin_transaction_syncs_path, icon: "refresh_cw" }
           ]
         },
@@ -30,6 +31,7 @@ module Admin
         {
           title: "Settings",
           items: [
+            { name: "Preferences", path: edit_admin_settings_preferences_path, icon: "settings" },
             { name: "TPP Credentials", path: admin_settings_tpp_credentials_path, icon: "file_text" },
             { name: "Bank Connections", path: admin_settings_bank_connections_path, icon: "package" },
             { name: "Bank Accounts", path: admin_settings_bank_accounts_path, icon: "dollar_sign" },

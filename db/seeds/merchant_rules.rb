@@ -72,4 +72,47 @@ DEFINITIONS.each do |slug, display_name, category_slug, field, pattern, kind|
   rule.save!
 end
 
+# ATM withdrawal — special-case system merchant. Withdrawing cash is a
+# *location change* (account → wallet), not a spend, so the default
+# category is `transfers` (kind: transfer) and the row falls out of spend
+# analytics. Phase 3's Cash::AtmWithdrawalLinker pairs it with a manual
+# topup for users who opted into cash tracking.
+#
+# Priority 300 beats both the retail rules above (priority 0) and the
+# OwnAccountMerchantSyncer rules (priority 200), so an ATM withdrawal
+# can never be misclassified as a regular merchant or own-account transfer.
+ATM_RULES = [
+  # payment_method is normalized upstream by PaymentMethodInferer (PKO
+  # type_hint MOBILE-PAYMENT-ATM-*, Berlin Group ATM/WTHD codes all collapse
+  # here). One rule, every bank.
+  [ "payment_method", "blik_atm", "exact" ]
+].freeze
+
+atm_merchant = Merchant.find_or_initialize_by(slug: "atm_withdrawal")
+atm_merchant.assign_attributes(
+  name:             "ATM (cash withdrawal)",
+  display_name:     "ATM",
+  kind:             "other",
+  source:           "system",
+  default_category: cat.call("transfers"),
+  approved_at:      atm_merchant.approved_at || Time.current,
+  notes:            "Auto-generated. Cash withdrawals from any ATM. " \
+                    "Cash::AtmWithdrawalLinker pairs each withdrawal with a " \
+                    "topup in the user's cash wallet when track_cash is on."
+)
+atm_merchant.save!
+
+ATM_RULES.each do |field, pattern, kind|
+  rule = MerchantRule.find_or_initialize_by(merchant: atm_merchant, field: field, pattern: pattern)
+  rule.assign_attributes(
+    kind:           kind,
+    source:         "system",
+    enabled:        true,
+    priority:       300,
+    case_sensitive: false,
+    approved_at:    rule.approved_at || Time.current
+  )
+  rule.save!
+end
+
 Rails.logger.info "Seeded #{Merchant.where(source: 'system').count} system merchants, #{MerchantRule.where(source: 'system').count} system rules"

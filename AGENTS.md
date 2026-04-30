@@ -86,3 +86,97 @@ isn't met, that's fine — but:
 - [ ] Sensitive values wrapped.
 - [ ] If a new shared partial was added: it's in the styleguide.
 - [ ] If something custom was added: there's a comment justifying it.
+
+## Analytics data access
+
+Read before writing any aggregation, chart endpoint, or report query.
+
+### Single entry point: `LedgerEntry`
+
+All analytics queries go through `LedgerEntry` (`app/models/ledger_entry.rb`),
+a read-only model backed by the `ledger_entries` Postgres view
+(`db/views/ledger_entries_v01.sql`). The view UNIONs every persisted ledger
+source — currently `BankTransaction` (synced from Open Banking) and
+`ManualTransaction` (cash typed in by the user) — and pre-resolves
+enrichment + effective category in SQL.
+
+Never write analytics against the underlying tables directly. Without the
+view, every query has to UNION two tables and re-implement the
+`COALESCE(category_override, merchant.default_category)` resolution; with
+it, you get native Rails relation chains:
+
+```ruby
+LedgerEntry.for_user(user).booked.spend
+           .where(booking_date: 90.days.ago..)
+           .group("categories.id", "DATE_TRUNC('month', booking_date)")
+           .sum(:amount_cents)
+```
+
+### Why a view (not a service object, not a materialized view)
+
+- **Service object**: would push the UNION into Ruby; analytics loses native
+  `joins` / `group` / `sum` AR ergonomics. Every chart endpoint would still
+  know about both tables.
+- **Materialized view**: introduces staleness + REFRESH cron + lock. Premature
+  for this scale. Plain view is always fresh and uses the underlying indexes
+  through PG planner. If aggregations get slow, upgrade is one line:
+  `change_view :ledger_entries, materialized: true`.
+- **Single physical table** (STI / denormalize): would require refactoring
+  every existing model, sync pipeline, and UI. Zero payoff.
+
+### What's exposed (and what isn't)
+
+The view projects only the columns analytics needs:
+
+```
+source_type, source_id, bank_account_id,
+amount_cents, signed_amount_cents, currency,
+direction, status, payment_method,
+booking_date, transaction_date,
+title, counterparty_name,
+enrichment_id, merchant_id, effective_category_id, enrichment_source
+```
+
+Detail-view fields stay on the source tables: `raw_payload`, `note`,
+`external_id`, `type_hint`, `bank_transaction_code`, `value_date`,
+`linked_bank_transaction_id`. When you need them, hop back via
+`ledger_entry.source_record` — keep this off the hot path; analytics
+queries should use view columns directly.
+
+`signed_amount_cents` is positive for credits, negative for debits — sum it
+directly for net flow, no `CASE` in the application.
+
+### Always partition by `Category#kind`
+
+Summing raw amounts across all rows is nonsense — income cancels expense,
+transfers double-count own-account moves, ignored rows pollute totals. The
+canonical scopes (`spend`, `income`, `transfers`, `savings`) narrow on
+`Category#kind` first. Any new chart that doesn't fit one of those needs
+to think about kind partitioning explicitly before summing.
+
+### Extending the view
+
+Bumps are versioned via `scenic`. Each version is a separate `.sql` file
+in `db/views/`, dump-friendly to `schema.rb`, fast to revert.
+
+```bash
+# New ledger source (e.g. RecurringTransaction) or new analytics column
+rails generate scenic:view ledger_entries
+# -> writes db/views/ledger_entries_v02.sql + a migration calling
+#    update_view :ledger_entries, version: 2, revert_to_version: 1
+```
+
+The view's column projection has to match across all UNION branches —
+Postgres rejects mismatched types or column counts at view-creation time,
+which is the safety net.
+
+### When NOT to use `LedgerEntry`
+
+- Writing transactions: use the source models (`BankTransaction`,
+  `ManualTransaction`). They include `LedgerEntryConcern` for the polymorphic
+  enrichment association.
+- Editing enrichment / classification: use `Enrichment::ClassificationApplier`
+  or `Cash::TransactionUpdater`, not direct enrichment writes.
+- Showing a single transaction's detail page: bank vs manual UIs are
+  different (bank rows are immutable, manual rows are editable), so use the
+  source-specific controller.

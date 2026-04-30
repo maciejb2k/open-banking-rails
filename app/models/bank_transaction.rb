@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class BankTransaction < ApplicationRecord
-  include LedgerEntry
+  include LedgerEntryConcern
 
   DIRECTIONS = %w[credit debit].freeze
   STATUSES   = %w[booked pending].freeze

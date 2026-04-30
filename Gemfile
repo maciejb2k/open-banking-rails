@@ -30,6 +30,11 @@ gem "rack-cors"
 gem "ransack"
 gem "paper_trail"
 
+# Versioned database views — backs the `ledger_entries` PG view that unifies
+# BankTransaction + ManualTransaction for analytics. See AGENTS.md
+# "Analytics data access".
+gem "scenic", "~> 1.8"
+
 # Background jobs
 gem "sidekiq", "~> 7.0"
 gem "connection_pool", "~> 2.4"
