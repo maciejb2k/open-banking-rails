@@ -37,6 +37,12 @@ module EnableBanking
           usage: d["usage"] || @account.usage,
           account_servicer: d["account_servicer"] || @account.account_servicer
         )
+
+        # Re-sync own-account merchant rules — Revolut, for example, only
+        # exposes the second (LT) IBAN via this endpoint, not via the
+        # initial /sessions payload. Idempotent on no-change.
+        Enrichment::OwnAccountMerchantSyncer.call(@account)
+
         @account
       end
     end

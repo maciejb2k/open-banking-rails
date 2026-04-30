@@ -93,25 +93,29 @@
 
   /* ── Privacy mode ─────────────────────────────────────────────────────────
      Toggled from the topbar; adds .privacy-mode on <html>.
-     See app/helpers/admin/privacy_helper.rb for usage. */
+     See app/helpers/admin/privacy_helper.rb for usage.
+
+     Text masking for :blur / :redact / :mask happens in
+     controllers/sensitive_mask_controller.js — characters in text nodes are
+     swapped for `•` so the layout stays sharp and there's no visual bleed.
+     :strong stays CSS-only (heavy JSON payloads where char-masking would be
+     too expensive / pointless). */
   .sensitive {
     transition: filter .12s ease, color .12s ease, background-color .12s ease;
   }
-  html.privacy-mode .sensitive {
+  html.privacy-mode .sensitive:not(.sensitive--strong) {
     cursor: help;
+    user-select: none;
+  }
+  html.privacy-mode .sensitive--no-reveal {
+    cursor: not-allowed;
   }
 
-  /* :blur — light blur, hover-to-reveal (default for short values) */
-  html.privacy-mode .sensitive--blur {
-    filter: blur(6px);
-  }
-  html.privacy-mode .sensitive--blur:hover:not(.sensitive--no-reveal) {
-    filter: none;
-  }
+  /* :blur — bullets only (controller handles text replacement). No filter,
+     no text-shadow — clean dotted text, hover reveals the original. */
 
-  /* :strong — text-only blur via text-shadow.
-     Border, background, padding and layout stay sharp — only the characters
-     get smudged. Used for JSON viewers / raw payloads / errors. */
+  /* :strong — text-only blur via text-shadow. Layout (border/bg/padding)
+     stays sharp; only the characters get smudged. JSON viewers / payloads. */
   html.privacy-mode .sensitive--strong {
     color: transparent !important;
     text-shadow: 0 0 8px var(--color-foreground);
@@ -123,32 +127,15 @@
     text-shadow: 0 0 8px var(--color-foreground);
   }
 
-  /* :redact — solid block, no reveal (inline secrets like keys) */
+  /* :redact — solid block over masked bullets, no reveal (inline secrets) */
   html.privacy-mode .sensitive--redact {
     color: transparent !important;
     background: var(--color-muted-foreground);
     border-radius: 4px;
-    user-select: none;
-    cursor: not-allowed;
   }
   html.privacy-mode .sensitive--redact * {
     color: transparent !important;
     text-decoration: none !important;
-  }
-
-  /* :mask — dotted bullets (for fixed-format short values) */
-  html.privacy-mode .sensitive--mask {
-    position: relative;
-    color: transparent !important;
-    user-select: none;
-  }
-  html.privacy-mode .sensitive--mask::after {
-    content: "••••••••";
-    position: absolute;
-    inset: 0;
-    color: var(--color-muted-foreground);
-    letter-spacing: 0.1em;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
 
   /* Active-state highlight for any preference-toggle button */

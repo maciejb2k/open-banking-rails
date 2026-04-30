@@ -30,6 +30,11 @@ class TransactionEnrichment < ApplicationRecord
   scope :rebuildable, -> { where.not(source: "manual").where(category_overridden: false) }
   scope :unmatched,   -> { where(source: "unmatched") }
   scope :pending,     -> { where(source: "llm_pending") }
+  # Anything without a merchant — covers `unmatched` AND `system_fallback`
+  # (the latter has a generic payment-method category but no concrete seller).
+  # This is the right scope for "what can the LLM still help with" — both
+  # cases lack merchant_id and may have signal in title / counterparty_name.
+  scope :merchantless, -> { where(merchant_id: nil) }
 
   # Effective category for this enrichment — explicit override or merchant's
   # default. Mirrors LedgerEntry#effective_category for cases where the caller

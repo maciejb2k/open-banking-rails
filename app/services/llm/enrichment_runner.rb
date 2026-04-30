@@ -91,11 +91,62 @@ module Llm
 
     private
 
+    # Payment methods where the concept of "merchant" doesn't apply:
+    # BLIK to a phone is a transfer between people, ATM is a cash withdrawal,
+    # internal transfers / topups move money within your own accounts, fees
+    # are bank charges. Sending these to the LLM produces noise at best
+    # ("John Doe is a merchant" — nope, that's the user) and bad rules
+    # at worst (counterparty_name=exact lockouts that catch innocent strangers).
+    NON_MERCHANT_PAYMENT_METHODS = %w[blik_p2p blik_atm internal_transfer topup fee].freeze
+
+    # Anything without a merchant (source = unmatched OR system_fallback) AND
+    # that could plausibly have one. We deliberately filter out three classes
+    # of false positives — each independently sufficient to send the LLM
+    # down the wrong path:
+    #
+    #   1. Payment methods that aren't merchant-shaped (see constant above).
+    #   2. counterparty_iban that belongs to one of the user's own accounts —
+    #      defense-in-depth on top of OwnAccountMerchantSyncer's IBAN rules,
+    #      so an alternate-BBAN or missing-IBAN edge case can't slip through.
+    #   3. counterparty_name that matches the user's own holder name across
+    #      any account. Catches the "stranger with the same name as you"
+    #      case: their transfers come in with your IBAN unmatched (it isn't
+    #      yours) but with your literal name in counterparty_name. The LLM
+    #      would happily propose your name as a merchant; this stops it.
     def default_scope
-      BankTransaction
-        .joins(:enrichment)
-        .where(transaction_enrichments: { source: "unmatched" })
-        .where("(title IS NOT NULL AND title <> '' AND title !~ '^[0-9]+$') OR (counterparty_name IS NOT NULL AND counterparty_name <> '')")
+      scope = BankTransaction
+                .joins(:enrichment)
+                .merge(TransactionEnrichment.merchantless)
+                .where("(title IS NOT NULL AND title <> '' AND title !~ '^[0-9]+$') OR (counterparty_name IS NOT NULL AND counterparty_name <> '')")
+                .where.not(payment_method: NON_MERCHANT_PAYMENT_METHODS)
+
+      own = own_ibans
+      scope = scope.where("counterparty_iban IS NULL OR REPLACE(UPPER(counterparty_iban), ' ', '') NOT IN (?)", own) if own.any?
+
+      names = own_holder_names
+      scope = scope.where("counterparty_name IS NULL OR UPPER(BTRIM(counterparty_name)) NOT IN (?)", names) if names.any?
+
+      scope
+    end
+
+    # All IBANs (primary + alternates) across every BankAccount in the system.
+    # In a single-user app that's exactly the user's own IBANs. Returns
+    # normalized (no spaces, uppercase) for SQL comparison stability.
+    def own_ibans
+      @own_ibans ||= (
+        BankAccount.pluck(:iban).compact +
+        BankAccount.find_each.flat_map(&:alternate_ibans)
+      ).compact_blank.map { |i| i.gsub(/\s+/, "").upcase }.uniq
+    end
+
+    # Account-holder names (banks fill `BankAccount.name` differently — mBank
+    # uppercase, Revolut titlecase, PKO sometimes empty). Normalize to upper +
+    # strip so we catch every spelling variant in one IN clause.
+    def own_holder_names
+      @own_holder_names ||= BankAccount.pluck(:name)
+                                       .compact_blank
+                                       .map { |n| n.strip.upcase }
+                                       .uniq
     end
 
     # Build groups of unmatched transactions and skip those already covered

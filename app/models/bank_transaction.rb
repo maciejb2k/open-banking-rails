@@ -5,9 +5,27 @@ class BankTransaction < ApplicationRecord
 
   DIRECTIONS = %w[credit debit].freeze
   STATUSES   = %w[booked pending].freeze
+  # Single source of truth for payment_method values. Set by
+  # EnableBanking::PaymentMethodInferer at sync time. Each entry must have a
+  # mapping in PaymentMethodInferer (or be reachable via heuristics) AND a
+  # fallback category in Enrichment::TransactionEnricher::PAYMENT_METHOD_FALLBACK
+  # — otherwise unmatched transactions disappear into the "unmatched" bucket.
+  #
+  #   card                 — POS / online card payment, card-on-file SaaS
+  #   card_authorization   — preauth block (paliwo, hotel) — not a real charge
+  #   blik_pos             — BLIK at merchant terminal
+  #   blik_p2p             — BLIK to phone (direction tells in vs out)
+  #   blik_atm             — BLIK ATM withdrawal (PKO MOBILE-PAYMENT-ATM)
+  #   transfer             — external bank transfer (PRZELEW ZEWNĘTRZNY)
+  #   internal_transfer    — between own accounts, incl. credit-card payback
+  #   topup                — Revolut TOPUP (Google Pay → Revolut)
+  #   fee                  — bank fee / commission
+  #   other                — explicitly classified, but doesn't fit above
   PAYMENT_METHODS = %w[
-    card blik_pos blik_p2p blik_atm transfer p2p_transfer
-    card_recurring card_authorization fee internal_transfer other
+    card card_authorization
+    blik_pos blik_p2p blik_atm
+    transfer internal_transfer topup
+    fee other
   ].freeze
 
   belongs_to :bank_account

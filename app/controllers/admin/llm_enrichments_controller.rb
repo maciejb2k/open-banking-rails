@@ -10,11 +10,11 @@ module Admin
     KIND = "llm_enrichment"
 
     def index
-      @unmatched_count   = TransactionEnrichment.unmatched.count
-      @suggestible_count = unmatched_with_signal.count
-      @group_count       = build_group_count
-      @new_groups_count  = Llm::EnrichmentRunner.new.send(:build_groups, unmatched_with_signal).size
-      @api_key_set       = ENV["OPENAI_API_KEY"].present? || ENV["GEMINI_API_KEY"].present?
+      @merchantless_count = TransactionEnrichment.merchantless.count
+      @suggestible_count  = merchantless_with_signal.count
+      @group_count        = build_group_count
+      @new_groups_count   = Llm::EnrichmentRunner.new.send(:build_groups, merchantless_with_signal).size
+      @api_key_set        = ENV["OPENAI_API_KEY"].present? || ENV["GEMINI_API_KEY"].present?
 
       @pending_merchants = Merchant.where(source: "llm", approved_at: nil)
                                    .includes(:default_category, :merchant_rules)
@@ -54,14 +54,14 @@ module Admin
       OperationRun.where(kind: KIND, triggered_by_user_id: current_user.id)
     end
 
-    def unmatched_with_signal
-      BankTransaction.joins(:enrichment)
-                     .where(transaction_enrichments: { source: "unmatched" })
-                     .where("(title IS NOT NULL AND title <> '' AND title !~ '^[0-9]+$') OR (counterparty_name IS NOT NULL AND counterparty_name <> '')")
+    # Defer to the runner so the dashboard always shows what an actual run
+    # would process. Avoids drifting filters between display and execution.
+    def merchantless_with_signal
+      Llm::EnrichmentRunner.new.send(:default_scope)
     end
 
     def build_group_count
-      keys = unmatched_with_signal.pluck(:title, :counterparty_name).map do |t, cp|
+      keys = merchantless_with_signal.pluck(:title, :counterparty_name).map do |t, cp|
         [ Enrichment::TitleNormalizer.call(t), cp.to_s ]
       end
       keys.uniq.count { |k| k != [ "", "" ] }

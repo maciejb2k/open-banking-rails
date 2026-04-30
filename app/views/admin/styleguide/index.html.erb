@@ -227,10 +227,27 @@
       <%= render "admin/shared/components/filter_trigger", active_count: 0 %>
       <%= render "admin/shared/components/filter_trigger", active_count: 3 %>
     </div>
+
+    <h3 class="text-sm font-semibold pt-2">Two ways to set chip content</h3>
+    <p class="text-xs text-muted-foreground">
+      Use <code class="bg-muted px-0.5 rounded">label:</code> keyword for plain strings.
+      Use a block when you need custom markup — the canonical case is wrapping
+      sensitive values in <code class="bg-muted px-0.5 rounded">sensitive_class</code>
+      so they get blurred under privacy mode. Block content also wins if both are passed.
+    </p>
     <div class="flex flex-wrap items-center gap-2">
+      <%# label: keyword — simplest case %>
       <%= render "admin/shared/components/filter_chip", label: "Status: Active", remove_path: "#" %>
       <%= render "admin/shared/components/filter_chip", label: "Currency: EUR", remove_path: "#" %>
       <%= render "admin/shared/components/filter_chip", label: "Read-only chip" %>
+
+      <%# block — for custom markup like sensitive_class %>
+      <%= render "admin/shared/components/filter_chip", remove_path: "#" do %>
+        Account: <span class="<%= sensitive_class %>">PL45 1140 …</span>
+      <% end %>
+      <%= render "admin/shared/components/filter_chip", remove_path: "#" do %>
+        Search: "<span class="<%= sensitive_class %>">biedronka</span>"
+      <% end %>
     </div>
   </section>
 

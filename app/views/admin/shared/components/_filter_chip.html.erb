@@ -1,11 +1,27 @@
 <%# locals: (label: nil, remove_path: nil) %>
-<%# Active-filter pill shown above tables. remove_path: omit for non-removable chip. %>
-<%# Block content overrides the label (for custom markup like sensitive spans). %>
+<%#
+  Active-filter pill shown above tables. Two ways to set the content:
+    label: "Status: Active"   → keyword arg, for plain strings
+    do … end                  → block, for custom markup (sensitive spans, icons)
+
+  Detection uses `label.present?` instead of `block_given?` because
+  block_given? leaks state from outer do-blocks (e.g. when this partial is
+  rendered inside `search_form_for ... do |f|`) — it can return true even
+  when the current render call passed no block, which silently swallows
+  the label keyword. label.present? is scope-independent: strict locals
+  always populates the local with the passed keyword (or nil default), so
+  this is deterministic.
+
+  Block content takes precedence over label only when label is missing.
+  Passing both is a callsite mistake — pick one.
+
+  remove_path: omit for non-removable chip.
+%>
 <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-  <% if block_given? %>
-    <%= yield %>
-  <% else %>
+  <% if label.present? %>
     <%= label %>
+  <% else %>
+    <%= yield %>
   <% end %>
   <% if remove_path %>
     <%= link_to remove_path, class: "ml-0.5 hover:text-primary/70 transition-colors" do %>

@@ -14,6 +14,7 @@ module Admin
       scope = scope.joins(:enrichment).where(transaction_enrichments: { category_id: params[:category_id] }) if params[:category_id].present?
       scope = scope.joins(:enrichment).where(transaction_enrichments: { source: params[:enrichment_source] }) if params[:enrichment_source].present?
       scope = scope.where(payment_method: params[:payment_method]) if params[:payment_method].present?
+      scope = filter_by_enrichment_state(scope, params[:enrichment_state]) if params[:enrichment_state].present?
 
       @pagy, @collection = paginated(
         scope,
@@ -37,6 +38,34 @@ module Admin
                               .joins(:tpp_credential)
                               .where(tpp_credentials: { user_id: current_user.id })
                               .order(:iban)
+    end
+
+    # Drill-down filters for the LLM-enrichment dashboard. Each value
+    # corresponds to a row in the "What's left" panel:
+    #   merchantless   — every tx without a merchant (panel total)
+    #   llm_ready      — what the next LLM run would actually pick up.
+    #                    Defers to EnrichmentRunner so the count here matches
+    #                    the count there exactly. That scope filters out
+    #                    non-merchant payment methods, own IBANs and own
+    #                    holder names, so "ready to send" is honest.
+    #   no_llm_signal  — merchantless minus llm_ready: rows that won't ever
+    #                    benefit from the LLM (BLIK codes, "PRZELEW", numeric
+    #                    junk, own-account leakage) and need manual
+    #                    classification or a different rule.
+    def filter_by_enrichment_state(scope, state)
+      merchantless = scope.joins(:enrichment).merge(TransactionEnrichment.merchantless)
+
+      case state
+      when "merchantless"
+        merchantless
+      when "llm_ready"
+        Llm::EnrichmentRunner.new.send(:default_scope).where(id: merchantless.select(:id))
+      when "no_llm_signal"
+        ready_ids = Llm::EnrichmentRunner.new.send(:default_scope).select(:id)
+        merchantless.where.not(id: ready_ids)
+      else
+        scope
+      end
     end
   end
 end

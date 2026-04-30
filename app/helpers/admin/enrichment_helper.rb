@@ -29,15 +29,14 @@ module Admin
 
     PAYMENT_METHOD_LABELS = {
       "card"               => "Card",
-      "card_recurring"     => "Card (subscription)",
       "card_authorization" => "Card authorization",
       "blik_pos"           => "BLIK at POS",
       "blik_p2p"           => "BLIK to phone",
       "blik_atm"           => "BLIK at ATM",
       "transfer"           => "Transfer",
-      "p2p_transfer"       => "P2P transfer",
-      "fee"                => "Fee",
       "internal_transfer"  => "Internal transfer",
+      "topup"              => "Top-up",
+      "fee"                => "Fee",
       "other"              => "Other"
     }.freeze
 

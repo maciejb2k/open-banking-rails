@@ -28,14 +28,18 @@ module Enrichment
 
     # Fallback when no MerchantRule matched: assign a generic category based
     # on payment_method. Catches BLIK without merchant info, card auths, etc.
+    # Every value in BankTransaction::PAYMENT_METHODS that has a meaningful
+    # generic bucket should appear here — anything missing falls into
+    # `unmatched` and won't surface in monthly stats.
     PAYMENT_METHOD_FALLBACK = {
       "blik_pos"           => "blik_pos_unmatched",
       "blik_atm"           => "blik_atm_withdrawal",
       "blik_p2p"           => "private_transfers",
-      "card_authorization" => "card_authorization",
       "card"               => "card_unmatched",
+      "card_authorization" => "card_authorization",
+      "transfer"           => "transfers",
       "internal_transfer"  => "transfers",
-      "p2p_transfer"       => "private_transfers",
+      "topup"              => "transfers",
       "fee"                => "fees"
     }.freeze
 

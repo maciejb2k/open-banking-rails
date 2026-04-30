@@ -24,7 +24,8 @@
        params[:merchant_id].present?,
        params[:category_id].present?,
        params[:payment_method].present?,
-       params[:enrichment_source].present?
+       params[:enrichment_source].present?,
+       params[:enrichment_state].present?
      ].count(true) %>
 
   <%= search_form_for @q, url: admin_bank_transactions_path, html: { data: { turbo: false } } do |f| %>
@@ -35,6 +36,7 @@
     <%= hidden_field_tag :category_id,        params[:category_id],        id: "ef_category_id" %>
     <%= hidden_field_tag :payment_method,     params[:payment_method],     id: "ef_payment_method" %>
     <%= hidden_field_tag :enrichment_source,  params[:enrichment_source],  id: "ef_enrichment_source" %>
+    <%= hidden_field_tag :enrichment_state,   params[:enrichment_state],   id: "ef_enrichment_state" %>
 
     <%# Search bar + filter trigger %>
     <div class="flex items-center gap-3">
@@ -50,7 +52,9 @@
       <%= render "admin/shared/components/button", label: "Apply", type: :submit %>
     </div>
 
-    <%# Active filter chips %>
+    <%# Active filter chips. label: keyword for plain strings; block for chips
+        that need sensitive_class wrapping (Account, Search). Both renderings
+        are deterministic after the filter_chip detection fix. %>
     <% if active_filter_count > 0 %>
       <div class="flex flex-wrap items-center gap-2 mt-3">
         <% if (val = params.dig(:q, :bank_account_id_eq)).present? %>
@@ -107,6 +111,12 @@
           <%= render "admin/shared/components/filter_chip",
                 label: "Source: #{enrichment_source_label(val)}",
                 remove_path: admin_bank_transactions_path(request.query_parameters.except("enrichment_source")) %>
+        <% end %>
+        <% if (val = params[:enrichment_state]).present? %>
+          <% state_label = { "merchantless" => "Without a merchant", "llm_ready" => "LLM-ready", "no_llm_signal" => "LLM can't help" }[val] || val %>
+          <%= render "admin/shared/components/filter_chip",
+                label: "State: #{state_label}",
+                remove_path: admin_bank_transactions_path(request.query_parameters.except("enrichment_state")) %>
         <% end %>
         <%= link_to "Clear all", admin_bank_transactions_path,
               class: "text-xs text-muted-foreground hover:text-foreground transition-colors" %>
@@ -211,6 +221,19 @@
           <% TransactionEnrichment::SOURCES.each do |s| %>
             <option value="<%= s %>" <%= 'selected' if params[:enrichment_source].to_s == s %>><%= enrichment_source_label(s) %></option>
           <% end %>
+        </select>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Enrichment status</label>
+        <%# Mirrors the "What's left" panel on /admin/llm_enrichments. The
+            filter logic lives in BankTransactionsController#filter_by_enrichment_state. %>
+        <select onchange="document.getElementById('ef_enrichment_state').value = this.value"
+                class="form-input">
+          <option value="">All</option>
+          <option value="merchantless"  <%= 'selected' if params[:enrichment_state] == 'merchantless' %>>Without a merchant</option>
+          <option value="llm_ready"     <%= 'selected' if params[:enrichment_state] == 'llm_ready' %>>LLM-ready (has signal)</option>
+          <option value="no_llm_signal" <%= 'selected' if params[:enrichment_state] == 'no_llm_signal' %>>LLM can't help</option>
         </select>
       </div>
     <% end %>

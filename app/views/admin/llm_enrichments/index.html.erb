@@ -11,7 +11,7 @@
 <div class="space-y-6">
   <%= render "admin/shared/components/page_header",
         title: "AI Enrichment",
-        subtitle: "Identifies merchants from unmatched transactions via the LLM. Each run processes unique patterns in batches — progress streams live.",
+        subtitle: "Identifies merchants for transactions that don't have one yet. Includes both fully unclassified rows and ones that fell back to a generic payment-method category. Progress streams live.",
         actions: trigger_button %>
 
   <% unless @api_key_set %>
@@ -26,26 +26,45 @@
   <%= render "admin/shared/components/card", padding: false do %>
     <div class="border-b px-4 py-3">
       <h3 class="font-semibold">What's left</h3>
-      <p class="text-xs text-muted-foreground">Unmatched transactions broken down by what you can do with them.</p>
+      <p class="text-xs text-muted-foreground">Transactions without a merchant, broken down by what you can do with them.</p>
     </div>
     <ul class="divide-y">
       <% rows = [
-        { value: @unmatched_count, label: "Unmatched total",
-          hint: "Transactions still without a category. The numbers below add up to this." },
+        { value: @merchantless_count, label: "Without a merchant",
+          href: (admin_bank_transactions_path(enrichment_state: "merchantless") if @merchantless_count.positive?),
+          hint: "Includes unmatched rows AND rows that fell back to a generic payment-method category. The numbers below add up to this." },
         { value: @pending_merchants.size, label: "Awaiting approval",
+          href: ("#awaiting-approval" if @pending_merchants.any?),
           hint: "LLM proposed a merchant — click \"Approve\" in the section below to enable the rule and re-classify history." },
         { value: @new_groups_count, label: "Ready to send to LLM",
+          href: (admin_bank_transactions_path(enrichment_state: "llm_ready") if @new_groups_count.positive?),
           hint: "New groups with no existing rule. Click \"Generate proposals\" above to send them to OpenAI." },
-        { value: @unmatched_count - @suggestible_count, label: "LLM can't help",
+        { value: @merchantless_count - @suggestible_count, label: "LLM can't help",
+          href: (admin_bank_transactions_path(enrichment_state: "no_llm_signal") if (@merchantless_count - @suggestible_count).positive?),
           hint: "Titles with no signal (\"PRZELEW\", phone numbers, BLIK codes). Classify manually in the transaction view." }
       ] %>
       <% rows.each_with_index do |row, idx| %>
-        <li class="flex items-center gap-4 px-4 py-3 <%= idx.zero? ? "bg-muted/20" : "" %>">
-          <span class="w-12 shrink-0 text-right text-xl font-semibold text-foreground tabular-nums"><%= row[:value] %></span>
-          <div class="min-w-0 flex-1">
-            <p class="text-sm font-medium text-foreground"><%= row[:label] %></p>
-            <p class="text-xs text-muted-foreground leading-relaxed mt-0.5"><%= row[:hint] %></p>
-          </div>
+        <li class="<%= idx.zero? ? "bg-muted/20" : "" %>">
+          <% inner_class = "flex items-center gap-4 px-4 py-3 #{'hover:bg-muted/40 transition-colors cursor-pointer' if row[:href]}" %>
+          <% value_class = "w-12 shrink-0 text-right text-xl font-semibold tabular-nums #{row[:href] ? 'text-foreground' : 'text-muted-foreground'}" %>
+          <% label_class = "text-sm font-medium #{row[:href] ? 'text-foreground underline decoration-dotted underline-offset-4' : 'text-muted-foreground'}" %>
+          <% if row[:href] %>
+            <%= link_to row[:href], class: inner_class do %>
+              <span class="<%= value_class %>"><%= row[:value] %></span>
+              <div class="min-w-0 flex-1">
+                <p class="<%= label_class %>"><%= row[:label] %></p>
+                <p class="text-xs text-muted-foreground leading-relaxed mt-0.5"><%= row[:hint] %></p>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="<%= inner_class %>">
+              <span class="<%= value_class %>"><%= row[:value] %></span>
+              <div class="min-w-0 flex-1">
+                <p class="<%= label_class %>"><%= row[:label] %></p>
+                <p class="text-xs text-muted-foreground leading-relaxed mt-0.5"><%= row[:hint] %></p>
+              </div>
+            </div>
+          <% end %>
         </li>
       <% end %>
     </ul>
@@ -75,7 +94,7 @@
   <% end %>
 
   <%= render "admin/shared/components/card", padding: false do %>
-    <div class="border-b px-4 py-3">
+    <div id="awaiting-approval" class="border-b px-4 py-3 scroll-mt-6">
       <h3 class="font-semibold">Awaiting approval (<%= @pending_merchants.size %>)</h3>
       <p class="text-xs text-muted-foreground">LLM proposals waiting for your decision.</p>
     </div>
