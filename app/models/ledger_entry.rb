@@ -58,21 +58,20 @@ class LedgerEntry < ApplicationRecord
   # savings/ignored, and analytics MUST always narrow on kind before
   # summing amounts. Summing raw signed_amount_cents across all rows is
   # nonsense (income cancels expense, transfers double-count).
-  scope :spend,     -> { joins(:effective_category).where(categories: { kind: "expense" }) }
-  scope :income,    -> { joins(:effective_category).where(categories: { kind: "income" }) }
+  #
+  # `spend` and `income` also pin the direction so a misclassified row
+  # (e.g. an incoming top-up that an LLM rule glued to "Cloud Storage"
+  # category, kind=expense) can't inflate the spend total. Defense-in-
+  # depth: even if classification regresses, totals stay sane.
+  scope :spend,     -> { debits.joins(:effective_category).where(categories: { kind: "expense" }) }
+  scope :income,    -> { credits.joins(:effective_category).where(categories: { kind: "income" }) }
   scope :transfers, -> { joins(:effective_category).where(categories: { kind: "transfer" }) }
   scope :savings,   -> { joins(:effective_category).where(categories: { kind: "savings" }) }
 
-  # Cross-ownership user scope. Synced bank accounts are reachable via
-  # tpp_credentials; cash wallets via bank_accounts.manual_owner_id.
-  # The OR is collapsed into a single `bank_account_id IN (...)` so the
-  # view stays in a flat plan.
-  scope :for_user, ->(user) {
-    account_ids = BankAccount.where(tpp_credential_id: user.tpp_credentials.select(:id))
-                             .or(BankAccount.where(manual_owner_id: user.id))
-                             .select(:id)
-    where(bank_account_id: account_ids)
-  }
+  # Cross-ownership user scope. Delegates to User#all_bank_account_ids so
+  # the union (synced via tpp_credentials + cash via manual_owner_id) lives
+  # in one place; analytics services use the same helper directly.
+  scope :for_user, ->(user) { where(bank_account_id: user.all_bank_account_ids) }
 
   # Resolve back to the underlying record when a caller needs a field that
   # isn't projected in the view (raw_payload, note, external_id, etc.) or

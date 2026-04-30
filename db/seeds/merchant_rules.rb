@@ -115,4 +115,52 @@ ATM_RULES.each do |field, pattern, kind|
   rule.save!
 end
 
+
+# Mobile-wallet top-ups to own balance accounts (Revolut, Wise, Trade
+# Republic, …). The funding card is always the user's own — semantically
+# this is a transfer between own surfaces, not a spend or income.
+#
+# We can't use IBAN matching for these: the Revolut credit side typically
+# has no counterparty IBAN, only the masked funding card (e.g.
+# "Google Pay Top-Up by *6181"). Without this rule the credit lands in a
+# hallucinated "Cloud Storage" category (because the LLM/seed rules see
+# the substring "Google" in counterparty data) and inflates spend totals
+# even with the direction-aware `.spend` scope (different defense layer).
+#
+# Priority 250 — above OwnAccountMerchantSyncer (200) and below ATM (300).
+TOPUP_RULES = [
+  # field,   pattern,                  kind
+  [ "title", "Google Pay Top-Up by",   "contains" ],
+  [ "title", "Apple Pay Top-Up by",    "contains" ],
+  [ "title", "Top-Up by *",            "contains" ]
+].freeze
+
+topup_merchant = Merchant.find_or_initialize_by(slug: "mobile_wallet_topup")
+topup_merchant.assign_attributes(
+  name:             "Mobile-wallet top-up",
+  display_name:     "Top-up (own)",
+  kind:             "platform",
+  source:           "system",
+  default_category: cat.call("transfers"),
+  approved_at:      topup_merchant.approved_at || Time.current,
+  notes:            "Auto-generated. Catches Google Pay / Apple Pay top-ups to " \
+                    "own balance accounts (Revolut, Wise, Trade Republic). " \
+                    "Funding card is always the user's own — this is a transfer " \
+                    "between own surfaces, not income/spend."
+)
+topup_merchant.save!
+
+TOPUP_RULES.each do |field, pattern, kind|
+  rule = MerchantRule.find_or_initialize_by(merchant: topup_merchant, field: field, pattern: pattern)
+  rule.assign_attributes(
+    kind:           kind,
+    source:         "system",
+    enabled:        true,
+    priority:       250,
+    case_sensitive: false,
+    approved_at:    rule.approved_at || Time.current
+  )
+  rule.save!
+end
+
 Rails.logger.info "Seeded #{Merchant.where(source: 'system').count} system merchants, #{MerchantRule.where(source: 'system').count} system rules"

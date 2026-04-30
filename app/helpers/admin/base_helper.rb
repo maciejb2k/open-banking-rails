@@ -11,9 +11,14 @@ module Admin
     def admin_nav_sections
       [
         {
+          title: "Analytics",
+          items: [
+            { name: "Dashboard", path: admin_analytics_root_path, icon: "layout_dashboard" }
+          ]
+        },
+        {
           title: "Operations",
           items: [
-            { name: "Dashboard", path: admin_root_path, icon: "layout_dashboard" },
             { name: "Bank Transactions", path: admin_bank_transactions_path, icon: "dollar_sign" },
             { name: "Cash Transactions", path: admin_cash_transactions_path, icon: "banknote" },
             { name: "Sync Transactions", path: admin_transaction_syncs_path, icon: "refresh_cw" }
@@ -77,6 +82,11 @@ module Admin
     end
 
     def breadcrumb_items
+      # Controllers may set @custom_breadcrumbs when the path-based
+      # derivation can't express the right trail (e.g. drill-down views
+      # whose URL segments don't match nav items).
+      return @custom_breadcrumbs if @custom_breadcrumbs.present?
+
       segments = request.path.split("/").reject(&:empty?)
 
       nav_labels = { "admin" => { label: "Admin", path: admin_root_path } }

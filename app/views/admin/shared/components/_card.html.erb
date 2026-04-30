@@ -1,7 +1,12 @@
 <%# locals: (title: nil, subtitle: nil, padding: true, actions: nil) %>
-<%# actions: optional capture-d markup rendered next to the title (e.g. an Edit button). %>
+<%# actions: optional capture-d markup rendered next to the title (e.g. an Edit button).
+    `title:` is only meaningful when padding=true (the title sits inside
+    the padded body). For `padding: false` (flush content like data_table
+    or list), do NOT pass `title:` — instead hand-roll the header inside
+    the block as `<div class="border-b px-4 py-3"><h3 class="font-semibold">…</h3></div>`,
+    matching how merchants/show, llm_enrichments etc. do it. %>
 <div class="admin-section <%= padding ? "" : "p-0 overflow-hidden" %>">
-  <% if title %>
+  <% if title && padding %>
     <div class="mb-4 flex items-start justify-between gap-3">
       <div>
         <h2 class="text-lg font-semibold text-foreground"><%= title %></h2>

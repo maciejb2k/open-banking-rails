@@ -1,0 +1,29 @@
+<%# locals: (insight:) %>
+<%# Custom: 3-sentence LLM-driven narrative card. No equivalent shared
+    component — would need extraction once a second LLM-text card appears
+    elsewhere. The shape (icon + title + body + status footer) is the
+    candidate API. %>
+
+<div class="admin-card p-5">
+  <div class="flex items-start gap-3">
+    <div class="rounded-lg bg-primary/10 p-2 shrink-0">
+      <%= render "admin/shared/icons/sparkles", classes: "h-5 w-5 text-primary" %>
+    </div>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-semibold text-foreground mb-1">What's happening with your spending</p>
+      <% if insight.ok? %>
+        <p class="text-sm text-foreground leading-relaxed <%= sensitive_class %>">
+          <%= insight.text %>
+        </p>
+      <% elsif insight.empty? %>
+        <p class="text-sm text-muted-foreground">
+          No spend in the selected period — nothing to say yet.
+        </p>
+      <% else %>
+        <p class="text-sm text-muted-foreground">
+          No insight — refresh in a moment.
+        </p>
+      <% end %>
+    </div>
+  </div>
+</div>

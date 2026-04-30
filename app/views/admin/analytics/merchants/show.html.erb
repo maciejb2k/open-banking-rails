@@ -1,0 +1,108 @@
+<%
+  user_accounts = current_user.bank_accounts.to_a + current_user.cash_wallets.to_a
+  total = Money.new(@total_cents, "PLN")
+
+  trend_labels = @monthly_trend.map { |b| b[:bucket].strftime("%b %y") }
+  trend_values = @monthly_trend.map { |b| (b[:value].to_i / 100.0).round(2) }
+  trend_config = {
+    type: "bar",
+    data: {
+      labels: trend_labels,
+      datasets: [{
+        label: "Spend (PLN)",
+        data: trend_values,
+        backgroundColor: "rgb(99, 102, 241)",
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  }
+%>
+
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: @merchant.display,
+        subtitle: "#{pluralize(@filter.period.length_days, 'day')} · #{pluralize(@count, 'transaction')}" %>
+
+  <%= render "admin/analytics/shared/filter_strip", filter: @filter, user_accounts: user_accounts %>
+
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <%= render "admin/shared/components/stat_card",
+          label: "Total in period",
+          value: total.format(no_cents_if_whole: false),
+          icon:  "shopping_cart",
+          tone:  :destructive,
+          value_class: sensitive_class %>
+    <%= render "admin/shared/components/stat_card",
+          label: "Transactions",
+          value: @count.to_s,
+          icon:  "tag",
+          tone:  :warning %>
+    <% if @merchant.default_category %>
+      <%= render "admin/shared/components/stat_card",
+            label: "Default category",
+            value: @merchant.default_category.name,
+            icon:  "shopping_cart",
+            tone:  :muted %>
+    <% end %>
+  </div>
+
+  <%= render "admin/shared/components/card", title: "Monthly trend — 12 months" do %>
+    <% if trend_values.sum.zero? %>
+      <%= render "admin/shared/components/empty_state",
+            title: "No transactions",
+            description: "No activity at this merchant in the last year.",
+            icon: "bar_chart_3" %>
+    <% else %>
+      <div data-controller="chart"
+           data-chart-config-value="<%= trend_config.to_json %>"
+           style="height: 220px">
+        <canvas></canvas>
+      </div>
+    <% end %>
+  <% end %>
+
+  <%= render "admin/shared/components/card", padding: false do %>
+    <div class="border-b px-4 py-3">
+      <h3 class="font-semibold">Transactions</h3>
+      <p class="text-xs text-muted-foreground">Showing up to <%= @transactions.size %> · sorted by date desc</p>
+    </div>
+    <% if @transactions.empty? %>
+      <%= render "admin/shared/components/empty_state",
+            title: "No transactions",
+            description: "No transactions at this merchant in the selected period.",
+            icon: "search" %>
+    <% else %>
+      <%= render "admin/shared/components/data_table",
+            columns: [
+              { label: "Date" },
+              { label: "Title" },
+              { label: "Account" },
+              { label: "Amount", align: :right }
+            ] do %>
+        <% @transactions.each do |tx| %>
+          <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+            <td class="px-4 py-3 font-mono text-xs whitespace-nowrap"><%= tx.booking_date %></td>
+            <td class="px-4 py-3 max-w-xs">
+              <span class="<%= sensitive_class %>"><%= tx.title.presence || tx.counterparty_name.presence || "—" %></span>
+            </td>
+            <td class="px-4 py-3 text-xs text-muted-foreground <%= sensitive_class %>">
+              <%= tx.bank_account.display_name %>
+            </td>
+            <td class="px-4 py-3 text-right amount whitespace-nowrap">
+              <span class="<%= sensitive_class %>">
+                <%= tx.amount.format(no_cents_if_whole: false) %>
+              </span>
+              <span class="text-muted-foreground text-xs font-normal"><%= tx.currency %></span>
+            </td>
+          </tr>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>

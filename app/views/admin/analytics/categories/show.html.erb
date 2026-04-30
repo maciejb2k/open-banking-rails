@@ -1,0 +1,51 @@
+<%
+  user_accounts = current_user.bank_accounts.to_a + current_user.cash_wallets.to_a
+  total = Money.new(@total_cents, "PLN")
+
+  row_struct = Struct.new(:label, :amount_cents, :count, :href, :secondary, keyword_init: true)
+  list_rows = @rows.map do |row|
+    if row.merchant&.slug
+      row_struct.new(
+        label:        row.merchant.display,
+        amount_cents: row.amount_cents,
+        count:        row.count,
+        href:         admin_analytics_merchant_path(row.merchant.slug, @filter.to_query_params)
+      )
+    else
+      row_struct.new(
+        label:        "Unmatched",
+        amount_cents: row.amount_cents,
+        count:        row.count
+      )
+    end
+  end
+%>
+
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: @category.name,
+        subtitle: "Merchants in this category — #{pluralize(@filter.period.length_days, 'day')}." %>
+
+  <%= render "admin/analytics/shared/filter_strip", filter: @filter, user_accounts: user_accounts %>
+
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <%= render "admin/shared/components/stat_card",
+          label: "Total in category",
+          value: total.format(no_cents_if_whole: true, symbol: false) + " zł",
+          icon:  "shopping_cart",
+          tone:  :destructive,
+          value_class: sensitive_class %>
+    <%= render "admin/shared/components/stat_card",
+          label: "Merchants",
+          value: @rows.size.to_s,
+          icon:  "tag",
+          tone:  :warning %>
+  </div>
+
+  <%= render "admin/shared/components/card", title: "Merchants" do %>
+    <%= render "admin/shared/components/breakdown_list",
+          rows: list_rows,
+          total_cents: @total_cents,
+          empty_label: "No transactions in this category in the selected period." %>
+  <% end %>
+</div>

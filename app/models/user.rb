@@ -14,6 +14,16 @@ class User < ApplicationRecord
     tpp_credentials.find_by(primary: true)
   end
 
+  # Every BankAccount the user owns — synced (via tpp_credentials) plus
+  # cash wallets (via manual_owner_id). The `has_many :bank_accounts,
+  # through:` association only covers synced accounts; this is the
+  # union, used wherever analytics needs "all of the user's accounts".
+  def all_bank_account_ids
+    BankAccount.where(tpp_credential_id: tpp_credentials.select(:id))
+               .or(BankAccount.where(manual_owner_id: id))
+               .pluck(:id)
+  end
+
   def initials
     return "?" if name.blank?
 

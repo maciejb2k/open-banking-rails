@@ -1,0 +1,373 @@
+<%
+  user_accounts = current_user.bank_accounts.to_a + current_user.cash_wallets.to_a
+
+  spend_total     = Money.new(@spend_cents, "PLN")
+  income_total    = Money.new(@income_cents, "PLN")
+  avg_daily_spend = Money.new(@avg_daily_spend_cents, "PLN")
+
+  period_hint = pluralize(@filter.period.length_days, "day")
+
+  # Chart palette — picked once so every widget sits in the same visual
+  # family.
+  current_color = "rgb(99, 102, 241)"   # indigo-500
+  positive_fill = "rgba(16, 185, 129, 0.75)"  # emerald
+  negative_fill = "rgba(239, 68, 68, 0.75)"   # red
+  positive_border = "rgb(16, 185, 129)"
+  negative_border = "rgb(239, 68, 68)"
+  donut_palette = [
+    "rgb(99, 102, 241)",   # indigo
+    "rgb(14, 165, 233)",   # sky
+    "rgb(245, 158, 11)",   # amber
+    "rgb(16, 185, 129)",   # emerald
+    "rgb(139, 92, 246)",   # violet
+    "rgb(239, 68, 68)",    # red
+    "rgb(100, 116, 139)"   # slate
+  ]
+
+  # ── Spend by category — Chart.js horizontal bar, basic. No datalabels,
+  # tooltip on hover. Tail past 12 collapsed into one "Other".
+  visible    = @breakdown.first(12)
+  rest       = @breakdown.drop(12)
+  rest_total = rest.sum(&:amount_cents)
+
+  category_labels = visible.map { |r| r.category.name }
+  category_values = visible.map { |r| (r.amount_cents / 100.0).round(2) }
+  category_counts = visible.map(&:count)
+  category_urls   = visible.map { |r| r.category.slug ? admin_analytics_category_path(r.category.slug, @filter.to_query_params) : nil }
+
+  if rest.any?
+    category_labels << "Other (#{rest.size})"
+    category_values << (rest_total / 100.0).round(2)
+    category_counts << nil
+    category_urls   << nil
+  end
+
+  category_chart_config = {
+    type: "bar",
+    data: {
+      labels: category_labels,
+      datasets: [{
+        data: category_values,
+        backgroundColor: current_color,
+        borderRadius: 4,
+        barThickness: 18
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      metadata: category_counts.map { |c| c ? { count: c } : {} },
+      plugins: {
+        legend: { display: false },
+        datalabels: { display: false }
+      },
+      scales: {
+        x: {
+          grid: { color: "rgba(148,163,184,0.15)" },
+          ticks: { tickFormat: "pln", font: { size: 11 } },
+          beginAtZero: true
+        },
+        y: {
+          grid: { display: false },
+          ticks: { font: { size: 11 }, autoSkip: false }
+        }
+      }
+    }
+  }
+  category_chart_height = (category_labels.size * 32) + 40
+
+  # ── Cash flow timeline — daily bars, color by sign.
+  cf_labels  = @cash_flow.map { |p| p.date.strftime("%-d %b") }
+  cf_values  = @cash_flow.map { |p| (p.amount_cents / 100.0).round(2) }
+  cf_colors  = @cash_flow.map { |p| p.amount_cents >= 0 ? positive_fill : negative_fill }
+  cf_borders = @cash_flow.map { |p| p.amount_cents >= 0 ? positive_border : negative_border }
+
+  cash_flow_config = {
+    type: "bar",
+    data: {
+      labels: cf_labels,
+      datasets: [{
+        data: cf_values,
+        backgroundColor: cf_colors,
+        borderColor: cf_borders,
+        borderWidth: 1,
+        borderRadius: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        datalabels: { display: false }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, autoSkipPadding: 14, font: { size: 10 } } },
+        y: {
+          grid: { color: "rgba(148,163,184,0.15)" },
+          ticks: { tickFormat: "pln", font: { size: 11 } },
+          beginAtZero: true
+        }
+      }
+    }
+  }
+
+  # ── Account breakdown donut.
+  acct_total_cents = @account_rows.sum(&:amount_cents)
+  acct_total       = Money.new(acct_total_cents, "PLN")
+  acct_labels = @account_rows.map do |r|
+    bank = r.account.current_bank_connection&.bank_name || r.account.current_bank_connection&.bank_slug
+    [bank, r.account.display_name].compact_blank.join(" — ")
+  end
+  acct_values = @account_rows.map { |r| (r.amount_cents / 100.0).round(2) }
+  acct_colors = donut_palette.first(@account_rows.size).then { |p| p.size < @account_rows.size ? p + Array.new(@account_rows.size - p.size, "rgb(100, 116, 139)") : p }
+  acct_urls   = @account_rows.map { |r| admin_analytics_root_path(@filter.to_query_params.merge(account_ids: [r.account.id])) }
+
+  donut_config = {
+    type: "doughnut",
+    data: {
+      labels: acct_labels,
+      datasets: [{
+        data: acct_values,
+        backgroundColor: acct_colors,
+        borderWidth: 2,
+        borderColor: "#ffffff",
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      cutout: "65%",
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "right", align: "center",
+          labels: { padding: 10, usePointStyle: true, pointStyle: "circle", font: { size: 11 }, boxWidth: 8, boxHeight: 8 }
+        },
+        datalabels: { display: false }
+      }
+    }
+  }
+
+  # ── Top merchants — Chart.js horizontal bar, basic.
+  merchant_labels = @top_merchants.map { |r| r.merchant.display }
+  merchant_values = @top_merchants.map { |r| (r.amount_cents / 100.0).round(2) }
+  merchant_counts = @top_merchants.map(&:count)
+  merchant_urls   = @top_merchants.map { |r| admin_analytics_merchant_path(r.merchant.slug, @filter.to_query_params) }
+
+  merchants_chart_config = {
+    type: "bar",
+    data: {
+      labels: merchant_labels,
+      datasets: [{
+        data: merchant_values,
+        backgroundColor: current_color,
+        borderRadius: 4,
+        barThickness: 18
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      metadata: merchant_counts.map { |c| { count: c } },
+      plugins: {
+        legend: { display: false },
+        datalabels: { display: false }
+      },
+      scales: {
+        x: {
+          grid: { color: "rgba(148,163,184,0.15)" },
+          ticks: { tickFormat: "pln", font: { size: 11 } },
+          beginAtZero: true
+        },
+        y: {
+          grid: { display: false },
+          ticks: { font: { size: 11 }, autoSkip: false }
+        }
+      }
+    }
+  }
+  merchants_chart_height = (merchant_labels.size * 32) + 40
+  merchant_labels_present = @top_merchants.any?
+  category_labels_present = category_labels.any?
+%>
+
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "Analytics",
+        subtitle: "Where your money goes — one filter, every view." %>
+
+  <%= render "admin/analytics/shared/filter_strip", filter: @filter, user_accounts: user_accounts %>
+
+  <%# ── Stat cards row — 5 metrics, color-coded tones ── %>
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+    <%= render "admin/shared/components/stat_card",
+          label: "Spend",
+          value: spend_total.format(no_cents_if_whole: true, symbol: false) + " zł",
+          icon: "shopping_cart", tone: :destructive,
+          hint: period_hint,
+          value_class: sensitive_class %>
+    <%= render "admin/shared/components/stat_card",
+          label: "Avg daily spend",
+          value: avg_daily_spend.format(no_cents_if_whole: true, symbol: false) + " zł",
+          icon: "trending_down", tone: :info,
+          hint: "per day · #{pluralize(@filter.account_ids.size, "account")}",
+          value_class: sensitive_class %>
+    <% if @spend_delta_pct.nil? %>
+      <%= render "admin/shared/components/stat_card",
+            label: "Δ vs prev.",
+            value: "—",
+            icon: "bar_chart_3",
+            hint: "no prior data" %>
+    <% else %>
+      <%= render "admin/shared/components/stat_card",
+            label: "Δ vs prev.",
+            value: "#{@spend_delta_pct.positive? ? '+' : ''}#{@spend_delta_pct}%",
+            change: @spend_delta_pct,
+            trend:  @spend_delta_pct >= 0 ? :up : :down,
+            icon:   "bar_chart_3",
+            hint:   "vs previous #{pluralize(@filter.period.length_days, 'day')}" %>
+    <% end %>
+    <%= render "admin/shared/components/stat_card",
+          label: "Income",
+          value: income_total.format(no_cents_if_whole: true, symbol: false) + " zł",
+          icon: "trending_up", tone: :success,
+          hint: period_hint,
+          value_class: sensitive_class %>
+    <% if @top_merchant %>
+      <%= render "admin/shared/components/stat_card",
+            label: "Top merchant",
+            value: @top_merchant.merchant.display,
+            icon: "tag", tone: :warning,
+            hint: "#{@top_merchant.amount.format(no_cents_if_whole: true, symbol: false)} zł · #{@top_merchant.count} tx",
+            value_class: sensitive_class %>
+    <% else %>
+      <%= render "admin/shared/components/stat_card",
+            label: "Top merchant",
+            value: "—",
+            icon: "tag", tone: :muted,
+            hint: "no data" %>
+    <% end %>
+  </div>
+
+  <%# ── Row 1: spend-by-category (rich bar) + cash-flow timeline ── %>
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+    <div class="lg:col-span-7">
+      <%= render "admin/shared/components/card",
+            title: "Spend by category",
+            subtitle: "total #{spend_total.format(no_cents_if_whole: true, symbol: false)} zł · #{visible.size}#{rest.any? ? " + tail (#{rest.size})" : ""}" do %>
+        <% if category_labels_present %>
+          <div data-controller="chart"
+               data-chart-config-value="<%= category_chart_config.to_json %>"
+               data-chart-urls-value="<%= category_urls.to_json %>"
+               style="height: <%= category_chart_height %>px">
+            <canvas></canvas>
+          </div>
+        <% else %>
+          <%= render "admin/shared/components/empty_state",
+                title: "No spend",
+                description: "No spend in the selected period/accounts.",
+                icon: "shopping_cart" %>
+        <% end %>
+      <% end %>
+    </div>
+
+    <div class="lg:col-span-5">
+      <%= render "admin/shared/components/card",
+            title: "Cash flow",
+            subtitle: "daily net · #{period_hint}" do %>
+        <% if @cash_flow.all? { |p| p.amount_cents.zero? } %>
+          <%= render "admin/shared/components/empty_state",
+                title: "All quiet",
+                description: "No transaction in the selected period changed the balance.",
+                icon:  "bar_chart_3" %>
+        <% else %>
+          <%# Custom: two-up summary above the chart (Net flow / Biggest day).
+              Tied to this widget's specific signals; if a 2nd chart needs the
+              same shape, extract `_chart_caption` taking [{label, value, tone}]. %>
+          <% net_total_cents = @cash_flow.sum(&:amount_cents) %>
+          <% biggest = @cash_flow.max_by { |p| p.amount_cents.abs } %>
+          <div class="flex items-baseline justify-between gap-3 mb-3 px-1">
+            <div>
+              <p class="text-xs text-muted-foreground">Net flow</p>
+              <p class="amount text-lg <%= net_total_cents >= 0 ? 'text-success' : 'text-destructive' %> <%= sensitive_class %>">
+                <%= net_total_cents >= 0 ? "+" : "" %><%= Money.new(net_total_cents, "PLN").format(no_cents_if_whole: true, symbol: false) %> zł
+              </p>
+            </div>
+            <% if biggest %>
+              <div class="text-right">
+                <p class="text-xs text-muted-foreground">Biggest day</p>
+                <p class="amount text-sm <%= sensitive_class %>">
+                  <%= biggest.amount_cents >= 0 ? "+" : "" %><%= biggest.amount.format(no_cents_if_whole: true, symbol: false) %> zł
+                  <span class="text-muted-foreground text-xs font-normal">· <%= biggest.date.strftime("%-d %b") %></span>
+                </p>
+              </div>
+            <% end %>
+          </div>
+          <div data-controller="chart"
+               data-chart-config-value="<%= cash_flow_config.to_json %>"
+               style="height: 240px">
+            <canvas></canvas>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+
+  <%# ── Row 2: top merchants list + accounts donut ── %>
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+    <div class="lg:col-span-7">
+      <%= render "admin/shared/components/card",
+            title: "Top merchants",
+            subtitle: "click → transactions" do %>
+        <% if merchant_labels_present %>
+          <div data-controller="chart"
+               data-chart-config-value="<%= merchants_chart_config.to_json %>"
+               data-chart-urls-value="<%= merchant_urls.to_json %>"
+               style="height: <%= merchants_chart_height %>px">
+            <canvas></canvas>
+          </div>
+        <% else %>
+          <%= render "admin/shared/components/empty_state",
+                title: "No merchants",
+                description: "No merchants matched in this period.",
+                icon: "tag" %>
+        <% end %>
+      <% end %>
+    </div>
+
+    <div class="lg:col-span-5">
+      <%= render "admin/shared/components/card",
+            title: "Accounts — share of spend",
+            subtitle: "click → filter to this account" do %>
+        <% if @account_rows.empty? %>
+          <%= render "admin/shared/components/empty_state",
+                title: "No data",
+                description: "No spend on any of the selected accounts.",
+                icon: "package" %>
+        <% else %>
+          <%# Custom: donut + center "Total X PLN". No equivalent shared
+              component. Trigger extraction once a 2nd donut appears. %>
+          <div class="relative" style="height: 260px">
+            <div data-controller="chart"
+                 data-chart-config-value="<%= donut_config.to_json %>"
+                 data-chart-urls-value="<%= acct_urls.to_json %>"
+                 class="absolute inset-0">
+              <canvas></canvas>
+            </div>
+            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+                 style="left: 0; right: 50%">
+              <p class="text-xs text-muted-foreground">Total</p>
+              <p class="text-lg font-bold text-foreground <%= sensitive_class %>">
+                <%= acct_total.format(no_cents_if_whole: true, symbol: false) %> zł
+              </p>
+              <p class="text-xs text-muted-foreground"><%= pluralize(@account_rows.size, "account") %></p>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>

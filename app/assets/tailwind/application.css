@@ -91,6 +91,16 @@
     @apply w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-muted-foreground;
   }
 
+  /* Canonical money-amount typography. Use this for every kwota across
+     the UI so digits align in tables / lists without forcing ugly
+     monospace. `tabular-nums` keeps digit columns equal-width while
+     the rest of the text uses the system sans font. */
+  .amount {
+    @apply font-semibold;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
   /* ── Privacy mode ─────────────────────────────────────────────────────────
      Toggled from the topbar; adds .privacy-mode on <html>.
      See app/helpers/admin/privacy_helper.rb for usage.

@@ -70,6 +70,23 @@
       <%= render "admin/shared/components/stat_card", label: "Orders", value: "356", change: 3.1, trend: :down, icon: "shopping_cart" %>
       <%= render "admin/shared/components/stat_card", label: "Conversion", value: "3.24%", change: 1.8, trend: :up, icon: "bar_chart_3" %>
     </div>
+    <p class="text-sm text-muted-foreground pt-2">
+      Without delta — for point-in-time stats (balances, counts) where comparison doesn't apply. Omit <code class="bg-muted px-1 rounded text-xs">change</code> and <code class="bg-muted px-1 rounded text-xs">trend</code>.
+    </p>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <%= render "admin/shared/components/stat_card", label: "Account balance", value: "PLN 12,480.00", icon: "dollar_sign" %>
+      <%= render "admin/shared/components/stat_card", label: "Connected banks", value: "3", icon: "package" %>
+    </div>
+    <p class="text-sm text-muted-foreground pt-2">
+      Tones — pass <code class="bg-muted px-1 rounded text-xs">tone:</code> to color-code the icon tile. Helps the eye scan a stat row by category. <code class="bg-muted px-1 rounded text-xs">hint:</code> adds a small caption under the value.
+    </p>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <%= render "admin/shared/components/stat_card", label: "Saldo", value: "12 480 zł", icon: "dollar_sign", tone: :info %>
+      <%= render "admin/shared/components/stat_card", label: "Wydatki", value: "3 248 zł", icon: "shopping_cart", tone: :destructive, hint: "30 dni" %>
+      <%= render "admin/shared/components/stat_card", label: "Wpływy", value: "5 100 zł", icon: "trending_up", tone: :success, hint: "30 dni" %>
+      <%= render "admin/shared/components/stat_card", label: "Top sprzedawca", value: "Biedronka", icon: "tag", tone: :warning, hint: "740 zł · 11 tx" %>
+      <%= render "admin/shared/components/stat_card", label: "Δ vs poprz.", value: "+13%", icon: "bar_chart_3", change: 13, trend: :up %>
+    </div>
   </section>
 
   <%# ── CARDS ── %>
@@ -367,6 +384,33 @@
             </td>
           </tr>
         <% end %>
+      <% end %>
+    </div>
+  </section>
+
+  <%# ── BREAKDOWN LIST ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Breakdown List</h2>
+    <p class="text-sm text-muted-foreground">
+      Horizontal bar list. Each row: <code class="bg-muted px-1 rounded text-xs">{ label, amount_cents, count, href, secondary }</code>. Bar fill proportional to <code class="bg-muted px-1 rounded text-xs">max_cents</code> (defaults to top row); share % off <code class="bg-muted px-1 rounded text-xs">total_cents</code>. Used by analytics dashboard widgets and drill-downs.
+    </p>
+    <%
+      row_struct = Struct.new(:label, :amount_cents, :count, :href, :secondary, keyword_init: true)
+      demo_total = 8_125_29
+      demo_rows = [
+        row_struct.new(label: "Biedronka",      amount_cents: 2_540_00, count: 11, href: "#"),
+        row_struct.new(label: "Lidl",           amount_cents: 1_980_00, count:  8, href: "#"),
+        row_struct.new(label: "Allegro",        amount_cents:   980_00, count:  3, href: "#"),
+        row_struct.new(label: "Spotify",        amount_cents:   450_00, count:  1, href: "#", secondary: "subskrypcja"),
+        row_struct.new(label: "Bez sprzedawcy", amount_cents:   175_00, count:  4)
+      ]
+    %>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <%= render "admin/shared/components/card", title: "With totals + links" do %>
+        <%= render "admin/shared/components/breakdown_list", rows: demo_rows, total_cents: demo_total %>
+      <% end %>
+      <%= render "admin/shared/components/card", title: "Empty state" do %>
+        <%= render "admin/shared/components/breakdown_list", rows: [], empty_label: "Brak transakcji w tym okresie" %>
       <% end %>
     </div>
   </section>

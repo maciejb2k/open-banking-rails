@@ -317,9 +317,9 @@
                     text: tx.status,
                     variant: tx.status == "booked" ? :success : :info %>
             </td>
-            <td class="px-4 py-3 text-right font-mono whitespace-nowrap <%= tx.direction == 'credit' ? 'text-success' : 'text-foreground' %>">
+            <td class="px-4 py-3 text-right amount whitespace-nowrap <%= tx.direction == 'credit' ? 'text-success' : 'text-foreground' %>">
               <span class="<%= sensitive_class %>"><%= tx.direction == "credit" ? "+" : "−" %><%= tx.amount.format(symbol: false, no_cents_if_whole: false) %></span>
-              <span class="text-muted-foreground text-xs"><%= tx.currency %></span>
+              <span class="text-muted-foreground text-xs font-normal"><%= tx.currency %></span>
             </td>
             <td class="px-4 py-3">
               <%= render "admin/shared/components/dropdown_menu", items: [

@@ -1,0 +1,68 @@
+<%# locals: (rows:, total_cents: nil, max_cents: nil, sensitive_amounts: true, empty_label: "No data") %>
+<%# Horizontal-bar list of (label, amount, count, optional href).
+    `rows` items respond to: :label, :amount_cents, :count (optional),
+    :href (optional), :secondary (optional String), :secondary_tone
+    (optional :success | :destructive | nil for muted).
+    Bar fill is proportional to `max_cents` (defaults to first row's amount —
+    the list is expected to be sorted DESC). `share_pct` is computed off
+    `total_cents` when given. %>
+
+<%
+  rows = Array(rows)
+  effective_max = max_cents || rows.first&.amount_cents || 1
+  effective_max = 1 if effective_max.zero?
+
+  tone_classes = {
+    success:     "text-success",
+    destructive: "text-destructive"
+  }
+%>
+
+<% if rows.empty? %>
+  <div class="px-3 py-8 text-sm text-muted-foreground text-center"><%= empty_label %></div>
+<% else %>
+  <ul class="divide-y divide-border/40">
+    <% rows.each do |row| %>
+      <% width_pct  = ((row.amount_cents.to_f / effective_max) * 100).clamp(2, 100).round(1) %>
+      <% share_pct  = total_cents&.positive? ? ((row.amount_cents.to_f / total_cents) * 100).round : nil %>
+      <% href       = row.respond_to?(:href) ? row.href : nil %>
+      <% secondary  = row.respond_to?(:secondary) ? row.secondary : nil %>
+      <% sec_tone   = row.respond_to?(:secondary_tone) ? row.secondary_tone : nil %>
+      <% sec_class  = tone_classes[sec_tone] || "text-muted-foreground" %>
+      <% wrapper_tag, attrs = if href
+                                [:a, { href: href, class: "group block py-2.5 px-3 -mx-3 rounded-lg hover:bg-muted/40 transition-colors" }]
+                              else
+                                [:div, { class: "py-2.5 px-3 -mx-3" }]
+                              end %>
+      <li>
+        <%= content_tag(wrapper_tag, **attrs) do %>
+          <div class="flex items-baseline justify-between gap-3 mb-1.5">
+            <div class="flex items-baseline gap-2 min-w-0">
+              <span class="text-sm font-medium text-foreground truncate <%= sensitive_class if sensitive_amounts %> <%= 'group-hover:text-primary transition-colors' if href %>">
+                <%= row.label %>
+              </span>
+              <% if row.respond_to?(:count) && row.count %>
+                <span class="text-xs text-muted-foreground/70 shrink-0"><%= row.count %> tx</span>
+              <% end %>
+            </div>
+            <div class="flex items-baseline gap-3 shrink-0">
+              <span class="amount text-sm <%= sensitive_class if sensitive_amounts %>">
+                <%= Money.new(row.amount_cents, "PLN").format(no_cents_if_whole: true, symbol: false) %> zł
+              </span>
+              <% if share_pct %>
+                <span class="text-xs text-muted-foreground tabular-nums w-9 text-right"><%= share_pct %>%</span>
+              <% end %>
+            </div>
+          </div>
+          <% if secondary.present? %>
+            <p class="text-xs <%= sec_class %> mb-1.5"><%= secondary %></p>
+          <% end %>
+          <div class="h-1.5 rounded-full bg-muted/60 overflow-hidden">
+            <div class="h-full bg-primary <%= 'group-hover:bg-primary/85 transition-colors' if href %>"
+                 style="width: <%= width_pct %>%"></div>
+          </div>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+<% end %>

@@ -29,7 +29,10 @@ Rails.application.routes.draw do
   end
 
   namespace :admin do
-    root "dashboard#index"
+    # Analytics is the entry point — /admin redirects to it. Operations
+    # / Classification / Settings are concrete-tool sections; the
+    # at-a-glance view is what you want when you land on the app.
+    root to: redirect("/admin/analytics")
     get "styleguide", to: "styleguide#index"
 
     resources :versions, only: [ :index, :show ]
@@ -58,6 +61,12 @@ Rails.application.routes.draw do
 
     # LLM enrichment: dashboard (index/create) + per-run live progress (show).
     resources :llm_enrichments, only: [ :index, :show, :create ]
+
+    namespace :analytics do
+      root "dashboard#index"
+      resources :categories, only: :show, param: :slug
+      resources :merchants,  only: :show, param: :slug
+    end
 
     # Visualization of the entire enrichment pipeline: rules in execution
     # order + payment-method fallback map. Read-only, debugging aid.

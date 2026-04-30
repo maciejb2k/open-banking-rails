@@ -134,9 +134,9 @@
                   <div class="text-sm truncate <%= sensitive_class %>"><%= tx.title.presence || "—" %></div>
                   <div class="text-xs text-muted-foreground"><%= tx.booking_date %> · <%= payment_method_label(tx.payment_method) || tx.type_hint %></div>
                 </div>
-                <div class="text-sm font-mono whitespace-nowrap <%= sensitive_class %> <%= tx.direction == 'credit' ? 'text-success' : 'text-foreground' %>">
+                <div class="amount text-sm whitespace-nowrap <%= sensitive_class %> <%= tx.direction == 'credit' ? 'text-success' : 'text-foreground' %>">
                   <%= tx.direction == "credit" ? "+" : "−" %><%= tx.amount.format(symbol: false, no_cents_if_whole: false) %>
-                  <span class="text-xs text-muted-foreground"><%= tx.currency %></span>
+                  <span class="text-xs text-muted-foreground font-normal"><%= tx.currency %></span>
                 </div>
                 <%= link_to admin_bank_transaction_path(tx), class: "text-muted-foreground hover:text-foreground transition-colors" do %>
                   <%= render "admin/shared/icons/chevron_right", classes: "h-4 w-4" %>

@@ -11,3 +11,5 @@ Format: Title / Context / Alternatives / Decision / Consequences.
 | [0004](0004-encryption-at-rest.md) | Selective ActiveRecord encryption |
 | [0005](0005-llm-confidence-gating.md) | LLM enrichment with confidence gating |
 | [0006](0006-cash-tracking-opt-in.md) | Cash tracking is opt-in |
+| [0007](0007-chart-library.md) | Chart library: Chart.js via importmap |
+| [0008](0008-ai-insight-architecture.md) | AI insight: facts-only narration |
