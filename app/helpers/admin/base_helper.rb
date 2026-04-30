@@ -87,14 +87,17 @@ module Admin
       # whose URL segments don't match nav items).
       return @custom_breadcrumbs if @custom_breadcrumbs.present?
 
-      segments = request.path.split("/").reject(&:empty?)
+      # Trailing edit/new are CRUD actions, not destinations — drop them so
+      # /admin/settings/preferences/edit shows "Admin / Settings / Preferences"
+      # (not "… / Preferences / Edit") and keys nav items by the resource segment.
+      segments = strip_action_suffix(request.path.split("/").reject(&:empty?))
 
       nav_labels = { "admin" => { label: "Admin", path: admin_root_path } }
       admin_nav_sections.each do |section|
         section[:items].each do |item|
           next if item[:path].blank? || item[:path] == "#"
-          segment = item[:path].split("/").reject(&:empty?).last
-          nav_labels[segment] = { label: item[:name], path: item[:path] } if segment
+          key = strip_action_suffix(item[:path].split("/").reject(&:empty?)).last
+          nav_labels[key] = { label: item[:name], path: item[:path] } if key
         end
       end
 
@@ -115,6 +118,11 @@ module Admin
 
     def numeric_id?(segment)
       segment.match?(/\A\d+\z/)
+    end
+
+    def strip_action_suffix(segments)
+      return segments if segments.empty?
+      %w[edit new].include?(segments.last) ? segments[0..-2] : segments
     end
 
     # Resolve `/.../tpp_credentials/1` → "Personal Enable Banking"

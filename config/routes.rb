@@ -79,7 +79,9 @@ Rails.application.routes.draw do
     namespace :settings do
       get "/", to: redirect("/admin/settings/tpp_credentials"), as: :root
 
-      resource :preferences, only: %i[edit update]
+      resource :preferences, only: %i[edit update] do
+        patch :update_password
+      end
 
       resources :tpp_credentials do
         member do
