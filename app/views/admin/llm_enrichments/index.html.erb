@@ -102,26 +102,29 @@
       <ul class="divide-y">
         <% @pending_merchants.each do |m| %>
           <% rule = m.merchant_rules.find { |r| r.source == "llm" } || m.merchant_rules.first %>
+          <% m_hidden = hide_private?(m.default_category_id) %>
           <li class="px-4 py-3 hover:bg-muted/20 transition-colors">
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2">
-                  <span class="font-medium <%= sensitive_class %>"><%= m.display %></span>
+                  <span class="font-medium <%= sensitive_class unless m_hidden %>"><%= hide_private_text(m.display, m.default_category_id) %></span>
                   <%= render "admin/shared/components/badge", text: "AI", variant: :default %>
                   <span class="text-xs text-muted-foreground">confidence: <%= (m.confidence.to_f * 100).round %>%</span>
                 </div>
                 <% if rule %>
-                  <div class="text-xs text-muted-foreground font-mono mt-1 <%= sensitive_class %>">
-                    <%= rule.field %> <%= rule.kind %> "<%= rule.pattern %>"
+                  <div class="text-xs text-muted-foreground font-mono mt-1 <%= sensitive_class unless m_hidden %>">
+                    <%= rule.field %> <%= rule.kind %> "<%= m_hidden ? "•••" : rule.pattern %>"
                   </div>
                 <% end %>
                 <% if m.default_category %>
                   <div class="text-xs text-muted-foreground mt-0.5">
-                    Category: <%= m.default_category.parent ? "#{m.default_category.parent.name} → #{m.default_category.name}" : m.default_category.name %>
+                    Category:
+                    <% cat_label = m.default_category.parent ? "#{m.default_category.parent.name} → #{m.default_category.name}" : m.default_category.name %>
+                    <%= hide_private_text(cat_label, m.default_category) %>
                   </div>
                 <% end %>
                 <% if m.notes.present? %>
-                  <div class="text-xs italic text-muted-foreground mt-1"><%= m.notes %></div>
+                  <div class="text-xs italic text-muted-foreground mt-1 <%= sensitive_class unless m_hidden %>"><%= m_hidden ? "•••" : m.notes %></div>
                 <% end %>
               </div>
               <div class="flex items-center gap-2 shrink-0">
@@ -130,7 +133,7 @@
                       variant: :outline, size: :sm, icon: "pencil" %>
                 <%= render "admin/shared/components/button",
                       label: "Delete", href: admin_merchant_path(m), method: :delete,
-                      data: { turbo_confirm: "Delete proposal #{m.display}?" },
+                      data: { turbo_confirm: "Delete proposal #{hide_private_text(m.display, m.default_category_id)}?" },
                       variant: :destructive, size: :sm, icon: "trash_2" %>
                 <%= render "admin/shared/components/button",
                       label: "Approve", href: approve_admin_merchant_path(m), method: :post,

@@ -92,14 +92,16 @@
         <% end %>
         <% if (val = params[:merchant_id]).present? %>
           <% m = current_user.merchants.find_by(id: val) %>
+          <% m_label = m ? hide_private_text(m.display, m.default_category_id) : "##{val}" %>
           <%= render "admin/shared/components/filter_chip",
-                label: "Merchant: #{m&.display || "##{val}"}",
+                label: "Merchant: #{m_label}",
                 remove_path: admin_bank_transactions_path(request.query_parameters.except("merchant_id")) %>
         <% end %>
         <% if (val = params[:category_id]).present? %>
           <% c = current_user.categories.find_by(id: val) %>
+          <% c_label = c ? hide_private_text(c.name, c) : "##{val}" %>
           <%= render "admin/shared/components/filter_chip",
-                label: "Category: #{c&.name || "##{val}"}",
+                label: "Category: #{c_label}",
                 remove_path: admin_bank_transactions_path(request.query_parameters.except("category_id")) %>
         <% end %>
         <% if (val = params[:payment_method]).present? %>

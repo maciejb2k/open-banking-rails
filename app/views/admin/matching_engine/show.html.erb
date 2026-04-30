@@ -34,14 +34,25 @@
           </td>
           <td class="px-4 py-3 text-sm">
             <% if rule.merchant %>
-              <span class="<%= sensitive_class %>"><%= link_to rule.merchant.display, admin_merchant_path(rule.merchant), class: "hover:underline" %></span>
+              <% rm_hidden = hide_private?(rule.merchant.default_category_id) %>
+              <span class="<%= sensitive_class unless rm_hidden %>">
+                <% if rm_hidden %>
+                  <%= hide_private_text(rule.merchant.display, rule.merchant.default_category_id) %>
+                <% else %>
+                  <%= link_to rule.merchant.display, admin_merchant_path(rule.merchant), class: "hover:underline" %>
+                <% end %>
+              </span>
             <% else %>
               <span class="text-muted-foreground/50">—</span>
             <% end %>
           </td>
           <td class="px-4 py-3 text-xs text-muted-foreground">
             <% if (cat = rule.merchant&.default_category) %>
-              <%= cat.parent ? "#{cat.parent.name} → #{cat.name}" : cat.name %>
+              <% if hide_private?(cat) %>
+                <%= hide_private_text(cat.parent ? "#{cat.parent.name} → #{cat.name}" : cat.name, cat) %>
+              <% else %>
+                <%= cat.parent ? "#{cat.parent.name} → #{cat.name}" : cat.name %>
+              <% end %>
             <% else %>
               <span class="text-muted-foreground/50">—</span>
             <% end %>
@@ -78,7 +89,7 @@
         <% cat = @fallback_categories[cat_slug] %>
         <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
           <td class="px-4 py-3 font-mono text-xs"><%= pm %></td>
-          <td class="px-4 py-3 text-sm"><%= cat&.name || "<span class='text-destructive'>missing category: #{cat_slug}</span>".html_safe %></td>
+          <td class="px-4 py-3 text-sm"><%= cat ? hide_private_text(cat.name, cat) : "<span class='text-destructive'>missing category: #{cat_slug}</span>".html_safe %></td>
           <td class="px-4 py-3">
             <% if cat %>
               <%= render "admin/shared/components/badge",
