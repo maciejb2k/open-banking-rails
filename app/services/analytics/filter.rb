@@ -53,11 +53,18 @@ module Analytics
     end
 
     def period
-      @period ||= if @params[:from].present? && @params[:to].present?
-                    Period.new(from: parse_date(@params[:from]), to: parse_date(@params[:to]))
-      else
-                    Period.last_n_days(7)
-      end
+      @period ||= Period.new(from: from_date, to: to_date, bucket: bucket)
+    end
+
+    # Time-series granularity (day / week / month). Explicit ?bucket=
+    # wins; otherwise resolved from period length so 365d defaults to
+    # monthly bars and 7d to daily, matching what's actually readable.
+    def bucket
+      @bucket ||= bucket_explicit? ? @params[:bucket].to_sym : default_bucket_for_length
+    end
+
+    def bucket_explicit?
+      Period::BUCKETS.include?(@params[:bucket].to_s.to_sym)
     end
 
     # Base relation for the dashboard. Services chain `.spend` / `.income`
@@ -76,8 +83,12 @@ module Analytics
     # for the explicit-empty state and `account_ids[]=…` for narrowed
     # state; default state (all accounts) emits neither so a passive
     # click (e.g. period preset) doesn't promote default → explicit.
+    # `bucket` is emitted only when the user explicitly picked one — that
+    # way changing period (which strips ?bucket) lets the smart default
+    # reapply for the new length.
     def to_query_params
       params = { from: period.from.iso8601, to: period.to.iso8601 }
+      params[:bucket] = bucket if bucket_explicit?
       if none?
         params[:accounts] = "none"
       elsif explicit_account_ids.any?
@@ -87,6 +98,33 @@ module Analytics
     end
 
     private
+
+    def from_date
+      @from_date ||= if @params[:from].present? && @params[:to].present?
+                       parse_date(@params[:from])
+      else
+                       Date.current - 6.days
+      end
+    end
+
+    def to_date
+      @to_date ||= if @params[:from].present? && @params[:to].present?
+                     parse_date(@params[:to])
+      else
+                     Date.current
+      end
+    end
+
+    # Resolve bucket without touching `period` (avoids infinite loop —
+    # period itself depends on bucket).
+    def default_bucket_for_length
+      days = (to_date - from_date).to_i + 1
+      case days
+      when 0..31    then :day
+      when 32..180  then :week
+      else               :month
+      end
+    end
 
     def parse_date(value)
       Date.parse(value.to_s)

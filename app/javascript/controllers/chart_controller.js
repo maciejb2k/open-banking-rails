@@ -40,12 +40,22 @@ function installFormatters(config) {
     }
   })
 
-  // Datalabels formatter — accepts "pln" / "pln_with_delta" string flag
-  // at either the global plugin level (options.plugins.datalabels.formatter)
-  // or per-dataset (datasets[i].datalabels.formatter).
+  // Datalabels formatter — accepts "pln" / "pln_with_delta" / "delta_pct"
+  // string flag at either the global plugin level
+  // (options.plugins.datalabels.formatter) or per-dataset
+  // (datasets[i].datalabels.formatter).
   // `pln_with_delta` reads delta% from options.metadata[dataIndex] and
   // appends it inline ("1 234 zł  +45%") so the chart shows current +
   // trend without a second bar series fighting for label space.
+  // `delta_pct` shows ONLY the delta — for charts where the value is
+  // already on the axis (e.g. PLN ticks) and adding it again would
+  // duplicate.
+  //
+  // `color` accepts "delta_sign" / "delta_sign_inverse" string flags.
+  // `delta_sign` colors green for positive, red for negative (default
+  // "more is good" framing). `delta_sign_inverse` flips it — for spend
+  // charts where +% is bad (you spent more) and −% is good. `null` /
+  // missing delta keeps the muted-foreground tone.
   const plugins = (opts.plugins = opts.plugins || {})
   const replaceFormatter = (obj) => {
     if (!obj) return
@@ -60,6 +70,23 @@ function installFormatters(config) {
         if (!meta || meta.delta == null) return base
         const sign = meta.delta > 0 ? "+" : ""
         return base + "  " + sign + meta.delta + "%"
+      }
+    }
+    if (obj.formatter === "delta_pct") {
+      obj.formatter = (_value, ctx) => {
+        const meta = (ctx.chart.options.metadata || [])[ctx.dataIndex]
+        if (!meta || meta.delta == null) return ""
+        const sign = meta.delta > 0 ? "+" : ""
+        return sign + meta.delta + "%"
+      }
+    }
+    if (obj.color === "delta_sign" || obj.color === "delta_sign_inverse") {
+      const inverse = obj.color === "delta_sign_inverse"
+      obj.color = (ctx) => {
+        const meta = (ctx.chart.options.metadata || [])[ctx.dataIndex]
+        if (!meta || meta.delta == null) return "rgba(100, 116, 139, 0.7)"
+        const positive = inverse ? meta.delta < 0 : meta.delta > 0
+        return positive ? "rgb(22, 163, 74)" : "rgb(220, 38, 38)"
       }
     }
   }

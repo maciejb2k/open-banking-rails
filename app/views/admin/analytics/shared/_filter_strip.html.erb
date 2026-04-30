@@ -72,13 +72,17 @@
   <%= form_with url: url_for(only_path: true), method: :get, html: { data: { turbo: false } } do |f| %>
 
     <%# ── Period section ─────────────────────────────────────────────── %>
+    <%# Period preset chips strip ?bucket so the smart default
+        (day/week/month-by-length) re-resolves on length change. If user
+        explicitly picks a bucket via the granularity chips below, that
+        wins until they change period again. %>
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
       <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-20 shrink-0">Period</span>
       <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
         <% presets.each do |preset| %>
           <% to = Date.current %>
           <% from = to - (preset[:days] - 1).days %>
-          <% href = url_for(filter.to_query_params.merge(from: from.iso8601, to: to.iso8601)) %>
+          <% href = url_for(filter.to_query_params.except(:bucket).merge(from: from.iso8601, to: to.iso8601)) %>
           <% is_active = active_preset_days == preset[:days] %>
           <% cls = "rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors #{is_active ? active_chip_cls : inactive_chip_cls}" %>
           <%= link_to preset[:label], href, class: cls %>
@@ -88,6 +92,25 @@
         <%= filter.period.from.strftime("%-d %b") %> → <%= filter.period.to.strftime("%-d %b %Y") %>
       </span>
       <%= render "admin/shared/components/filter_trigger", active_count: active_count %>
+    </div>
+
+    <%# ── Granularity section ────────────────────────────────────────── %>
+    <%# Day / Week / Month bucket switch for time-series widgets. Bucket
+        param is omitted from the URL when it equals the smart default —
+        clean URLs in default state, explicit override sticks. %>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-border/40">
+      <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-20 shrink-0">Granularity</span>
+      <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+        <% [[:day, "Day"], [:week, "Week"], [:month, "Month"]].each do |key, label| %>
+          <% is_active = filter.bucket == key %>
+          <% href = url_for(filter.to_query_params.merge(bucket: key)) %>
+          <% cls = "rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors #{is_active ? active_chip_cls : inactive_chip_cls}" %>
+          <%= link_to label, href, class: cls %>
+        <% end %>
+        <% unless filter.bucket_explicit? %>
+          <span class="text-xs text-muted-foreground/70 ml-1">auto</span>
+        <% end %>
+      </div>
     </div>
 
     <%# ── Accounts section ───────────────────────────────────────────── %>

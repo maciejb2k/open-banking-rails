@@ -3,9 +3,17 @@
 
   spend_total     = Money.new(@spend_cents, "PLN")
   income_total    = Money.new(@income_cents, "PLN")
+  net_total       = Money.new(@net_cents, "PLN")
   avg_daily_spend = Money.new(@avg_daily_spend_cents, "PLN")
 
   period_hint = pluralize(@filter.period.length_days, "day")
+  bucket_label = { day: "day", week: "week", month: "month" }.fetch(@filter.bucket)
+  bucket_unit  = bucket_label.capitalize
+  date_fmt     = case @filter.bucket
+                 when :day   then "%-d %b"
+                 when :week  then "%-d %b"
+                 when :month then "%b %y"
+                 end
 
   # Chart palette — picked once so every widget sits in the same visual
   # family.
@@ -24,19 +32,20 @@
     "rgb(100, 116, 139)"   # slate
   ]
 
-  # ── Spend by category — Chart.js horizontal bar, basic. No datalabels,
-  # tooltip on hover. Tail past 12 collapsed into one "Other".
-  visible    = @breakdown.first(12)
-  rest       = @breakdown.drop(12)
+  # ── Spend by category — Chart.js horizontal bar. Δ vs prev. lands in
+  # the tooltip via `metadata` (count + delta), and the "Top movers" row
+  # surfaces the biggest swings explicitly — so we deliberately avoid
+  # painting +/-% labels on the bars themselves (datalabels at variable
+  # bar-end positions look messy and steal focus from magnitude).
+  # Tail past 12 collapsed into one "Other" (no delta — different
+  # aggregation level).
+  visible    = @breakdown.first(20)
+  rest       = @breakdown.drop(20)
   rest_total = rest.sum(&:amount_cents)
 
-  # Hidden categories keep their bar (sums stay truthful) but render as
-  # bullets on the canvas — chart.js paints labels server-side, so we
-  # substitute here. URLs nil-out so the bar click is a no-op (the
-  # drill-down controller would redirect anyway).
   category_labels = visible.map { |r| hide_private_text(r.category.name, r.category) }
   category_values = visible.map { |r| (r.amount_cents / 100.0).round(2) }
-  category_counts = visible.map(&:count)
+  category_metadata = visible.map { |r| { count: r.count, delta: r.delta_pct }.compact }
   category_urls   = visible.map { |r|
     next nil if hide_private?(r.category)
     r.category.slug ? admin_analytics_category_path(r.category.slug, @filter.to_query_params) : nil
@@ -45,7 +54,7 @@
   if rest.any?
     category_labels << "Other (#{rest.size})"
     category_values << (rest_total / 100.0).round(2)
-    category_counts << nil
+    category_metadata << {}
     category_urls   << nil
   end
 
@@ -64,7 +73,7 @@
       indexAxis: "y",
       responsive: true,
       maintainAspectRatio: false,
-      metadata: category_counts.map { |c| c ? { count: c } : {} },
+      metadata: category_metadata,
       plugins: {
         legend: { display: false },
         datalabels: { display: false }
@@ -84,29 +93,45 @@
   }
   category_chart_height = (category_labels.size * 32) + 40
 
-  # ── Cash flow timeline — daily bars, color by sign.
-  cf_labels  = @cash_flow.map { |p| p.date.strftime("%-d %b") }
-  cf_values  = @cash_flow.map { |p| (p.amount_cents / 100.0).round(2) }
-  cf_colors  = @cash_flow.map { |p| p.amount_cents >= 0 ? positive_fill : negative_fill }
-  cf_borders = @cash_flow.map { |p| p.amount_cents >= 0 ? positive_border : negative_border }
+  # ── Cash flow timeline — paired bars per bucket: income (green up)
+  # next to spend (red up). Y axis stays positive; net is in the caption
+  # above so users still get the single-number takeaway. Bucket comes
+  # from the granularity chip selection (D/W/M).
+  cf_labels        = @cash_flow.map { |p| p.date.strftime(date_fmt) }
+  cf_income_values = @cash_flow.map { |p| (p.income_cents / 100.0).round(2) }
+  cf_spend_values  = @cash_flow.map { |p| (p.spend_cents / 100.0).round(2) }
 
   cash_flow_config = {
     type: "bar",
     data: {
       labels: cf_labels,
-      datasets: [{
-        data: cf_values,
-        backgroundColor: cf_colors,
-        borderColor: cf_borders,
-        borderWidth: 1,
-        borderRadius: 2
-      }]
+      datasets: [
+        {
+          label: "Income",
+          data: cf_income_values,
+          backgroundColor: positive_fill,
+          borderColor: positive_border,
+          borderWidth: 1,
+          borderRadius: 2
+        },
+        {
+          label: "Spend",
+          data: cf_spend_values,
+          backgroundColor: negative_fill,
+          borderColor: negative_border,
+          borderWidth: 1,
+          borderRadius: 2
+        }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: true, position: "top", align: "end",
+          labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: "circle", font: { size: 10 }, padding: 8 }
+        },
         datalabels: { display: false }
       },
       scales: {
@@ -248,22 +273,24 @@
           label: "Income",
           value: income_total.format(no_cents_if_whole: true, symbol: false) + " zł",
           icon: "trending_up", tone: :success,
-          hint: period_hint,
+          hint: "net #{@net_cents >= 0 ? '+' : ''}#{net_total.format(no_cents_if_whole: true, symbol: false)} zł",
           value_class: sensitive_class %>
-    <% if @top_merchant %>
-      <% top_hidden = hide_private?(@top_merchant.merchant.default_category_id) %>
+    <% if @savings_rate_pct.nil? %>
       <%= render "admin/shared/components/stat_card",
-            label: "Top merchant",
-            value: top_hidden ? "•••" : @top_merchant.merchant.display,
-            icon: "tag", tone: :warning,
-            hint: top_hidden ? "••• · #{@top_merchant.count} tx" : "#{@top_merchant.amount.format(no_cents_if_whole: true, symbol: false)} zł · #{@top_merchant.count} tx",
-            value_class: sensitive_class %>
-    <% else %>
-      <%= render "admin/shared/components/stat_card",
-            label: "Top merchant",
+            label: "Savings rate",
             value: "—",
-            icon: "tag", tone: :muted,
-            hint: "no data" %>
+            icon: "trending_up", tone: :muted,
+            hint: "no income in period" %>
+    <% else %>
+      <%# Savings rate = (income − spend) / income. The KPI of personal
+          finance — what % of what came in stayed in. Negative = overspent
+          (red). %>
+      <%= render "admin/shared/components/stat_card",
+            label: "Savings rate",
+            value: "#{@savings_rate_pct}%",
+            icon: "trending_up",
+            tone: @savings_rate_pct >= 0 ? :success : :destructive,
+            hint: @savings_rate_pct >= 0 ? "of income kept" : "spent more than earned" %>
     <% end %>
   </div>
 
@@ -272,7 +299,7 @@
     <div class="lg:col-span-7">
       <%= render "admin/shared/components/card",
             title: "Spend by category",
-            subtitle: "total #{spend_total.format(no_cents_if_whole: true, symbol: false)} zł · #{visible.size}#{rest.any? ? " + tail (#{rest.size})" : ""}" do %>
+            subtitle: "total #{spend_total.format(no_cents_if_whole: true, symbol: false)} zł · #{visible.size}#{rest.any? ? " + tail (#{rest.size})" : ""} · hover for Δ vs prev." do %>
         <% if category_labels_present %>
           <div data-controller="chart"
                data-chart-config-value="<%= category_chart_config.to_json %>"
@@ -292,31 +319,30 @@
     <div class="lg:col-span-5">
       <%= render "admin/shared/components/card",
             title: "Cash flow",
-            subtitle: "daily net · #{period_hint}" do %>
-        <% if @cash_flow.all? { |p| p.amount_cents.zero? } %>
+            subtitle: "income vs spend · per #{bucket_label} · #{period_hint}" do %>
+        <% if @cash_flow.all?(&:quiet?) %>
           <%= render "admin/shared/components/empty_state",
                 title: "All quiet",
                 description: "No transaction in the selected period changed the balance.",
                 icon:  "bar_chart_3" %>
         <% else %>
-          <%# Custom: two-up summary above the chart (Net flow / Biggest day).
+          <%# Custom: two-up summary above the chart (Net flow / Biggest bucket).
               Tied to this widget's specific signals; if a 2nd chart needs the
               same shape, extract `_chart_caption` taking [{label, value, tone}]. %>
-          <% net_total_cents = @cash_flow.sum(&:amount_cents) %>
-          <% biggest = @cash_flow.max_by { |p| p.amount_cents.abs } %>
+          <% biggest = @cash_flow.max_by { |p| p.net_cents.abs } %>
           <div class="flex items-baseline justify-between gap-3 mb-3 px-1">
             <div>
               <p class="text-xs text-muted-foreground">Net flow</p>
-              <p class="amount text-lg <%= net_total_cents >= 0 ? 'text-success' : 'text-destructive' %> <%= sensitive_class %>">
-                <%= net_total_cents >= 0 ? "+" : "" %><%= Money.new(net_total_cents, "PLN").format(no_cents_if_whole: true, symbol: false) %> zł
+              <p class="amount text-lg <%= @net_cents >= 0 ? 'text-success' : 'text-destructive' %> <%= sensitive_class %>">
+                <%= @net_cents >= 0 ? "+" : "" %><%= net_total.format(no_cents_if_whole: true, symbol: false) %> zł
               </p>
             </div>
-            <% if biggest %>
+            <% if biggest && !biggest.quiet? %>
               <div class="text-right">
-                <p class="text-xs text-muted-foreground">Biggest day</p>
+                <p class="text-xs text-muted-foreground">Biggest <%= bucket_label %></p>
                 <p class="amount text-sm <%= sensitive_class %>">
-                  <%= biggest.amount_cents >= 0 ? "+" : "" %><%= biggest.amount.format(no_cents_if_whole: true, symbol: false) %> zł
-                  <span class="text-muted-foreground text-xs font-normal">· <%= biggest.date.strftime("%-d %b") %></span>
+                  <%= biggest.net_cents >= 0 ? "+" : "" %><%= biggest.amount.format(no_cents_if_whole: true, symbol: false) %> zł
+                  <span class="text-muted-foreground text-xs font-normal">· <%= biggest.date.strftime(date_fmt) %></span>
                 </p>
               </div>
             <% end %>
@@ -331,7 +357,53 @@
     </div>
   </div>
 
-  <%# ── Row 2: top merchants list + accounts donut ── %>
+  <%# ── Row 2: top movers (5-up cards) ── %>
+  <%# Custom: per-mover card with directional tint and conditional drill
+      link. No equivalent shared component — stat_card is single-metric,
+      this row is comparative. If a 2nd "comparative card row" appears
+      (e.g. categories under-budget), extract `_movers_grid`. %>
+  <% if @top_movers.any? %>
+    <%= render "admin/shared/components/card",
+          title: "Top movers",
+          subtitle: "biggest swings vs. previous #{pluralize(@filter.period.length_days, 'day')}" do %>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <% @top_movers.each do |mover| %>
+          <%
+            cat_hidden = hide_private?(mover.category)
+            href = (mover.category.slug && !cat_hidden) ? admin_analytics_category_path(mover.category.slug, @filter.to_query_params) : nil
+            tint = mover.direction == :up ? "bg-destructive/5 border-destructive/20" : "bg-success/5 border-success/20"
+            delta_tone = mover.direction == :up ? "text-destructive" : "text-success"
+            base_cls = "block rounded-lg border p-4 transition-colors #{tint} #{href ? 'hover:bg-muted/50 cursor-pointer' : ''}"
+            wrapper_attrs = { class: base_cls }
+            wrapper_attrs[:href] = href if href
+            wrapper_tag = href ? :a : :div
+          %>
+          <%= content_tag(wrapper_tag, wrapper_attrs) do %>
+            <div class="flex items-baseline justify-between gap-2">
+              <p class="text-sm font-semibold truncate <%= sensitive_class %>"><%= hide_private_text(mover.category.name, mover.category) %></p>
+              <% if mover.new_spend? %>
+                <%= render "admin/shared/components/badge", text: "new", variant: :info %>
+              <% elsif mover.delta_pct %>
+                <span class="text-xs font-bold tabular-nums <%= delta_tone %>"><%= mover.delta_pct.positive? ? "+" : "" %><%= mover.delta_pct %>%</span>
+              <% end %>
+            </div>
+            <p class="text-base font-bold tabular-nums mt-2 <%= sensitive_class %>">
+              <%= mover.current_amount.format(no_cents_if_whole: true, symbol: false) %> zł
+            </p>
+            <p class="text-xs text-muted-foreground mt-0.5 <%= sensitive_class %>">
+              <% if mover.new_spend? %>
+                new this period
+              <% else %>
+                <%= mover.direction == :up ? "+" : "−" %><%= mover.delta_amount.format(no_cents_if_whole: true, symbol: false) %> zł vs prev
+              <% end %>
+            </p>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <%# ── Row 3: top merchants list + accounts donut ── %>
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
     <div class="lg:col-span-7">
       <%= render "admin/shared/components/card",
