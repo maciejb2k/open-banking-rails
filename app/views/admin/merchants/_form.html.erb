@@ -26,7 +26,7 @@
           form: f, field: :default_category_id,
           label: "Default category",
           placeholder: "Type to search categories…",
-          options: Category.active.includes(:parent).map { |c|
+          options: current_user.categories.active.includes(:parent).map { |c|
             label = c.parent ? "#{c.parent.name} → #{c.name}" : c.name
             { value: c.id, label: label }
           }.sort_by { |o| o[:label].downcase } %>

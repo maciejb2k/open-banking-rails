@@ -87,7 +87,7 @@ module Enrichment
     end
 
     def apply_create_rule
-      rule = MerchantRule.create!(
+      rule = @actor.merchant_rules.create!(
         merchant: @merchant,
         kind: @rule_kind,
         field: @rule_field || "title",
@@ -101,7 +101,7 @@ module Enrichment
       # Optionally update merchant default if user picked a category.
       @merchant.update!(default_category: @category) if @category && @merchant.default_category_id != @category.id
 
-      Enrichment::TransactionEnricher.rebuild!
+      Enrichment::TransactionEnricher.rebuild!(user: @actor)
       rule
     end
 

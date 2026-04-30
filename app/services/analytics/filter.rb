@@ -13,6 +13,8 @@ module Analytics
   # and guarantees account-isolation (we always intersect with the user's
   # owned accounts, even if a stranger crafts ?account_ids=999).
   class Filter
+    attr_reader :user
+
     def initialize(user:, params:)
       @user, @params = user, params
     end

@@ -56,6 +56,14 @@ module Admin
     end
 
     def edit
+      # Same logic as the bank-tx show: editing a row in a hidden
+      # category would reveal what's hidden, so bounce.
+      if current_user.hides_category?(@cash_transaction.effective_category)
+        redirect_to admin_cash_transactions_path,
+                    alert: "Ta transakcja jest w ukrytej kategorii. Usuń ją z listy w preferencjach, żeby ją edytować."
+        return
+      end
+
       load_form_options
     end
 
@@ -89,8 +97,8 @@ module Admin
     end
 
     def load_form_options
-      @merchant_options = Merchant.active.order(:name).limit(500)
-      @category_options = Category.active.includes(:parent).order(:position, :name)
+      @merchant_options = current_user.merchants.active.order(:name).limit(500)
+      @category_options = current_user.categories.active.includes(:parent).order(:position, :name)
       @currency_options = supported_currencies
     end
 

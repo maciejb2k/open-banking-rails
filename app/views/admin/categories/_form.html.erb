@@ -19,7 +19,7 @@
           form: f, field: :parent_id,
           label: "Parent category",
           include_blank: "— top-level —",
-          options: Category.top_level.active.where.not(id: category.id).ordered.map { |c| [ c.name, c.id ] },
+          options: current_user.categories.top_level.active.where.not(id: category.id).ordered.map { |c| [ c.name, c.id ] },
           hint: "Empty = top-level. Hierarchy is limited to two levels." %>
 
     <%= render "admin/shared/form/select",

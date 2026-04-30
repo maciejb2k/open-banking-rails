@@ -10,15 +10,16 @@ module Admin
     KIND = "llm_enrichment"
 
     def index
-      @merchantless_count = TransactionEnrichment.merchantless.count
+      user_enrichments = TransactionEnrichment.for_user(current_user)
+      @merchantless_count = user_enrichments.merchantless.count
       @suggestible_count  = merchantless_with_signal.count
       @group_count        = build_group_count
-      @new_groups_count   = Llm::EnrichmentRunner.new.send(:build_groups, merchantless_with_signal).size
+      @new_groups_count   = Llm::EnrichmentRunner.new(user: current_user).send(:build_groups, merchantless_with_signal).size
       @api_key_set        = ENV["OPENAI_API_KEY"].present? || ENV["GEMINI_API_KEY"].present?
 
-      @pending_merchants = Merchant.where(source: "llm", approved_at: nil)
-                                   .includes(:default_category, :merchant_rules)
-                                   .order(created_at: :desc)
+      @pending_merchants = current_user.merchants.where(source: "llm", approved_at: nil)
+                                       .includes(:default_category, :merchant_rules)
+                                       .order(created_at: :desc)
 
       scope = OperationRun.where(kind: KIND, triggered_by_user_id: current_user.id)
       @pagy, @runs = paginated(scope, default_sort: "created_at desc")
@@ -57,7 +58,7 @@ module Admin
     # Defer to the runner so the dashboard always shows what an actual run
     # would process. Avoids drifting filters between display and execution.
     def merchantless_with_signal
-      Llm::EnrichmentRunner.new.send(:default_scope)
+      Llm::EnrichmentRunner.new(user: current_user).send(:default_scope)
     end
 
     def build_group_count

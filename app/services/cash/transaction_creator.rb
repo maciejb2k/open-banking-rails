@@ -87,12 +87,12 @@ module Cash
 
     def resolve_merchant
       return nil if @params[:merchant_id].blank?
-      Merchant.active.find_by(id: @params[:merchant_id])
+      @user.merchants.active.find_by(id: @params[:merchant_id])
     end
 
     def resolve_category
       return nil if @params[:category_id].blank?
-      Category.active.find_by(id: @params[:category_id])
+      @user.categories.active.find_by(id: @params[:category_id])
     end
   end
 end

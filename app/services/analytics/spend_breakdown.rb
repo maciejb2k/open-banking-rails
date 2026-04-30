@@ -26,7 +26,10 @@ module Analytics
     # [{ category:, amount_cents:, count: }] sorted by amount DESC.
     # Pass `previous_scope:` to attach prev-period amounts on each row,
     # so the chart can render delta-vs-previous as a second dataset.
-    def self.by_category(scope, previous_scope: nil)
+    # `user:` is required for hydrating slugs through the user's own
+    # categories — defense-in-depth so a future cross-user scope leak in
+    # the GROUP BY doesn't surface another user's category names.
+    def self.by_category(scope, user:, previous_scope: nil)
       categorized = scope.spend
                          .group("categories.id", "categories.name", "categories.parent_id")
                          .pluck(Arel.sql("categories.id, categories.name, categories.parent_id, SUM(amount_cents), COUNT(*)"))
@@ -38,9 +41,10 @@ module Analytics
         )
       end
 
-      # Hydrate slugs in one query — pluck above can't get slug because
-      # GROUP BY requires it in SELECT and we already covered identity by id.
-      slugs = Category.where(id: categorized.map { |r| r.category.id }).pluck(:id, :slug).to_h
+      # Hydrate slugs from the user's own categories. If a foreign id
+      # somehow slipped into the GROUP BY result, slug stays nil and the
+      # row renders without a drill-down link.
+      slugs = user.categories.where(id: categorized.map { |r| r.category.id }).pluck(:id, :slug).to_h
       categorized.each { |r| r.category.slug = slugs[r.category.id] }
 
       if previous_scope
@@ -55,15 +59,19 @@ module Analytics
 
     # [{ merchant:, amount_cents:, count: }] for a single category, sorted
     # DESC. Unmatched (merchant_id IS NULL but category was assigned via
-    # category_override) bucket is grouped under a sentinel.
-    def self.by_merchant_in_category(scope, category_id)
-      scope.spend
-           .where(effective_category_id: category_id)
-           .group(:merchant_id)
-           .pluck(Arel.sql("merchant_id, SUM(amount_cents), COUNT(*)"))
-           .map do |merchant_id, sum, count|
+    # category_override) bucket is grouped under a sentinel. `user:` scopes
+    # the merchant hydration.
+    def self.by_merchant_in_category(scope, category_id, user:)
+      pluck = scope.spend
+                   .where(effective_category_id: category_id)
+                   .group(:merchant_id)
+                   .pluck(Arel.sql("merchant_id, SUM(amount_cents), COUNT(*)"))
+
+      merchants = user.merchants.where(id: pluck.map(&:first).compact).index_by(&:id)
+
+      pluck.map do |merchant_id, sum, count|
         Row.new(
-          merchant:     merchant_id ? Merchant.find_by(id: merchant_id) : nil,
+          merchant:     merchant_id ? merchants[merchant_id] : nil,
           amount_cents: sum.to_i,
           count:        count.to_i
         )

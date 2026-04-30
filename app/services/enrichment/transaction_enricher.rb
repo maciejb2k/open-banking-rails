@@ -49,10 +49,11 @@ module Enrichment
       "cash_adjustment"    => "cash_discrepancy"
     }.freeze
 
-    def self.call(transaction) = new.enrich(transaction)
+    def self.call(transaction, user:) = new(user: user).enrich(transaction)
 
-    def self.enrich_pending(scope = BankTransaction.without_enrichment)
-      enricher = new
+    def self.enrich_pending(user:, scope: nil)
+      scope ||= BankTransaction.for_user(user).without_enrichment
+      enricher = new(user: user)
       count = 0
       scope.find_each do |tx|
         enricher.enrich(tx)
@@ -61,18 +62,22 @@ module Enrichment
       count
     end
 
-    # Re-runs enrichment against all rebuildable rows (preserving manual
-    # decisions). Useful after seeding new rules or accepting LLM proposals.
-    def self.rebuild!(scope = nil)
-      scope ||= TransactionEnrichment.rebuildable
-      enricher = new
+    # Re-runs enrichment against all rebuildable rows for a single user
+    # (preserving manual decisions). Useful after seeding new rules or
+    # accepting LLM proposals. user: is required — without it the service
+    # would walk every user's enrichments and re-enrich them against this
+    # user's rule set, which is the bug per-user scoping was added to fix.
+    def self.rebuild!(user:, scope: nil)
+      scope ||= TransactionEnrichment.for_user(user).rebuildable
+      enricher = new(user: user)
       scope.includes(:enrichable).find_each do |enrichment|
         next if enrichment.enrichable.nil?
         enricher.enrich(enrichment.enrichable, existing: enrichment)
       end
     end
 
-    def initialize
+    def initialize(user:)
+      @user                = user
       @rules               = load_rules
       @fallback_categories = load_fallback_categories
     end
@@ -119,8 +124,8 @@ module Enrichment
     # a user-source rule on `counterparty_name` beats a system-source rule
     # on `title` — so we sort all rules together, not per-field.
     def load_rules
-      MerchantRule.enabled.includes(:merchant).to_a
-                  .sort_by { |r| [ -r.source_rank, -r.priority, r.id ] }
+      @user.merchant_rules.enabled.includes(:merchant).to_a
+           .sort_by { |r| [ -r.source_rank, -r.priority, r.id ] }
     end
 
     def first_matching_rule(transaction)
@@ -138,7 +143,7 @@ module Enrichment
     # Resolve fallback category lazily once and reuse across the loop.
     # Returns nil when payment_method has no mapping or category isn't seeded.
     def load_fallback_categories
-      Category.where(slug: PAYMENT_METHOD_FALLBACK.values.uniq).index_by(&:slug)
+      @user.categories.where(slug: PAYMENT_METHOD_FALLBACK.values.uniq).index_by(&:slug)
     end
 
     def fallback_category_for(transaction)

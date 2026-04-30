@@ -64,8 +64,9 @@ module Admin
 
     # Hierarchical select options: top-level groups with sub-categories
     # nested under them (using OptGroups). Excludes archived.
+    # Scoped to current_user via the controller helper exposed by Devise.
     def category_select_options(selected_id: nil)
-      groups = Category.active.top_level.ordered.includes(:children).map do |top|
+      groups = current_user.categories.active.top_level.ordered.includes(:children).map do |top|
         children = top.children.where(archived_at: nil).order(:position, :name)
         if children.any?
           [ top.name, [ [ top.name + " (general)", top.id ] ] + children.map { |c| [ c.name, c.id ] } ]

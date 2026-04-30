@@ -27,7 +27,17 @@ module Admin
       @transaction = BankTransaction.for_user(current_user)
                        .includes(bank_account: :current_bank_connection, enrichment: [ :merchant, :category, :merchant_rule ])
                        .find(params[:id])
-      @merchant_options = Merchant.active.includes(:default_category).order(:name)
+
+      # Drilling into a tx in a hidden category exposes everything the
+      # index/dashboard hid. Bounce back; user has to remove the category
+      # from the hidden list in /admin/settings/preferences to open it.
+      if current_user.hides_category?(@transaction.effective_category)
+        redirect_to admin_bank_transactions_path,
+                    alert: "Ta transakcja jest w ukrytej kategorii. Usuń ją z listy w preferencjach, żeby ją otworzyć."
+        return
+      end
+
+      @merchant_options = current_user.merchants.active.includes(:default_category).order(:name)
     end
 
     private
@@ -59,9 +69,9 @@ module Admin
       when "merchantless"
         merchantless
       when "llm_ready"
-        Llm::EnrichmentRunner.new.send(:default_scope).where(id: merchantless.select(:id))
+        Llm::EnrichmentRunner.new(user: current_user).send(:default_scope).where(id: merchantless.select(:id))
       when "no_llm_signal"
-        ready_ids = Llm::EnrichmentRunner.new.send(:default_scope).select(:id)
+        ready_ids = Llm::EnrichmentRunner.new(user: current_user).send(:default_scope).select(:id)
         merchantless.where.not(id: ready_ids)
       else
         scope

@@ -22,9 +22,9 @@ module Admin
 
         # Cash flow timeline + spend-by-category (with prev overlay).
         @cash_flow      = ::Analytics::CashFlow.daily_series(scope, period: @filter.period)
-        @breakdown      = ::Analytics::SpendBreakdown.by_category(scope, previous_scope: prev_scope)
-        @top_merchants  = ::Analytics::TopMerchants.call(scope, limit: 8)
-        @account_rows   = ::Analytics::AccountBreakdown.call(scope)
+        @breakdown      = ::Analytics::SpendBreakdown.by_category(scope, user: current_user, previous_scope: prev_scope)
+        @top_merchants  = ::Analytics::TopMerchants.call(scope, user: current_user, limit: 8)
+        @account_rows   = ::Analytics::AccountBreakdown.call(scope, user: current_user)
 
         # Single biggest line item — useful at-a-glance (who you fed most).
         @top_merchant = @top_merchants.first

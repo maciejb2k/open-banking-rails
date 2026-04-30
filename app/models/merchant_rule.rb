@@ -25,6 +25,7 @@ class MerchantRule < ApplicationRecord
   # Higher = applied first; matches the precedence we want when sorting in SQL.
   SOURCE_RANK = { "user" => 2, "llm" => 1, "system" => 0 }.freeze
 
+  belongs_to :user
   belongs_to :merchant
   belongs_to :approved_by, class_name: "User", optional: true
   has_many :transaction_enrichments, dependent: :nullify
@@ -39,6 +40,7 @@ class MerchantRule < ApplicationRecord
   scope :enabled,  -> { where(enabled: true) }
   scope :disabled, -> { where(enabled: false) }
   scope :for_field, ->(field) { where(field: field) }
+  scope :for_user, ->(user) { where(user_id: user.id) }
 
   # Returns truthy on match. `value` is the field value from the transaction.
   def matches?(value)

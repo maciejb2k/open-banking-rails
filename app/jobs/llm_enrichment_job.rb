@@ -46,7 +46,13 @@ class LlmEnrichmentJob < ApplicationJob
     }
 
     limit  = run.params["limit"]&.to_i || Llm::EnrichmentRunner::DEFAULT_LIMIT
-    result = Llm::EnrichmentRunner.call(limit: limit, on_batch: on_batch)
+    # The run subject is always the user (set by LlmEnrichmentsController#create).
+    # Defensive fallback to triggered_by_user lets us re-run older runs that
+    # may have been queued before per-user scoping landed.
+    user   = run.subject.is_a?(User) ? run.subject : run.triggered_by_user
+    raise "OperationRun #{run.id} has no resolvable user — cannot enrich" if user.nil?
+
+    result = Llm::EnrichmentRunner.call(user: user, limit: limit, on_batch: on_batch)
 
     summary["total_groups"]   = result.processed
     summary["auto_applied"]   = result.auto_applied

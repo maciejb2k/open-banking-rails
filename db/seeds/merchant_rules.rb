@@ -8,7 +8,9 @@
 # proposals. User-source rules always beat these — system seeds are just a
 # starting baseline.
 
-cat = ->(slug) { Category.find_by(slug: slug) }
+admin = User.order(:id).first or abort "Cannot seed merchant rules — no User exists. Run db/seeds.rb first."
+
+cat = ->(slug) { admin.categories.find_by(slug: slug) }
 
 DEFINITIONS = [
   # slug,            display_name,         category_slug,           field,                pattern,           kind
@@ -50,7 +52,7 @@ DEFINITIONS = [
 DEFINITIONS.each do |slug, display_name, category_slug, field, pattern, kind|
   category = cat.call(category_slug) or raise "Missing seeded category: #{category_slug}"
 
-  merchant = Merchant.find_or_initialize_by(slug: slug)
+  merchant = admin.merchants.find_or_initialize_by(slug: slug)
   merchant.assign_attributes(
     name: display_name,
     display_name: display_name,
@@ -61,8 +63,9 @@ DEFINITIONS.each do |slug, display_name, category_slug, field, pattern, kind|
   )
   merchant.save!
 
-  rule = MerchantRule.find_or_initialize_by(merchant: merchant, field: field, pattern: pattern)
+  rule = merchant.merchant_rules.find_or_initialize_by(field: field, pattern: pattern)
   rule.assign_attributes(
+    user: admin,
     kind: kind,
     source: "system",
     enabled: true,
@@ -88,7 +91,7 @@ ATM_RULES = [
   [ "payment_method", "blik_atm", "exact" ]
 ].freeze
 
-atm_merchant = Merchant.find_or_initialize_by(slug: "atm_withdrawal")
+atm_merchant = admin.merchants.find_or_initialize_by(slug: "atm_withdrawal")
 atm_merchant.assign_attributes(
   name:             "ATM (cash withdrawal)",
   display_name:     "ATM",
@@ -103,8 +106,9 @@ atm_merchant.assign_attributes(
 atm_merchant.save!
 
 ATM_RULES.each do |field, pattern, kind|
-  rule = MerchantRule.find_or_initialize_by(merchant: atm_merchant, field: field, pattern: pattern)
+  rule = atm_merchant.merchant_rules.find_or_initialize_by(field: field, pattern: pattern)
   rule.assign_attributes(
+    user:           admin,
     kind:           kind,
     source:         "system",
     enabled:        true,
@@ -135,7 +139,7 @@ TOPUP_RULES = [
   [ "title", "Top-Up by *",            "contains" ]
 ].freeze
 
-topup_merchant = Merchant.find_or_initialize_by(slug: "mobile_wallet_topup")
+topup_merchant = admin.merchants.find_or_initialize_by(slug: "mobile_wallet_topup")
 topup_merchant.assign_attributes(
   name:             "Mobile-wallet top-up",
   display_name:     "Top-up (own)",
@@ -151,8 +155,9 @@ topup_merchant.assign_attributes(
 topup_merchant.save!
 
 TOPUP_RULES.each do |field, pattern, kind|
-  rule = MerchantRule.find_or_initialize_by(merchant: topup_merchant, field: field, pattern: pattern)
+  rule = topup_merchant.merchant_rules.find_or_initialize_by(field: field, pattern: pattern)
   rule.assign_attributes(
+    user:           admin,
     kind:           kind,
     source:         "system",
     enabled:        true,
@@ -163,4 +168,4 @@ TOPUP_RULES.each do |field, pattern, kind|
   rule.save!
 end
 
-Rails.logger.info "Seeded #{Merchant.where(source: 'system').count} system merchants, #{MerchantRule.where(source: 'system').count} system rules"
+Rails.logger.info "Seeded #{admin.merchants.where(source: 'system').count} system merchants for #{admin.email}, #{admin.merchant_rules.where(source: 'system').count} system rules"

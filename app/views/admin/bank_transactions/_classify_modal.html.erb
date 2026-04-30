@@ -16,8 +16,13 @@
       <select name="enrichment[merchant_id]" class="form-input">
         <option value="">— select —</option>
         <% merchant_options.each do |m| %>
+          <% m_hidden = hide_private?(m.default_category_id) %>
           <option value="<%= m.id %>" <%= 'selected' if m.id == current_merchant_id %>>
-            <%= m.display %><%= " (#{m.default_category.name})" if m.default_category %>
+            <% if m_hidden %>
+              •••
+            <% else %>
+              <%= m.display %><%= " (#{m.default_category.name})" if m.default_category %>
+            <% end %>
           </option>
         <% end %>
       </select>
@@ -30,9 +35,14 @@
       <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Category (override)</label>
       <select name="enrichment[category_id]" class="form-input">
         <option value="">— use merchant's default —</option>
-        <% Category.active.includes(:parent).order(:position, :name).each do |c| %>
+        <% current_user.categories.active.includes(:parent).order(:position, :name).each do |c| %>
+          <% c_hidden = hide_private?(c) %>
           <option value="<%= c.id %>" <%= 'selected' if c.id == current_category_id %>>
-            <%= c.parent ? "#{c.parent.name} → #{c.name}" : c.name %>
+            <% if c_hidden %>
+              •••
+            <% else %>
+              <%= c.parent ? "#{c.parent.name} → #{c.name}" : c.name %>
+            <% end %>
           </option>
         <% end %>
       </select>

@@ -58,18 +58,29 @@ module Enrichment
     end
 
     def upsert_merchant
-      merchant = Merchant.find_or_initialize_by(slug: merchant_slug)
+      user = account_user
+      raise "BankAccount #{@bank_account.id} has no resolvable owner" if user.nil?
+
+      merchant = user.merchants.find_or_initialize_by(slug: merchant_slug)
       merchant.assign_attributes(
         name:             merchant_name,
         display_name:     merchant_name,
         kind:             "person",
         source:           "system",
-        default_category: Category.find_by!(slug: OWN_TRANSFER_CATEGORY_SLUG),
+        default_category: user.categories.find_by!(slug: OWN_TRANSFER_CATEGORY_SLUG),
         notes:            "Auto-generated. Matches transfers where counterparty_iban is one of #{@bank_account.display_name}'s own IBANs.",
         approved_at:      merchant.approved_at || Time.current
       )
       merchant.save!
       merchant
+    end
+
+    # Account owner: synced accounts go through tpp_credential, manual cash
+    # wallets through manual_owner_id. Single source of truth so we don't
+    # have to special-case both call sites.
+    def account_user
+      @account_user ||= @bank_account.tpp_credential&.user ||
+                        (@bank_account.manual_owner_id && User.find_by(id: @bank_account.manual_owner_id))
     end
 
     # Stable per account uid — survives display_name changes, deletes leave
@@ -100,6 +111,7 @@ module Enrichment
           kind: "iban", field: "counterparty_iban", pattern: iban
         )
         rule.assign_attributes(
+          user:          merchant.user,
           source:        "system",
           enabled:       true,
           priority:      RULE_PRIORITY,

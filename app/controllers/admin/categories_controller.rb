@@ -5,16 +5,16 @@ module Admin
     before_action :set_category, only: %i[edit update destroy archive unarchive]
 
     def index
-      @top_level = Category.top_level.active.includes(:children).order(Arel.sql("LOWER(name) ASC"))
-      @archived  = Category.archived.includes(:parent).order(Arel.sql("LOWER(name) ASC"))
+      @top_level = current_user.categories.top_level.active.includes(:children).order(Arel.sql("LOWER(name) ASC"))
+      @archived  = current_user.categories.archived.includes(:parent).order(Arel.sql("LOWER(name) ASC"))
     end
 
     def new
-      @category = Category.new(parent_id: params[:parent_id], kind: "expense")
+      @category = current_user.categories.new(parent_id: params[:parent_id], kind: "expense")
     end
 
     def create
-      @category = Category.new(category_params)
+      @category = current_user.categories.new(category_params)
       @category.slug ||= generate_slug(@category.name)
       if @category.save
         redirect_to admin_categories_path, notice: "Category created."
@@ -24,6 +24,14 @@ module Admin
     end
 
     def edit
+      # Editing a hidden category exposes its name in the form header +
+      # the form fields. Bounce; user has to remove from the hidden list
+      # in /admin/settings/preferences to inspect.
+      if current_user.hides_category?(@category)
+        redirect_to admin_categories_path,
+                    alert: "Ta kategoria jest ukryta. Usuń ją z listy w preferencjach, żeby ją edytować."
+        return
+      end
     end
 
     def update
@@ -59,7 +67,7 @@ module Admin
     private
 
     def set_category
-      @category = Category.find(params[:id])
+      @category = current_user.categories.find(params[:id])
     end
 
     def category_params
@@ -73,7 +81,7 @@ module Admin
       base = name.to_s.downcase.gsub(/\p{M}/, "").gsub(/[^a-z0-9]+/, "_").gsub(/_+/, "_").gsub(/\A_|_\z/, "")
       candidate = base
       i = 2
-      while Category.exists?(slug: candidate)
+      while current_user.categories.exists?(slug: candidate)
         candidate = "#{base}_#{i}"
         i += 1
       end

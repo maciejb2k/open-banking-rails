@@ -26,7 +26,7 @@
           class: "form-input w-40" %>
 
     <%= f.select :category_id,
-          [ [ "All categories", "" ] ] + Category.active.top_level.ordered.map { |c| [ c.name, c.id ] },
+          [ [ "All categories", "" ] ] + current_user.categories.active.top_level.ordered.map { |c| [ c.name, c.id ] },
           { selected: params[:category_id] },
           class: "form-input w-48" %>
 
@@ -61,18 +61,25 @@
         </tr>
       <% else %>
         <% @collection.each do |m| %>
+          <% m_hidden = hide_private?(m.default_category_id) %>
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors <%= 'opacity-60' if m.archived? %>">
             <td class="px-4 py-3">
-              <div class="font-medium <%= sensitive_class %>"><%= link_to m.display, admin_merchant_path(m), class: "hover:underline" %></div>
+              <div class="font-medium <%= sensitive_class unless m_hidden %>">
+                <% if m_hidden %>
+                  <span class="text-muted-foreground">•••</span>
+                <% else %>
+                  <%= link_to m.display, admin_merchant_path(m), class: "hover:underline" %>
+                <% end %>
+              </div>
               <% if m.kind.present? %>
                 <div class="text-xs text-muted-foreground"><%= m.kind %></div>
               <% end %>
             </td>
             <td class="px-4 py-3 text-sm">
               <% if m.default_category %>
-                <%= m.default_category.name %>
+                <%= hide_private_text(m.default_category.name, m.default_category) %>
                 <% if m.default_category.parent %>
-                  <span class="text-xs text-muted-foreground">(<%= m.default_category.parent.name %>)</span>
+                  <span class="text-xs text-muted-foreground">(<%= hide_private_text(m.default_category.parent.name, m.default_category.parent) %>)</span>
                 <% end %>
               <% else %>
                 <span class="text-muted-foreground/60">—</span>

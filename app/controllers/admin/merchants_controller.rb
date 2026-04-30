@@ -5,19 +5,34 @@ module Admin
     before_action :set_merchant, only: %i[show edit update destroy archive unarchive approve]
 
     def index
-      scope = Merchant.includes(:default_category, :merchant_rules)
+      scope = current_user.merchants.includes(:default_category, :merchant_rules)
       scope = scope.active unless params[:show_archived] == "1"
       scope = scope.where(source: params[:source]) if params[:source].present?
       scope = scope.where(default_category_id: params[:category_id]) if params[:category_id].present?
       scope = scope.where("name ILIKE ? OR display_name ILIKE ?", "%#{params[:q]}%", "%#{params[:q]}%") if params[:q].present?
 
       @pagy, @collection = pagy(:offset, scope.order(:name))
+      # Counts the user's own transactions only — joining through the
+      # enrichable polymorphic onto bank_transactions / manual_transactions
+      # would be more correct, but for the merchant index "tx using this
+      # merchant" within scope is enough; cross-user merchants don't exist
+      # any more so the count is naturally bounded.
       @transaction_counts = TransactionEnrichment
                               .where(merchant_id: @collection.map(&:id))
                               .group(:merchant_id).count
     end
 
     def show
+      # Same shape as bank/cash tx show + analytics drill-downs: a merchant
+      # tied to a hidden category leaks the category itself + N transactions
+      # in the recent list. Bounce; user has to remove the category from
+      # the hidden list in /admin/settings/preferences to inspect.
+      if current_user.hides_category?(@merchant.default_category_id)
+        redirect_to admin_merchants_path,
+                    alert: "Ten sprzedawca jest w ukrytej kategorii. Usuń ją z listy w preferencjach, żeby go otworzyć."
+        return
+      end
+
       @rules = @merchant.merchant_rules.order(:source, priority: :desc)
       @transaction_count = TransactionEnrichment.where(merchant_id: @merchant.id).count
       @recent_transactions = BankTransaction
@@ -28,12 +43,20 @@ module Admin
       @new_rule = @merchant.merchant_rules.build(field: "title", kind: "contains", source: "user", enabled: true)
     end
 
+    def edit
+      if current_user.hides_category?(@merchant.default_category_id)
+        redirect_to admin_merchants_path,
+                    alert: "Ten sprzedawca jest w ukrytej kategorii. Usuń ją z listy w preferencjach, żeby go edytować."
+        return
+      end
+    end
+
     def new
       @merchant = Merchant.new(source: "user", kind: "company")
     end
 
     def create
-      @merchant = Merchant.new(merchant_params.merge(source: "user", approved_at: Time.current, approved_by: current_user))
+      @merchant = current_user.merchants.new(merchant_params.merge(source: "user", approved_at: Time.current, approved_by: current_user))
       @merchant.slug = generate_slug(@merchant.name) if @merchant.slug.blank?
       if @merchant.save
         redirect_to admin_merchant_path(@merchant), notice: "Merchant created."
@@ -90,14 +113,14 @@ module Admin
           rule.update!(enabled: true, approved_at: Time.current, approved_by: current_user)
         end
       end
-      Enrichment::TransactionEnricher.rebuild!
+      Enrichment::TransactionEnricher.rebuild!(user: current_user)
       redirect_back fallback_location: admin_merchant_path(@merchant), notice: "Approved — historical transactions re-classified."
     end
 
     private
 
     def set_merchant
-      @merchant = Merchant.find(params[:id])
+      @merchant = current_user.merchants.find(params[:id])
     end
 
     def merchant_params
@@ -108,7 +131,7 @@ module Admin
       base = name.to_s.downcase.gsub(/\p{M}/, "").gsub(/[^a-z0-9]+/, "_").gsub(/_+/, "_").gsub(/\A_|_\z/, "")
       candidate = base
       i = 2
-      while Merchant.exists?(slug: candidate)
+      while current_user.merchants.exists?(slug: candidate)
         candidate = "#{base}_#{i}"
         i += 1
       end

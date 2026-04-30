@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_30_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_30_230000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -115,10 +115,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_210000) do
     t.integer "position", default: 0, null: false
     t.string "slug", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
     t.index ["archived_at"], name: "index_categories_on_archived_at"
     t.index ["parent_id", "position"], name: "index_categories_on_parent_id_and_position"
     t.index ["parent_id"], name: "index_categories_on_parent_id"
-    t.index ["slug"], name: "index_categories_on_slug", unique: true
+    t.index ["user_id", "slug"], name: "index_categories_on_user_id_and_slug", unique: true
+    t.index ["user_id"], name: "index_categories_on_user_id"
   end
 
   create_table "manual_transactions", force: :cascade do |t|
@@ -162,11 +164,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_210000) do
     t.integer "priority", default: 0, null: false
     t.string "source", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
     t.index ["approved_by_id"], name: "index_merchant_rules_on_approved_by_id"
     t.index ["enabled", "priority"], name: "index_merchant_rules_on_enabled_and_priority"
     t.index ["field", "pattern"], name: "index_merchant_rules_on_field_and_pattern"
     t.index ["merchant_id"], name: "index_merchant_rules_on_merchant_id"
     t.index ["source"], name: "index_merchant_rules_on_source"
+    t.index ["user_id"], name: "index_merchant_rules_on_user_id"
   end
 
   create_table "merchants", force: :cascade do |t|
@@ -185,12 +189,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_210000) do
     t.string "slug", null: false
     t.string "source", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
     t.index ["approved_by_id"], name: "index_merchants_on_approved_by_id"
     t.index ["archived_at"], name: "index_merchants_on_archived_at"
     t.index ["default_category_id"], name: "index_merchants_on_default_category_id"
     t.index ["name"], name: "index_merchants_on_name"
-    t.index ["slug"], name: "index_merchants_on_slug", unique: true
     t.index ["source"], name: "index_merchants_on_source"
+    t.index ["user_id", "slug"], name: "index_merchants_on_user_id_and_slug", unique: true
+    t.index ["user_id"], name: "index_merchants_on_user_id"
   end
 
   create_table "operation_runs", force: :cascade do |t|
@@ -260,6 +266,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_210000) do
     t.index ["source"], name: "index_transaction_enrichments_on_source"
   end
 
+  create_table "user_hidden_categories", force: :cascade do |t|
+    t.bigint "category_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["category_id"], name: "index_user_hidden_categories_on_category_id"
+    t.index ["user_id", "category_id"], name: "index_user_hidden_categories_on_user_id_and_category_id", unique: true
+    t.index ["user_id"], name: "index_user_hidden_categories_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email", default: "", null: false
@@ -292,18 +308,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_210000) do
   add_foreign_key "bank_connections", "tpp_credentials"
   add_foreign_key "bank_transactions", "bank_accounts"
   add_foreign_key "categories", "categories", column: "parent_id"
+  add_foreign_key "categories", "users"
   add_foreign_key "manual_transactions", "bank_accounts"
   add_foreign_key "manual_transactions", "bank_transactions", column: "linked_bank_transaction_id"
   add_foreign_key "manual_transactions", "users", column: "created_by_user_id"
   add_foreign_key "merchant_rules", "merchants"
+  add_foreign_key "merchant_rules", "users"
   add_foreign_key "merchant_rules", "users", column: "approved_by_id"
   add_foreign_key "merchants", "categories", column: "default_category_id"
+  add_foreign_key "merchants", "users"
   add_foreign_key "merchants", "users", column: "approved_by_id"
   add_foreign_key "operation_runs", "users", column: "triggered_by_user_id"
   add_foreign_key "tpp_credentials", "users"
   add_foreign_key "transaction_enrichments", "categories"
   add_foreign_key "transaction_enrichments", "merchant_rules"
   add_foreign_key "transaction_enrichments", "merchants"
+  add_foreign_key "user_hidden_categories", "categories"
+  add_foreign_key "user_hidden_categories", "users"
 
   create_view "ledger_entries", sql_definition: <<-SQL
       SELECT 'BankTransaction'::text AS source_type,

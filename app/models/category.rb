@@ -10,13 +10,14 @@
 class Category < ApplicationRecord
   KINDS = %w[expense income transfer savings ignored].freeze
 
+  belongs_to :user
   belongs_to :parent, class_name: "Category", optional: true
   has_many :children, class_name: "Category", foreign_key: :parent_id, dependent: :restrict_with_error
   has_many :merchants, foreign_key: :default_category_id, dependent: :nullify
   has_many :transaction_enrichments, dependent: :nullify
 
   validates :name, presence: true
-  validates :slug, presence: true, uniqueness: true,
+  validates :slug, presence: true, uniqueness: { scope: :user_id },
                    format: { with: /\A[a-z0-9_\-]+\z/, message: "must be lowercase letters, digits, underscores, dashes" }
   validates :kind, inclusion: { in: KINDS }
   validate  :parent_must_be_top_level
@@ -26,6 +27,7 @@ class Category < ApplicationRecord
   scope :archived,  -> { where.not(archived_at: nil) }
   scope :top_level, -> { where(parent_id: nil) }
   scope :ordered,   -> { order(position: :asc, name: :asc) }
+  scope :for_user,  ->(user) { where(user_id: user.id) }
 
   def archived? = archived_at.present?
   def unarchive! = update!(archived_at: nil)

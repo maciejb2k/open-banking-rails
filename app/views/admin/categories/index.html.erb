@@ -34,8 +34,8 @@
       <% else %>
         <% @top_level.each do |top| %>
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors bg-muted/10">
-            <td class="px-4 py-3 font-semibold text-foreground"><%= top.name %></td>
-            <td class="px-4 py-3 font-mono text-xs text-muted-foreground"><%= top.slug %></td>
+            <td class="px-4 py-3 font-semibold text-foreground"><%= hide_private_text(top.name, top) %></td>
+            <td class="px-4 py-3 font-mono text-xs text-muted-foreground"><%= hide_private_text(top.slug, top) %></td>
             <td class="px-4 py-3">
               <%= render "admin/shared/components/badge", text: top.kind, variant: top.kind == "expense" ? :default : :muted %>
             </td>
@@ -51,9 +51,9 @@
           <% top.children.where(archived_at: nil).sort_by { |c| c.name.downcase }.each do |sub| %>
             <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
               <td class="px-4 py-2.5 pl-12 text-sm text-foreground/90">
-                <span class="text-muted-foreground/60 mr-2">└</span><%= sub.name %>
+                <span class="text-muted-foreground/60 mr-2">└</span><%= hide_private_text(sub.name, sub) %>
               </td>
-              <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground"><%= sub.slug %></td>
+              <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground"><%= hide_private_text(sub.slug, sub) %></td>
               <td class="px-4 py-2.5">
                 <%= render "admin/shared/components/badge", text: sub.kind, variant: sub.kind == "expense" ? :default : :muted %>
               </td>
@@ -77,9 +77,9 @@
         <% @archived.each do |c| %>
           <li class="flex items-center justify-between px-4 py-2.5">
             <div class="min-w-0">
-              <span class="text-sm text-muted-foreground"><%= c.name %></span>
+              <span class="text-sm text-muted-foreground"><%= hide_private_text(c.name, c) %></span>
               <% if c.parent %>
-                <span class="text-xs text-muted-foreground/70">in <%= c.parent.name %></span>
+                <span class="text-xs text-muted-foreground/70">in <%= hide_private_text(c.parent.name, c.parent) %></span>
               <% end %>
             </div>
             <%= render "admin/shared/components/button",

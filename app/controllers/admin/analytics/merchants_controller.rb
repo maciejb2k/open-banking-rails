@@ -4,7 +4,15 @@ module Admin
   module Analytics
     class MerchantsController < BaseController
       def show
-        @merchant = Merchant.find_by!(slug: params[:slug])
+        @merchant = current_user.merchants.find_by!(slug: params[:slug])
+
+        # Same logic as analytics/categories: bounce when the merchant's
+        # default category is on the user's hidden list.
+        if current_user.hides_category?(@merchant.default_category_id)
+          redirect_to admin_analytics_root_path(@filter.to_query_params),
+                      alert: "Ten sprzedawca jest w ukrytej kategorii. Usuń ją z listy w preferencjach, żeby go otworzyć."
+          return
+        end
 
         scope = @filter.scope.spend.where(merchant_id: @merchant.id)
         @transactions = scope.includes(:effective_category)

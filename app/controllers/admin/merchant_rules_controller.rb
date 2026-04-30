@@ -10,9 +10,9 @@ module Admin
     before_action :set_rule, only: %i[update destroy]
 
     def create
-      @rule = @merchant.merchant_rules.build(rule_params.merge(source: "user", approved_at: Time.current, approved_by: current_user))
+      @rule = @merchant.merchant_rules.build(rule_params.merge(user: current_user, source: "user", approved_at: Time.current, approved_by: current_user))
       if @rule.save
-        Enrichment::TransactionEnricher.rebuild!
+        Enrichment::TransactionEnricher.rebuild!(user: current_user)
         redirect_to admin_merchant_path(@merchant), notice: "Rule added — historical transactions re-classified."
       else
         redirect_to admin_merchant_path(@merchant), alert: "Could not add rule: #{@rule.errors.full_messages.join(', ')}"
@@ -21,7 +21,7 @@ module Admin
 
     def update
       if @rule.update(rule_params)
-        Enrichment::TransactionEnricher.rebuild!
+        Enrichment::TransactionEnricher.rebuild!(user: current_user)
         redirect_to admin_merchant_path(@merchant), notice: "Rule updated."
       else
         redirect_to admin_merchant_path(@merchant), alert: "Could not update rule: #{@rule.errors.full_messages.join(', ')}"
@@ -30,14 +30,14 @@ module Admin
 
     def destroy
       @rule.destroy
-      Enrichment::TransactionEnricher.rebuild!
+      Enrichment::TransactionEnricher.rebuild!(user: current_user)
       redirect_to admin_merchant_path(@merchant), notice: "Rule deleted — transactions re-classified."
     end
 
     private
 
     def set_merchant
-      @merchant = Merchant.find(params[:merchant_id])
+      @merchant = current_user.merchants.find(params[:merchant_id])
     end
 
     def set_rule

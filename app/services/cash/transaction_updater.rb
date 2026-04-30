@@ -74,12 +74,18 @@ module Cash
 
     def resolve_merchant
       return nil if @params[:merchant_id].blank?
-      Merchant.active.find_by(id: @params[:merchant_id])
+      transaction_user.merchants.active.find_by(id: @params[:merchant_id])
     end
 
     def resolve_category
       return nil if @params[:category_id].blank?
-      Category.active.find_by(id: @params[:category_id])
+      transaction_user.categories.active.find_by(id: @params[:category_id])
+    end
+
+    # Cash wallets are owned via manual_owner_id; resolve back to constrain
+    # merchant/category lookups to the row's owner.
+    def transaction_user
+      @transaction_user ||= User.find(@transaction.bank_account.manual_owner_id)
     end
   end
 end

@@ -35,7 +35,12 @@ module Admin
       private
 
       def preference_params
-        params.require(:user).permit(:track_cash)
+        permitted = params.require(:user).permit(:track_cash, hidden_category_ids: [])
+        # multi_select renders no hidden inputs when nothing is selected, so
+        # the param is omitted entirely from the form. Force an empty array
+        # so the has_many through can clear the join table.
+        permitted[:hidden_category_ids] ||= []
+        permitted
       end
 
       def enable_cash_tracking!(user)

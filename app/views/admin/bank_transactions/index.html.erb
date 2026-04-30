@@ -91,13 +91,13 @@
           <% end %>
         <% end %>
         <% if (val = params[:merchant_id]).present? %>
-          <% m = Merchant.find_by(id: val) %>
+          <% m = current_user.merchants.find_by(id: val) %>
           <%= render "admin/shared/components/filter_chip",
                 label: "Merchant: #{m&.display || "##{val}"}",
                 remove_path: admin_bank_transactions_path(request.query_parameters.except("merchant_id")) %>
         <% end %>
         <% if (val = params[:category_id]).present? %>
-          <% c = Category.find_by(id: val) %>
+          <% c = current_user.categories.find_by(id: val) %>
           <%= render "admin/shared/components/filter_chip",
                 label: "Category: #{c&.name || "##{val}"}",
                 remove_path: admin_bank_transactions_path(request.query_parameters.except("category_id")) %>
@@ -184,7 +184,7 @@
         <select onchange="document.getElementById('ef_merchant_id').value = this.value"
                 class="form-input">
           <option value="">Wszyscy sprzedawcy</option>
-          <% Merchant.active.order(:name).each do |m| %>
+          <% current_user.merchants.active.order(:name).each do |m| %>
             <option value="<%= m.id %>" <%= 'selected' if params[:merchant_id].to_s == m.id.to_s %>><%= m.display %></option>
           <% end %>
         </select>
@@ -195,7 +195,7 @@
         <select onchange="document.getElementById('ef_category_id').value = this.value"
                 class="form-input">
           <option value="">Wszystkie kategorie</option>
-          <% Category.active.includes(:parent).order(:position, :name).each do |c| %>
+          <% current_user.categories.active.includes(:parent).order(:position, :name).each do |c| %>
             <option value="<%= c.id %>" <%= 'selected' if params[:category_id].to_s == c.id.to_s %>>
               <%= c.parent ? "#{c.parent.name} → #{c.name}" : c.name %>
             </option>
@@ -263,6 +263,8 @@
         </tr>
       <% else %>
         <% @collection.each do |tx| %>
+          <% cat = tx.effective_category %>
+          <% hidden = hide_private?(cat) %>
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
             <td class="px-4 py-3 font-mono text-xs whitespace-nowrap"><%= tx.booking_date %></td>
             <td class="px-4 py-3 text-xs text-muted-foreground">
@@ -282,28 +284,27 @@
             <td class="px-4 py-3 max-w-xs">
               <% if tx.merchant %>
                 <div class="flex items-center gap-2 min-w-0">
-                  <span class="font-medium truncate <%= sensitive_class %>"><%= tx.merchant.display %></span>
+                  <span class="font-medium truncate <%= sensitive_class unless hidden %>"><%= hide_private_text(tx.merchant.display, cat) %></span>
                   <%= enrichment_source_badge(tx.enrichment&.source) %>
                 </div>
                 <% if tx.title.present? %>
-                  <div class="text-xs text-muted-foreground truncate <%= sensitive_class %>"><%= tx.title %></div>
+                  <div class="text-xs text-muted-foreground truncate <%= sensitive_class unless hidden %>"><%= hide_private_text(tx.title, cat) %></div>
                 <% end %>
               <% else %>
                 <div class="flex items-center gap-2 min-w-0">
-                  <span class="truncate <%= sensitive_class if tx.title.present? %>"><%= tx.title.presence || "—" %></span>
+                  <span class="truncate <%= sensitive_class if tx.title.present? && !hidden %>"><%= hide_private_text(tx.title.presence || "—", cat) %></span>
                   <%= enrichment_source_badge(tx.enrichment&.source || "unmatched") %>
                 </div>
                 <% if tx.counterparty_name.present? %>
-                  <div class="text-xs text-muted-foreground truncate <%= sensitive_class %>"><%= tx.counterparty_name %></div>
+                  <div class="text-xs text-muted-foreground truncate <%= sensitive_class unless hidden %>"><%= hide_private_text(tx.counterparty_name, cat) %></div>
                 <% end %>
               <% end %>
             </td>
             <td class="px-4 py-3 text-xs">
-              <% cat = tx.effective_category %>
               <% if cat %>
-                <div><%= cat.name %></div>
+                <div><%= hide_private_text(cat.name, cat) %></div>
                 <% if cat.parent %>
-                  <div class="text-muted-foreground"><%= cat.parent.name %></div>
+                  <div class="text-muted-foreground"><%= hide_private_text(cat.parent.name, cat) %></div>
                 <% end %>
               <% else %>
                 <span class="text-muted-foreground/50">—</span>
@@ -318,8 +319,12 @@
                     variant: tx.status == "booked" ? :success : :info %>
             </td>
             <td class="px-4 py-3 text-right amount whitespace-nowrap <%= tx.direction == 'credit' ? 'text-success' : 'text-foreground' %>">
-              <span class="<%= sensitive_class %>"><%= tx.direction == "credit" ? "+" : "−" %><%= tx.amount.format(symbol: false, no_cents_if_whole: false) %></span>
-              <span class="text-muted-foreground text-xs font-normal"><%= tx.currency %></span>
+              <% if hidden %>
+                <span>•••</span>
+              <% else %>
+                <span class="<%= sensitive_class %>"><%= tx.direction == "credit" ? "+" : "−" %><%= tx.amount.format(symbol: false, no_cents_if_whole: false) %></span>
+                <span class="text-muted-foreground text-xs font-normal"><%= tx.currency %></span>
+              <% end %>
             </td>
             <td class="px-4 py-3">
               <%= render "admin/shared/components/dropdown_menu", items: [

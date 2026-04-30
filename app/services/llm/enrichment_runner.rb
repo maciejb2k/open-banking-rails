@@ -22,7 +22,8 @@ module Llm
 
     def self.call(...) = new(...).call
 
-    def initialize(scope: nil, limit: DEFAULT_LIMIT, client: nil, throttle_seconds: 2, on_batch: nil)
+    def initialize(user:, scope: nil, limit: DEFAULT_LIMIT, client: nil, throttle_seconds: 2, on_batch: nil)
+      @user             = user
       @scope            = scope || default_scope
       @limit            = limit
       @client           = client || Llm::Client.default
@@ -42,7 +43,7 @@ module Llm
       batches.each_with_index do |batch, batch_idx|
         batch_auto = batch_pending = batch_skipped = 0
         batch_errors = []
-        suggester = Llm::MerchantSuggester.new(items: batch, client: @client)
+        suggester = Llm::MerchantSuggester.new(user: @user, items: batch, client: @client)
 
         begin
           suggestions = suggester.call
@@ -84,7 +85,7 @@ module Llm
         sleep @throttle_seconds if @throttle_seconds.positive? && batch_idx < batches.size - 1
       end
 
-      Enrichment::TransactionEnricher.rebuild! if auto.positive?
+      Enrichment::TransactionEnricher.rebuild!(user: @user) if auto.positive?
 
       Result.new(processed: samples.size, auto_applied: auto, pending_review: pending, skipped: skipped, errors: errors)
     end
@@ -114,7 +115,7 @@ module Llm
     #      yours) but with your literal name in counterparty_name. The LLM
     #      would happily propose your name as a merchant; this stops it.
     def default_scope
-      scope = BankTransaction
+      scope = BankTransaction.for_user(@user)
                 .joins(:enrichment)
                 .merge(TransactionEnrichment.merchantless)
                 .where("(title IS NOT NULL AND title <> '' AND title !~ '^[0-9]+$') OR (counterparty_name IS NOT NULL AND counterparty_name <> '')")
@@ -129,13 +130,16 @@ module Llm
       scope
     end
 
-    # All IBANs (primary + alternates) across every BankAccount in the system.
-    # In a single-user app that's exactly the user's own IBANs. Returns
-    # normalized (no spaces, uppercase) for SQL comparison stability.
+    def user_bank_accounts
+      @user_bank_accounts ||= BankAccount.where(id: @user.all_bank_account_ids)
+    end
+
+    # All IBANs (primary + alternates) across every BankAccount the user owns.
+    # Returns normalized (no spaces, uppercase) for SQL comparison stability.
     def own_ibans
       @own_ibans ||= (
-        BankAccount.pluck(:iban).compact +
-        BankAccount.find_each.flat_map(&:alternate_ibans)
+        user_bank_accounts.pluck(:iban).compact +
+        user_bank_accounts.find_each.flat_map(&:alternate_ibans)
       ).compact_blank.map { |i| i.gsub(/\s+/, "").upcase }.uniq
     end
 
@@ -143,10 +147,10 @@ module Llm
     # uppercase, Revolut titlecase, PKO sometimes empty). Normalize to upper +
     # strip so we catch every spelling variant in one IN clause.
     def own_holder_names
-      @own_holder_names ||= BankAccount.pluck(:name)
-                                       .compact_blank
-                                       .map { |n| n.strip.upcase }
-                                       .uniq
+      @own_holder_names ||= user_bank_accounts.pluck(:name)
+                                              .compact_blank
+                                              .map { |n| n.strip.upcase }
+                                              .uniq
     end
 
     # Build groups of unmatched transactions and skip those already covered
@@ -154,7 +158,7 @@ module Llm
     # them to the LLM would yield the same suggestion and waste tokens.
     # User must accept the existing pending merchant to release the group.
     def build_groups(scope)
-      rules = MerchantRule.all.to_a
+      rules = @user.merchant_rules.to_a
 
       scope.find_each.each_with_object({}) do |tx, acc|
         key = [ Enrichment::TitleNormalizer.call(tx.title), tx.counterparty_name.to_s ]
@@ -210,7 +214,7 @@ module Llm
 
     def upsert_merchant(suggestion)
       slug = slugify(suggestion.merchant_name)
-      merchant = Merchant.find_or_initialize_by(slug: slug)
+      merchant = @user.merchants.find_or_initialize_by(slug: slug)
       merchant.assign_attributes(
         name:             suggestion.merchant_name,
         display_name:     suggestion.merchant_name,
@@ -218,7 +222,7 @@ module Llm
         source:           merchant.persisted? ? merchant.source : "llm",
         confidence:       suggestion.confidence,
         model:            ENV.fetch("LLM_MODEL", "gemini-2.5-flash"),
-        default_category: Category.find_by(slug: suggestion.category_slug) || Category.find_by(slug: "uncategorized"),
+        default_category: @user.categories.find_by(slug: suggestion.category_slug) || @user.categories.find_by(slug: "uncategorized"),
         notes:            [ merchant.notes, suggestion.reasoning ].compact_blank.uniq.join("\n").presence
       )
       merchant.approved_at = Time.current if !merchant.persisted? && suggestion.confident?(AUTO_APPROVE_THRESHOLD)
@@ -230,6 +234,7 @@ module Llm
       rule = merchant.merchant_rules.find_or_initialize_by(
         field: suggestion.rule_field, kind: suggestion.rule_kind, pattern: suggestion.rule_pattern
       )
+      rule.user       = @user
       rule.source     = "llm"
       rule.confidence = suggestion.confidence
       rule.model      = ENV.fetch("LLM_MODEL", "gemini-2.5-flash")

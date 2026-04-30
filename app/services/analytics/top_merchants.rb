@@ -13,7 +13,7 @@ module Analytics
       def amount = Money.new(amount_cents, "PLN")
     end
 
-    def self.call(scope, limit: 8)
+    def self.call(scope, user:, limit: 8)
       pluck = scope.spend
                    .where.not(merchant_id: nil)
                    .group(:merchant_id)
@@ -21,7 +21,9 @@ module Analytics
                    .limit(limit)
                    .pluck(Arel.sql("merchant_id, SUM(amount_cents), COUNT(*)"))
 
-      merchants = Merchant.where(id: pluck.map(&:first)).index_by(&:id)
+      # Hydrate through the user's own merchants — any id not owned by
+      # the user is dropped from the list (filter_map skips it).
+      merchants = user.merchants.where(id: pluck.map(&:first)).index_by(&:id)
 
       pluck.filter_map do |merchant_id, sum, count|
         merchant = merchants[merchant_id]

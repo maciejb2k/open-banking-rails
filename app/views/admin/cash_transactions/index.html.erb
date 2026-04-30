@@ -162,6 +162,8 @@
         </tr>
       <% else %>
         <% @collection.each do |tx| %>
+          <% cat = tx.effective_category %>
+          <% hidden = hide_private?(cat) %>
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
             <td class="px-4 py-3 font-mono text-xs whitespace-nowrap"><%= tx.booking_date %></td>
             <td class="px-4 py-3 text-xs text-muted-foreground">
@@ -169,26 +171,25 @@
             </td>
             <td class="px-4 py-3 max-w-xs">
               <div class="flex items-center gap-2 min-w-0">
-                <span class="truncate <%= sensitive_class if tx.title.present? %>">
-                  <%= tx.title.presence || "—" %>
+                <span class="truncate <%= sensitive_class if tx.title.present? && !hidden %>">
+                  <%= hide_private_text(tx.title.presence || "—", cat) %>
                 </span>
-                <% if tx.enrichment&.merchant %>
+                <% if tx.enrichment&.merchant && !hidden %>
                   <%= render "admin/shared/components/badge",
                         text: tx.enrichment.merchant.display, variant: :info %>
                 <% end %>
               </div>
               <% if tx.counterparty_name.present? %>
-                <div class="text-xs text-muted-foreground truncate <%= sensitive_class %>">
-                  <%= tx.counterparty_name %>
+                <div class="text-xs text-muted-foreground truncate <%= sensitive_class unless hidden %>">
+                  <%= hide_private_text(tx.counterparty_name, cat) %>
                 </div>
               <% end %>
             </td>
             <td class="px-4 py-3 text-xs">
-              <% cat = tx.effective_category %>
               <% if cat %>
-                <div><%= cat.name %></div>
+                <div><%= hide_private_text(cat.name, cat) %></div>
                 <% if cat.parent %>
-                  <div class="text-muted-foreground"><%= cat.parent.name %></div>
+                  <div class="text-muted-foreground"><%= hide_private_text(cat.parent.name, cat) %></div>
                 <% end %>
               <% else %>
                 <span class="text-muted-foreground/50">—</span>
@@ -200,10 +201,14 @@
                     variant: tx.source == "manual" ? :success : :muted %>
             </td>
             <td class="px-4 py-3 text-right amount whitespace-nowrap <%= tx.direction == "credit" ? "text-success" : "text-foreground" %>">
-              <span class="<%= sensitive_class %>">
-                <%= tx.direction == "credit" ? "+" : "−" %><%= tx.amount.format(symbol: false, no_cents_if_whole: false) %>
-              </span>
-              <span class="text-muted-foreground text-xs font-normal"><%= tx.currency %></span>
+              <% if hidden %>
+                <span>•••</span>
+              <% else %>
+                <span class="<%= sensitive_class %>">
+                  <%= tx.direction == "credit" ? "+" : "−" %><%= tx.amount.format(symbol: false, no_cents_if_whole: false) %>
+                </span>
+                <span class="text-muted-foreground text-xs font-normal"><%= tx.currency %></span>
+              <% end %>
             </td>
             <td class="px-4 py-3">
               <% if tx.source == "manual" %>

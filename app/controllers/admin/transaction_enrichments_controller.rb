@@ -9,8 +9,8 @@ module Admin
       transaction = BankTransaction.for_user(current_user).find(params[:bank_transaction_id])
 
       mode      = params.dig(:enrichment, :mode)
-      merchant  = Merchant.find_by(id: params.dig(:enrichment, :merchant_id))
-      category  = Category.find_by(id: params.dig(:enrichment, :category_id))
+      merchant  = current_user.merchants.find_by(id: params.dig(:enrichment, :merchant_id))
+      category  = current_user.categories.find_by(id: params.dig(:enrichment, :category_id))
 
       result = Enrichment::ClassificationApplier.call(
         transaction: transaction,

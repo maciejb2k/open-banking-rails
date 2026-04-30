@@ -49,9 +49,11 @@ class TransactionSyncJob < ApplicationJob
   # but don't fail the run — sync already succeeded; enrichment can be
   # retried separately.
   def enrich_new_transactions(run)
+    user = scoped_user(run)
+    return if user.nil?
     scope = scoped_pending_transactions(run)
     return if scope.nil?
-    Enrichment::TransactionEnricher.enrich_pending(scope)
+    Enrichment::TransactionEnricher.enrich_pending(user: user, scope: scope)
     link_atm_withdrawals(run)
   rescue StandardError => e
     Rails.logger.error("[TransactionSyncJob] Enrichment failed for run=#{run.id}: #{e.class}: #{e.message}")

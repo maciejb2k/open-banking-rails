@@ -10,6 +10,22 @@ class User < ApplicationRecord
            class_name: "BankAccount", foreign_key: :manual_owner_id, dependent: :destroy
   has_many :manual_transactions, through: :cash_wallets
 
+  has_many :user_hidden_categories, dependent: :destroy
+  has_many :hidden_categories, through: :user_hidden_categories, source: :category
+
+  has_many :categories,      dependent: :destroy
+  has_many :merchants,       dependent: :destroy
+  has_many :merchant_rules,  dependent: :destroy
+
+  # Always-on (no separate toggle). The act of selecting a category in
+  # /admin/settings/preferences IS the hide trigger; the topbar
+  # privacy_mode is orthogonal and broader (everything sensitive at once).
+  def hides_category?(category_or_id)
+    id = category_or_id.respond_to?(:id) ? category_or_id.id : category_or_id
+    return false if id.blank?
+    hidden_category_ids.include?(id)
+  end
+
   def primary_tpp_credential
     tpp_credentials.find_by(primary: true)
   end

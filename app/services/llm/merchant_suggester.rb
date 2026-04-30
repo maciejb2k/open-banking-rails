@@ -44,22 +44,23 @@ module Llm
     }.freeze
 
     # Single-item interface kept for tests / manual use.
-    def self.call(title:, counterparty_name: nil, client: nil)
-      batch_call([ { title: title, counterparty_name: counterparty_name } ], client: client).first
+    def self.call(user:, title:, counterparty_name: nil, client: nil)
+      batch_call([ { title: title, counterparty_name: counterparty_name } ], user: user, client: client).first
     end
 
     # Primary interface for EnrichmentRunner.
     # items: array of { title:, counterparty_name: }
     # Returns array of Result in the same order as items.
-    def self.batch_call(items, client: nil)
-      new(items: items, client: client).call
+    def self.batch_call(items, user:, client: nil)
+      new(items: items, user: user, client: client).call
     end
 
     # Last-call I/O — exposed so callers can log the actual prompt/response
     # for debugging without re-running the model.
     attr_reader :last_input, :last_response
 
-    def initialize(items:, client: nil)
+    def initialize(user:, items:, client: nil)
+      @user   = user
       @items  = items
       @client = client || Llm::Client.default
     end
@@ -180,7 +181,7 @@ module Llm
     end
 
     def available_category_slugs
-      Category.active.pluck(:slug).sort
+      @user.categories.active.pluck(:slug).sort
     end
 
     def build_result(raw)

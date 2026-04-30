@@ -50,10 +50,10 @@ module Cash
         )
         # Cash topup classification: system_fallback → "cash_atm_topup" category
         # (kind: transfer). The enricher would do this on the next sweep, but
-        # we want it consistent immediately.
+        # we want it consistent immediately. Category is per-user now.
         topup.build_enrichment(
           source:      "system_fallback",
-          category:    Category.find_by(slug: "cash_atm_topup"),
+          category:    user.categories.find_by(slug: "cash_atm_topup"),
           enriched_at: Time.current
         ).save!
         topup

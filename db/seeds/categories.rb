@@ -95,13 +95,19 @@ CATEGORIES = [
   { slug: "general_merchandise", name: "Inne sklepy",   kind: "expense", parent_slug: "shopping" }
 ].freeze
 
+# Categories are per-user since the multi-tenant migration. Dev seed
+# only ever creates the admin user (db/seeds.rb), so we attach this
+# baseline to that user. Re-running the seed is idempotent: keyed by
+# (user_id, slug) which matches the unique index.
+admin = User.order(:id).first or abort "Cannot seed categories — no User exists. Run db/seeds.rb first."
+
 # Build top-level first, then sub-categories so parent_id resolves.
 top_level, children = CATEGORIES.partition { |c| c[:parent_slug].nil? }
 
 [ top_level, children ].each do |group|
   group.each_with_index do |attrs, index|
-    parent = attrs[:parent_slug] && Category.find_by(slug: attrs[:parent_slug])
-    record = Category.find_or_initialize_by(slug: attrs[:slug])
+    parent = attrs[:parent_slug] && admin.categories.find_by(slug: attrs[:parent_slug])
+    record = admin.categories.find_or_initialize_by(slug: attrs[:slug])
     record.assign_attributes(
       name: attrs[:name],
       kind: attrs[:kind],
@@ -114,4 +120,4 @@ top_level, children = CATEGORIES.partition { |c| c[:parent_slug].nil? }
   end
 end
 
-Rails.logger.info "Seeded #{Category.count} categories (#{Category.top_level.count} top-level)"
+Rails.logger.info "Seeded #{admin.categories.count} categories for #{admin.email} (#{admin.categories.top_level.count} top-level)"

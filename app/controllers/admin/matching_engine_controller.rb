@@ -9,22 +9,23 @@ module Admin
   # Helps the user understand why a given transaction landed where it did.
   class MatchingEngineController < BaseController
     def show
-      @rules = MerchantRule.includes(merchant: :default_category).to_a
+      @rules = current_user.merchant_rules.includes(merchant: :default_category).to_a
                            .sort_by { |r| [ -r.source_rank, -r.priority, r.id ] }
 
       # Per-rule match count via TransactionEnrichment association.
       rule_ids = @rules.map(&:id)
-      @rule_match_counts = TransactionEnrichment.where(merchant_rule_id: rule_ids)
-                                                .group(:merchant_rule_id).count
+      user_enrichments = TransactionEnrichment.for_user(current_user)
+      @rule_match_counts = user_enrichments.where(merchant_rule_id: rule_ids)
+                                           .group(:merchant_rule_id).count
 
       @fallback_map     = Enrichment::TransactionEnricher::PAYMENT_METHOD_FALLBACK
-      @fallback_counts  = TransactionEnrichment.where(source: "system_fallback")
-                                               .joins("INNER JOIN bank_transactions ON bank_transactions.id = transaction_enrichments.enrichable_id AND transaction_enrichments.enrichable_type = 'BankTransaction'")
-                                               .group("bank_transactions.payment_method").count
-      @fallback_categories = Category.where(slug: @fallback_map.values.uniq).index_by(&:slug)
+      @fallback_counts  = user_enrichments.where(source: "system_fallback")
+                                          .joins("INNER JOIN bank_transactions ON bank_transactions.id = transaction_enrichments.enrichable_id AND transaction_enrichments.enrichable_type = 'BankTransaction'")
+                                          .group("bank_transactions.payment_method").count
+      @fallback_categories = current_user.categories.where(slug: @fallback_map.values.uniq).index_by(&:slug)
 
-      @unmatched_count = TransactionEnrichment.unmatched.count
-      @total_count     = TransactionEnrichment.count
+      @unmatched_count = user_enrichments.unmatched.count
+      @total_count     = user_enrichments.count
     end
   end
 end

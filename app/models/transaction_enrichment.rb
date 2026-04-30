@@ -36,6 +36,19 @@ class TransactionEnrichment < ApplicationRecord
   # cases lack merchant_id and may have signal in title / counterparty_name.
   scope :merchantless, -> { where(merchant_id: nil) }
 
+  # Cross-ownership user scope for the polymorphic enrichable. Mirrors
+  # LedgerEntry#for_user — scoping has to walk both source tables. Pluck
+  # materializes IDs in Ruby, which is fine at the personal-app scale
+  # (≤ 10⁵ tx); if it ever gets hot, push it down into a UNION subquery.
+  scope :for_user, ->(user) {
+    where(
+      "(enrichable_type = 'BankTransaction' AND enrichable_id IN (?)) OR " \
+      "(enrichable_type = 'ManualTransaction' AND enrichable_id IN (?))",
+      BankTransaction.for_user(user).select(:id),
+      ManualTransaction.for_user(user).select(:id)
+    )
+  }
+
   # Effective category for this enrichment — explicit override or merchant's
   # default. Mirrors LedgerEntry#effective_category for cases where the caller
   # has the enrichment but not the parent transaction.

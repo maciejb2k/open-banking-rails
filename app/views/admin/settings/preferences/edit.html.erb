@@ -26,6 +26,31 @@
             hint: "Existing ATM withdrawals stay as-is until you run the backfill task (cash:backfill_atm_links)." %>
     </div>
 
+    <div class="admin-section space-y-4">
+      <h2 class="text-base font-semibold text-foreground">Ukryte kategorie</h2>
+      <p class="text-sm text-muted-foreground -mt-2">
+        Transakcje w wybranych kategoriach są zawsze maskowane (••• zamiast
+        tytułu, sprzedawcy, kategorii i kwoty). Sumy w analityce zostają
+        prawdziwe. Drill-down do tych kategorii / transakcji jest
+        zablokowany — żeby otworzyć, wyrzuć kategorię z tej listy.
+      </p>
+
+      <%# Self-cloak: zaznaczone kategorie są maskowane bullets'ami w samym
+          chipie, żeby ktoś rzucając okiem na tę stronę nie zobaczył co
+          ukryłeś. Dropdown po otwarciu pokazuje pełną listę z searchem,
+          posortowaną alfabetycznie — żeby przy 50+ kategoriach dało się
+          szybko znaleźć tę właściwą. %>
+      <%= render "admin/shared/form/multi_select",
+            form: f, field: :hidden_category_ids,
+            label: "Kategorie do ukrycia",
+            placeholder: "Wybierz kategorie…",
+            cloak_selected: true,
+            searchable: true,
+            options: current_user.categories.active.includes(:parent).map { |c|
+              { value: c.id, label: c.parent ? "#{c.parent.name} → #{c.name}" : c.name }
+            }.sort_by { |o| o[:label].downcase } %>
+    </div>
+
     <div class="flex justify-end">
       <%= render "admin/shared/components/button",
             label: "Save preferences",

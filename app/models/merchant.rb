@@ -15,6 +15,7 @@ class Merchant < ApplicationRecord
   SOURCES = %w[system user llm].freeze
   KINDS   = %w[company person charity government platform other].freeze
 
+  belongs_to :user
   belongs_to :default_category, class_name: "Category", optional: true
   belongs_to :approved_by, class_name: "User", optional: true
   has_many :merchant_rules, dependent: :destroy
@@ -23,7 +24,7 @@ class Merchant < ApplicationRecord
   before_validation :generate_slug
 
   validates :name, presence: true
-  validates :slug, presence: true, uniqueness: true,
+  validates :slug, presence: true, uniqueness: { scope: :user_id },
                    format: { with: /\A[a-z0-9_\-]+\z/ }
   validates :source, inclusion: { in: SOURCES }
   validates :kind, inclusion: { in: KINDS }, allow_nil: true
@@ -33,6 +34,7 @@ class Merchant < ApplicationRecord
   scope :archived, -> { where.not(archived_at: nil) }
   scope :approved, -> { where.not(approved_at: nil) }
   scope :pending,  -> { where(source: "llm", approved_at: nil) }
+  scope :for_user, ->(user) { where(user_id: user.id) }
 
   def display = display_name.presence || name
   def archived? = archived_at.present?

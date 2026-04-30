@@ -30,10 +30,17 @@
   rest       = @breakdown.drop(12)
   rest_total = rest.sum(&:amount_cents)
 
-  category_labels = visible.map { |r| r.category.name }
+  # Hidden categories keep their bar (sums stay truthful) but render as
+  # bullets on the canvas — chart.js paints labels server-side, so we
+  # substitute here. URLs nil-out so the bar click is a no-op (the
+  # drill-down controller would redirect anyway).
+  category_labels = visible.map { |r| hide_private_text(r.category.name, r.category) }
   category_values = visible.map { |r| (r.amount_cents / 100.0).round(2) }
   category_counts = visible.map(&:count)
-  category_urls   = visible.map { |r| r.category.slug ? admin_analytics_category_path(r.category.slug, @filter.to_query_params) : nil }
+  category_urls   = visible.map { |r|
+    next nil if hide_private?(r.category)
+    r.category.slug ? admin_analytics_category_path(r.category.slug, @filter.to_query_params) : nil
+  }
 
   if rest.any?
     category_labels << "Other (#{rest.size})"
@@ -151,10 +158,17 @@
   }
 
   # ── Top merchants — Chart.js horizontal bar, basic.
-  merchant_labels = @top_merchants.map { |r| r.merchant.display }
+  # Merchants whose default category is hidden render as bullets — the
+  # merchant name itself is the giveaway ("Caritas Poland" → Pomoc).
+  merchant_labels = @top_merchants.map { |r|
+    hide_private?(r.merchant.default_category_id) ? "•••" : r.merchant.display
+  }
   merchant_values = @top_merchants.map { |r| (r.amount_cents / 100.0).round(2) }
   merchant_counts = @top_merchants.map(&:count)
-  merchant_urls   = @top_merchants.map { |r| admin_analytics_merchant_path(r.merchant.slug, @filter.to_query_params) }
+  merchant_urls   = @top_merchants.map { |r|
+    next nil if hide_private?(r.merchant.default_category_id)
+    admin_analytics_merchant_path(r.merchant.slug, @filter.to_query_params)
+  }
 
   merchants_chart_config = {
     type: "bar",
@@ -237,11 +251,12 @@
           hint: period_hint,
           value_class: sensitive_class %>
     <% if @top_merchant %>
+      <% top_hidden = hide_private?(@top_merchant.merchant.default_category_id) %>
       <%= render "admin/shared/components/stat_card",
             label: "Top merchant",
-            value: @top_merchant.merchant.display,
+            value: top_hidden ? "•••" : @top_merchant.merchant.display,
             icon: "tag", tone: :warning,
-            hint: "#{@top_merchant.amount.format(no_cents_if_whole: true, symbol: false)} zł · #{@top_merchant.count} tx",
+            hint: top_hidden ? "••• · #{@top_merchant.count} tx" : "#{@top_merchant.amount.format(no_cents_if_whole: true, symbol: false)} zł · #{@top_merchant.count} tx",
             value_class: sensitive_class %>
     <% else %>
       <%= render "admin/shared/components/stat_card",

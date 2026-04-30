@@ -51,11 +51,11 @@ module Analytics
     end
 
     def build_top_category(spend_total)
-      row = SpendBreakdown.by_category(@filter.scope).first
+      row = SpendBreakdown.by_category(@filter.scope, user: @filter.user).first
       return nil unless row && spend_total.positive?
 
       prev_amount = SpendBreakdown
-                      .by_category(@filter.previous_scope)
+                      .by_category(@filter.previous_scope, user: @filter.user)
                       .find { |r| r.category.id == row.category.id }
                       &.amount_cents.to_i / 100.0
 
@@ -78,7 +78,7 @@ module Analytics
       return nil unless row && spend_total.positive?
 
       merchant_id, sum_cents, count = row
-      merchant = Merchant.find_by(id: merchant_id)
+      merchant = @filter.user.merchants.find_by(id: merchant_id)
       return nil unless merchant
 
       prev_cents = @filter.previous_scope.spend
@@ -96,8 +96,8 @@ module Analytics
     # Categories whose spend swung by ≥100% AND ≥ 200 PLN absolute. 0..2
     # entries — anything more crowds the 3-sentence narration.
     def build_notable_movers(_spend_total)
-      current = SpendBreakdown.by_category(@filter.scope).index_by { |r| r.category.id }
-      previous_rows = SpendBreakdown.by_category(@filter.previous_scope).index_by { |r| r.category.id }
+      current = SpendBreakdown.by_category(@filter.scope, user: @filter.user).index_by { |r| r.category.id }
+      previous_rows = SpendBreakdown.by_category(@filter.previous_scope, user: @filter.user).index_by { |r| r.category.id }
 
       ids = (current.keys + previous_rows.keys).uniq
 

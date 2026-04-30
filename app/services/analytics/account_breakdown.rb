@@ -9,13 +9,17 @@ module Analytics
       def amount = Money.new(amount_cents, "PLN")
     end
 
-    def self.call(scope)
+    def self.call(scope, user:)
       pluck = scope.spend
                    .group(:bank_account_id)
                    .order(Arel.sql("SUM(amount_cents) DESC"))
                    .pluck(Arel.sql("bank_account_id, SUM(amount_cents), COUNT(*)"))
 
-      accounts = BankAccount.where(id: pluck.map(&:first)).index_by(&:id)
+      # Hydrate through the user's own accounts (synced + cash wallets).
+      # Any id outside that set drops out — defense-in-depth on top of
+      # `Analytics::Filter`'s account_ids gate.
+      owned_ids = user.all_bank_account_ids
+      accounts = BankAccount.where(id: pluck.map(&:first) & owned_ids).index_by(&:id)
 
       pluck.filter_map do |account_id, sum, count|
         account = accounts[account_id]
