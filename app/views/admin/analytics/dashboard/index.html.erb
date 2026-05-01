@@ -6,7 +6,13 @@
   net_total       = Money.new(@net_cents,             @filter.currency)
   avg_daily_spend = Money.new(@avg_daily_spend_cents, @filter.currency)
 
-  period_hint = pluralize(@filter.period.length_days, "day")
+  # MTD: "5 days of May" reads better than "5 days"; for everything else
+  # the bare count is what the user picked and is unambiguous.
+  period_hint = if @filter.month_to_date?
+                  "#{pluralize(@filter.period.length_days, 'day')} of #{Date.current.strftime('%b')}"
+                else
+                  pluralize(@filter.period.length_days, "day")
+                end
   bucket_label = { day: "day", week: "week", month: "month" }.fetch(@filter.bucket)
   bucket_unit  = bucket_label.capitalize
   date_fmt     = case @filter.bucket
@@ -268,6 +274,26 @@
 
   <%= render "admin/analytics/shared/filter_strip", filter: @filter, user_accounts: user_accounts %>
 
+  <%# ── Unmatched-debits banner ──
+      Persistent CTA when the current view has uncategorised debits
+      (effective_category_id IS NULL). Those debits don't appear in
+      any total below — without surfacing them the dashboard silently
+      under-reports spend. Hidden when the queue is empty. %>
+  <% if @unmatched_count.positive? %>
+    <%
+      unmatched_amount = Money.new(@unmatched_amount_cents, @filter.currency)
+      unmatched_share  = @unmatched_share_pct.positive? ? " · #{@unmatched_share_pct}% of detected spend" : ""
+      unmatched_desc   = "#{unmatched_amount.format(no_cents_if_whole: true)}#{unmatched_share} — these don't appear in totals below until classified."
+    %>
+    <%= render "admin/shared/components/critical_banner",
+          variant:      :warning,
+          icon:         "shopping_cart",
+          title:        "#{pluralize(@unmatched_count, 'transaction')} awaiting classification",
+          description:  unmatched_desc,
+          action_label: "Classify now",
+          action_path:  admin_llm_enrichments_path %>
+  <% end %>
+
   <%# ── Stat cards row — 5 metrics, color-coded tones ── %>
   <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
     <%= render "admin/shared/components/stat_card",
@@ -276,12 +302,36 @@
           icon: "shopping_cart", tone: :destructive,
           hint: period_hint,
           value_class: sensitive_class %>
-    <%= render "admin/shared/components/stat_card",
-          label: "Avg daily spend",
-          value: avg_daily_spend.format(no_cents_if_whole: true),
-          icon: "trending_down", tone: :info,
-          hint: "per day · #{pluralize(@filter.account_ids.size, "account")}",
-          value_class: sensitive_class %>
+    <%# Card #2 swaps shape based on filter mode:
+        — MTD with ≥3 days elapsed: run-rate (projected EOM spend, with
+          delta vs previous full month)
+        — MTD on day 1–2 OR rolling N-day window: avg daily spend %>
+    <% if @run_rate_cents %>
+      <%
+        run_rate_total      = Money.new(@run_rate_cents, @filter.currency)
+        prev_full_month     = @prev_full_month_spend_cents ? Money.new(@prev_full_month_spend_cents, @filter.currency) : nil
+        run_rate_delta_pct  = if @prev_full_month_spend_cents&.positive?
+                                (((@run_rate_cents - @prev_full_month_spend_cents).to_f / @prev_full_month_spend_cents) * 100).round
+                              end
+        run_rate_tone       = run_rate_delta_pct.nil? ? :info :
+                              (run_rate_delta_pct > 5 ? :destructive :
+                              (run_rate_delta_pct < -5 ? :success : :info))
+        run_rate_hint       = prev_full_month ? "vs #{prev_full_month.format(no_cents_if_whole: true)} last month" : "projected end of month"
+      %>
+      <%= render "admin/shared/components/stat_card",
+            label: "Run-rate",
+            value: run_rate_total.format(no_cents_if_whole: true),
+            icon: "trending_up", tone: run_rate_tone,
+            hint: run_rate_hint,
+            value_class: sensitive_class %>
+    <% else %>
+      <%= render "admin/shared/components/stat_card",
+            label: "Avg daily spend",
+            value: avg_daily_spend.format(no_cents_if_whole: true),
+            icon: "trending_down", tone: :info,
+            hint: "per day · #{pluralize(@filter.account_ids.size, "account")}",
+            value_class: sensitive_class %>
+    <% end %>
     <% if @spend_delta_pct.nil? %>
       <%= render "admin/shared/components/stat_card",
             label: "Δ vs prev.",
@@ -296,7 +346,7 @@
             change: @spend_delta_pct,
             trend:  @spend_delta_pct >= 0 ? :up : :down,
             icon:   "bar_chart_3",
-            hint:   "vs previous #{pluralize(@filter.period.length_days, 'day')}",
+            hint:   @filter.previous_label,
             value_class: sensitive_class %>
     <% end %>
     <%= render "admin/shared/components/stat_card",
@@ -454,7 +504,7 @@
   <% if @top_movers.any? %>
     <%= render "admin/shared/components/card",
           title: "Top movers",
-          subtitle: "biggest swings vs. previous #{pluralize(@filter.period.length_days, 'day')}" do %>
+          subtitle: "biggest swings · #{@filter.previous_label}" do %>
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <% @top_movers.each do |mover| %>
           <%
@@ -635,18 +685,37 @@
             columns: [
               { label: "Date",             width: "w-28" },
               { label: "Merchant / title" },
+              { label: "Category" },
               { label: "Account" },
               { label: "Amount",           align: :right }
             ] do %>
         <% @top_transactions.each do |tx| %>
+          <%# Privacy gating — when the transaction's effective category
+              is on the user's hidden list, both the label (merchant /
+              title) and the category cell render as bullets so the row
+              still shows up in totals but reveals nothing. The amount,
+              date and account stay visible since they don't leak the
+              nature of the spend. %>
+          <% private_row = hide_private?(tx.effective_category_id) %>
+          <% raw_label   = tx.merchant&.display.presence || tx.title.presence || tx.counterparty_name.presence || "—" %>
+          <% label       = private_row ? "•••" : raw_label %>
+          <% category    = tx.effective_category %>
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors cursor-pointer"
               onclick="window.location='<%= ledger_entry_path(tx) %>'">
             <td class="px-4 py-3 font-mono text-xs whitespace-nowrap text-muted-foreground">
               <%= tx.booking_date.strftime("%-d %b %Y") %>
             </td>
             <td class="px-4 py-3 max-w-xs truncate">
-              <% label = tx.merchant&.display.presence || tx.title.presence || tx.counterparty_name.presence || "—" %>
               <span class="<%= sensitive_class %>"><%= label %></span>
+            </td>
+            <td class="px-4 py-3 text-xs">
+              <% if private_row %>
+                <span class="text-muted-foreground">•••</span>
+              <% elsif category %>
+                <span class="text-muted-foreground <%= sensitive_class %>"><%= category.name %></span>
+              <% else %>
+                <span class="text-muted-foreground/60 italic">uncategorised</span>
+              <% end %>
             </td>
             <td class="px-4 py-3 text-xs text-muted-foreground <%= sensitive_class %>">
               <%= tx.bank_account.display_name %>

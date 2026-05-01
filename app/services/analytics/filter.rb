@@ -6,7 +6,11 @@ module Analytics
   #
   # Defaults:
   #   * account_ids → all of the user's accounts (synced + cash wallets)
-  #   * period      → last 30 days, day-bucketed
+  #   * period      → month-to-date (MTD), day-bucketed. Personal-finance
+  #                   cycles are monthly (paycheck, rent, subscriptions),
+  #                   so "where am I in this month" is the question the
+  #                   dashboard should answer by default. Day-based
+  #                   presets (7d, 30d, …) are still one click away.
   #
   # Every analytics endpoint instantiates one of these and reads .scope /
   # .period / .to_query_params from it. Keeps param parsing in one place
@@ -106,11 +110,82 @@ module Analytics
     end
 
     def previous_scope
-      prev = period.previous
+      from_d, to_d = previous_range
       base = LedgerEntry.where(bank_account_id: account_ids)
                         .where(currency: currency)
-                        .booked.in_range(prev.from, prev.to)
+                        .booked.in_range(from_d, to_d)
       under_path.present? ? base.under_path(under_path) : base
+    end
+
+    # When the period is month-aligned (MTD or a full calendar month),
+    # comparing to a fully-symmetric "previous N days" window straddles
+    # two months and breaks the mental model ("how am I doing this month
+    # vs last month"). We shift by one calendar month instead — same day
+    # range, previous month — so the user reads a meaningful side-by-side.
+    # For day-based presets (7d, 30d, …) symmetric is still right and we
+    # fall through to Period#previous.
+    def previous_range
+      if full_calendar_month?
+        # Apr 1–30 → Mar 1–31 (compare full month vs full month, not by
+        # day count — Mar has 31 days).
+        prev_from = period.from << 1
+        [prev_from, prev_from.end_of_month]
+      elsif month_to_date?
+        # May 1–15 → Apr 1–15. Cap at end_of_prev_month for short
+        # months: May 31 → Apr 1–30 (April has no 31st), Mar 30 → Feb 1–28.
+        prev_from        = period.from << 1
+        prev_to_offset   = prev_from + (period.length_days - 1).days
+        prev_to          = [ prev_to_offset, prev_from.end_of_month ].min
+        [prev_from, prev_to]
+      else
+        prev = period.previous
+        [prev.from, prev.to]
+      end
+    end
+
+    # MTD ⇔ from is the first of the current month and to is today. Used
+    # to switch the "Avg daily spend" card to a run-rate projection and
+    # to surface the "This month" preset as active in the filter strip.
+    def month_to_date?
+      period.from == Date.current.beginning_of_month && period.to == Date.current
+    end
+
+    # Period spanning exactly one calendar month (any month, not just
+    # the current one). Drives the comparison-window shift in
+    # previous_range and the "Last month" preset highlight.
+    def full_calendar_month?
+      period.from == period.from.beginning_of_month &&
+        period.to   == period.from.end_of_month
+    end
+
+    # Comparable "previous full calendar month" scope — the run-rate
+    # card's yardstick when MTD ("did April come in higher or lower than
+    # this month is pacing?"). Nil when the period is not MTD; the
+    # dashboard then doesn't render the comparison line.
+    def previous_full_month_scope
+      return nil unless month_to_date?
+      prev_from = (Date.current << 1).beginning_of_month
+      prev_to   = (Date.current << 1).end_of_month
+      base = LedgerEntry.where(bank_account_id: account_ids)
+                        .where(currency: currency)
+                        .booked.in_range(prev_from, prev_to)
+      under_path.present? ? base.under_path(under_path) : base
+    end
+
+    # Human-readable label for the "vs previous" anchor, used as a hint
+    # under stat-card deltas. Adapts to the comparison shape so the
+    # dashboard doesn't lie ("vs previous 5 days" when we actually
+    # compared to the same MTD slice last month). Uses the real
+    # previous_range so short-month capping is reflected in the label.
+    def previous_label
+      if full_calendar_month?
+        "vs #{(period.from << 1).strftime('%b %Y')}"
+      elsif month_to_date?
+        prev_from, prev_to = previous_range
+        "vs #{prev_from.strftime('%b')} #{prev_from.day}–#{prev_to.day}"
+      else
+        "vs previous #{period.length_days} days"
+      end
     end
 
     # Layer 1 — subtree filter. `?under_path=food.cooking` narrows every
@@ -169,7 +244,7 @@ module Analytics
       @from_date ||= if @params[:from].present? && @params[:to].present?
                        parse_date(@params[:from])
       else
-                       Date.current - 6.days
+                       Date.current.beginning_of_month
       end
     end
 

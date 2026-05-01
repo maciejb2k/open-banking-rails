@@ -4,7 +4,7 @@
     can drop in as new sections later without redesigning the strip. %>
 
 <%
-  presets = [
+  day_presets = [
     { label: "Today", days: 1   },
     { label: "3d",    days: 3   },
     { label: "7d",    days: 7   },
@@ -15,7 +15,51 @@
     { label: "180d",  days: 180 },
     { label: "365d",  days: 365 }
   ]
-  active_preset_days = presets.find { |p| p[:days] == filter.period.length_days }&.dig(:days)
+  active_preset_days = day_presets.find { |p| p[:days] == filter.period.length_days }&.dig(:days)
+
+  # Month-aligned presets — the personal-finance reading lens. "This
+  # month" defaults the dashboard, "Last month" is the natural compare
+  # ("did I do better than April?"), N-month windows give trend depth.
+  # All resolve to from/to date params via url_for — no new server-side
+  # state needed.
+  today_d  = Date.current
+  bom      = today_d.beginning_of_month
+  prev_bom = (today_d << 1).beginning_of_month
+  prev_eom = (today_d << 1).end_of_month
+
+  month_presets = [
+    {
+      label:  "This month",
+      from:   bom,
+      to:     today_d,
+      active: filter.month_to_date?
+    },
+    {
+      label:  "Last month",
+      from:   prev_bom,
+      to:     prev_eom,
+      active: filter.period.from == prev_bom && filter.period.to == prev_eom
+    },
+    {
+      label:  "Last 3M",
+      from:   (today_d << 3).beginning_of_month,
+      to:     (today_d << 1).end_of_month,
+      active: filter.period.from == (today_d << 3).beginning_of_month && filter.period.to == prev_eom
+    },
+    {
+      label:  "Last 6M",
+      from:   (today_d << 6).beginning_of_month,
+      to:     (today_d << 1).end_of_month,
+      active: filter.period.from == (today_d << 6).beginning_of_month && filter.period.to == prev_eom
+    },
+    {
+      label:  "Last 12M",
+      from:   (today_d << 12).beginning_of_month,
+      to:     (today_d << 1).end_of_month,
+      active: filter.period.from == (today_d << 12).beginning_of_month && filter.period.to == prev_eom
+    }
+  ]
+  any_month_active = month_presets.any? { |p| p[:active] }
 
   # All-accounts toggle chips. Each chip carries its own URL; click
   # toggles its account in/out of the filter. Three target states:
@@ -72,20 +116,19 @@
 <div data-controller="filter-panel" class="space-y-3">
   <%= form_with url: url_for(only_path: true), method: :get, html: { data: { turbo: false } } do |f| %>
 
-    <%# ── Period section ─────────────────────────────────────────────── %>
-    <%# Period preset chips strip ?bucket so the smart default
-        (day/week/month-by-length) re-resolves on length change. If user
-        explicitly picks a bucket via the granularity chips below, that
-        wins until they change period again. %>
+    <%# ── Months section ─────────────────────────────────────────────── %>
+    <%# Month-aligned presets first — these are the "ongoing review"
+        windows (MTD is the dashboard default). Days row below is the
+        secondary "rolling N-day audit" view. Both sections strip ?bucket
+        so the smart default (day/week/month-by-length) re-resolves; an
+        explicit granularity chip below sticks until the next period
+        change. %>
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-20 shrink-0">Period</span>
+      <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-20 shrink-0">Months</span>
       <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
-        <% presets.each do |preset| %>
-          <% to = Date.current %>
-          <% from = to - (preset[:days] - 1).days %>
-          <% href = url_for(filter.to_query_params.except(:bucket).merge(from: from.iso8601, to: to.iso8601)) %>
-          <% is_active = active_preset_days == preset[:days] %>
-          <% cls = "rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors #{is_active ? active_chip_cls : inactive_chip_cls}" %>
+        <% month_presets.each do |preset| %>
+          <% href = url_for(filter.to_query_params.except(:bucket).merge(from: preset[:from].iso8601, to: preset[:to].iso8601)) %>
+          <% cls = "rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors #{preset[:active] ? active_chip_cls : inactive_chip_cls}" %>
           <%= link_to preset[:label], href, class: cls %>
         <% end %>
       </div>
@@ -93,6 +136,26 @@
         <%= filter.period.from.strftime("%-d %b") %> → <%= filter.period.to.strftime("%-d %b %Y") %>
       </span>
       <%= render "admin/shared/components/filter_trigger", active_count: active_count %>
+    </div>
+
+    <%# ── Days section ───────────────────────────────────────────────── %>
+    <%# Rolling N-day windows. Distinct from Months because the
+        comparison semantics differ: a rolling window compares to the
+        immediately-preceding window of the same length (Period#previous);
+        a month-aligned window compares to the same slice of the previous
+        calendar month (Filter#previous_range). %>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-border/40">
+      <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-20 shrink-0">Days</span>
+      <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+        <% day_presets.each do |preset| %>
+          <% to = Date.current %>
+          <% from = to - (preset[:days] - 1).days %>
+          <% href = url_for(filter.to_query_params.except(:bucket).merge(from: from.iso8601, to: to.iso8601)) %>
+          <% is_active = !any_month_active && active_preset_days == preset[:days] %>
+          <% cls = "rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors #{is_active ? active_chip_cls : inactive_chip_cls}" %>
+          <%= link_to preset[:label], href, class: cls %>
+        <% end %>
+      </div>
     </div>
 
     <%# ── Granularity section ────────────────────────────────────────── %>

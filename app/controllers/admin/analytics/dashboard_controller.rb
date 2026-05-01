@@ -26,6 +26,26 @@ module Admin
         # number ("ile średnio dziennie wydaję w tym oknie").
         @avg_daily_spend_cents = @spend_cents / @filter.period.length_days
 
+        # Run-rate — projected EOM spend at the current pace. Only
+        # meaningful for MTD (the question is "how am I doing this
+        # month"); for arbitrary windows the dashboard falls back to
+        # avg-daily-spend.
+        # Day 1–2 projections explode on a single big lunch (×31), so
+        # we hold the run-rate back until day 3 — avg-daily-spend keeps
+        # showing as a sensible placeholder.
+        if @filter.month_to_date?
+          days_elapsed  = @filter.period.length_days
+          days_in_month = Date.current.end_of_month.day
+          if days_elapsed >= 3
+            @run_rate_cents = (@spend_cents.to_f * days_in_month / days_elapsed).round
+          end
+          # Previous full calendar month — yardstick for "is this month
+          # tracking better/worse than last?". Single totals query.
+          if (prev_month_scope = @filter.previous_full_month_scope)
+            @prev_full_month_spend_cents = ::Analytics::CashFlow.totals(prev_month_scope)[:spend_cents]
+          end
+        end
+
         # Cash flow timeline + spend-by-category at full leaf granularity
         # (one bar per distinct path with spend). For the "ile na jedzenie
         # ogólnie" rollup, the user can filter ?under_path=food which
@@ -66,9 +86,28 @@ module Admin
         @top_movers = ::Analytics::TopMovers.from_breakdown(@breakdown, limit: 5)
 
         @top_transactions = scope.spend
-                                 .includes(:merchant, :bank_account)
+                                 .includes(:merchant, :bank_account, :effective_category)
                                  .order(amount_cents: :desc)
                                  .limit(5)
+
+        # Unmatched debits — debits with no effective_category in the
+        # current view. They're invisible to `.spend` (which requires
+        # `categories.kind = 'expense'`), so they silently distort every
+        # total on the dashboard. We surface them as a persistent banner
+        # so the user sees how much of the picture is missing without
+        # having to drill into a queue.
+        # Two queries (count + sum) — could be one with a single `pluck`
+        # and ruby-side reduce, but at personal-app scale not worth the
+        # cleverness.
+        unmatched_scope          = scope.debits.where(effective_category_id: nil)
+        @unmatched_count         = unmatched_scope.count
+        @unmatched_amount_cents  = unmatched_scope.sum(:amount_cents)
+        # Share of "spend that should have been there" — denominator is
+        # spend + unmatched so the % reads as "of the totals' true
+        # value, this much is missing".
+        denom = @spend_cents + @unmatched_amount_cents
+        @unmatched_share_pct = denom.positive? ?
+                               (@unmatched_amount_cents.to_f / denom * 100).round : 0
       end
 
       private
