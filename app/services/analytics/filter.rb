@@ -67,20 +67,49 @@ module Analytics
       Period::BUCKETS.include?(@params[:bucket].to_s.to_sym)
     end
 
+    # Reporting currency — every aggregate the dashboard renders is summed
+    # in this currency only. Cross-currency sums are nonsense without FX
+    # conversion (which we deliberately don't do at MVP). Explicit
+    # ?currency= wins; otherwise we pick the user's dominant currency
+    # (most rows in the ledger), falling back to PLN for an empty user.
+    def currency
+      @currency ||= currency_explicit? ? @params[:currency].to_s.upcase : dominant_currency
+    end
+
+    def currency_explicit?
+      iso = @params[:currency].to_s.upcase
+      iso.present? && available_currencies.include?(iso)
+    end
+
+    # Distinct currencies the user has ever booked across all owned
+    # accounts. Stable across period selection (a chip for an empty
+    # currency in the current period is fine — clicking it surfaces the
+    # empty state, not surprise behavior).
+    def available_currencies
+      @available_currencies ||= LedgerEntry
+                                  .where(bank_account_id: @user.all_bank_account_ids)
+                                  .distinct.pluck(:currency).compact.sort
+    end
+
     # Base relation for the dashboard. Services chain `.spend` / `.income`
     # / `.group(...)` / `.sum` from here. Booked only — pending rows
-    # double-count once they settle.
+    # double-count once they settle. Currency-filtered so every sum is
+    # in a single, consistent unit.
     #
     # `under_path` (Layer 1 path filter) narrows to a subtree when set —
     # used by drill-down breadcrumb navigation.
     def scope
-      base = LedgerEntry.where(bank_account_id: account_ids).booked.in_range(period.from, period.to)
+      base = LedgerEntry.where(bank_account_id: account_ids)
+                        .where(currency: currency)
+                        .booked.in_range(period.from, period.to)
       under_path.present? ? base.under_path(under_path) : base
     end
 
     def previous_scope
       prev = period.previous
-      base = LedgerEntry.where(bank_account_id: account_ids).booked.in_range(prev.from, prev.to)
+      base = LedgerEntry.where(bank_account_id: account_ids)
+                        .where(currency: currency)
+                        .booked.in_range(prev.from, prev.to)
       under_path.present? ? base.under_path(under_path) : base
     end
 
@@ -112,6 +141,7 @@ module Analytics
     def to_query_params
       params = { from: period.from.iso8601, to: period.to.iso8601 }
       params[:bucket] = bucket if bucket_explicit?
+      params[:currency] = currency if currency_explicit?
       params[:under_path] = under_path if under_path.present?
       if none?
         params[:accounts] = "none"
@@ -122,6 +152,18 @@ module Analytics
     end
 
     private
+
+    # Most-frequent currency in the user's ledger; PLN fallback when the
+    # ledger is empty (fresh user). Single query, cached per-instance.
+    def dominant_currency
+      @dominant_currency ||= LedgerEntry
+                               .where(bank_account_id: @user.all_bank_account_ids)
+                               .group(:currency)
+                               .order(Arel.sql("COUNT(*) DESC"))
+                               .limit(1)
+                               .pluck(:currency)
+                               .first || "PLN"
+    end
 
     def from_date
       @from_date ||= if @params[:from].present? && @params[:to].present?

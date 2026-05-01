@@ -1,6 +1,6 @@
 <%
   user_accounts = current_user.bank_accounts.to_a + current_user.cash_wallets.to_a
-  total = Money.new(@total_cents, "PLN")
+  total = Money.new(@total_cents, @filter.currency)
 
   row_struct = Struct.new(:label, :amount_cents, :count, :href, :secondary, keyword_init: true)
 
@@ -58,7 +58,7 @@
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
     <%= render "admin/shared/components/stat_card",
           label: "Total in subtree",
-          value: total.format(no_cents_if_whole: true, symbol: false) + " zł",
+          value: total.format(no_cents_if_whole: true),
           icon:  "shopping_cart",
           tone:  :destructive,
           value_class: sensitive_class %>
@@ -81,6 +81,7 @@
       <%= render "admin/shared/components/breakdown_list",
             rows: subtree_rows,
             total_cents: subtree_rows.sum(&:amount_cents),
+            currency: @filter.currency,
             empty_label: "No spend in any sub-category." %>
     <% end %>
   <% end %>
@@ -91,6 +92,7 @@
     <%= render "admin/shared/components/breakdown_list",
           rows: list_rows,
           total_cents: @total_cents,
+          currency: @filter.currency,
           empty_label: "No transactions in this subtree in the selected period." %>
   <% end %>
 </div>

@@ -1,4 +1,4 @@
-<%# locals: (rows:, total_cents: nil, max_cents: nil, sensitive_amounts: true, empty_label: "No data") %>
+<%# locals: (rows:, total_cents: nil, max_cents: nil, sensitive_amounts: true, empty_label: "No data", currency: "PLN") %>
 <%# Horizontal-bar list of (label, amount, count, optional href).
     `rows` items respond to: :label, :amount_cents, :count (optional),
     :href (optional), :secondary (optional String), :secondary_tone
@@ -47,7 +47,7 @@
             </div>
             <div class="flex items-baseline gap-3 shrink-0">
               <span class="amount text-sm <%= sensitive_class if sensitive_amounts %>">
-                <%= Money.new(row.amount_cents, "PLN").format(no_cents_if_whole: true, symbol: false) %> zł
+                <%= Money.new(row.amount_cents, currency).format(no_cents_if_whole: true) %>
               </span>
               <% if share_pct %>
                 <span class="text-xs text-muted-foreground tabular-nums w-9 text-right"><%= share_pct %>%</span>

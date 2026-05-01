@@ -5,11 +5,11 @@ module Analytics
   # chart on the dashboard. Click handler narrows the dashboard filter
   # to a single account — same URL param contract as the chips.
   class AccountBreakdown
-    Row = Struct.new(:account, :amount_cents, :count, keyword_init: true) do
-      def amount = Money.new(amount_cents, "PLN")
+    Row = Struct.new(:account, :amount_cents, :count, :currency, keyword_init: true) do
+      def amount = Money.new(amount_cents, currency)
     end
 
-    def self.call(scope, user:)
+    def self.call(scope, user:, currency:)
       pluck = scope.spend
                    .group(:bank_account_id)
                    .order(Arel.sql("SUM(amount_cents) DESC"))
@@ -24,7 +24,7 @@ module Analytics
       pluck.filter_map do |account_id, sum, count|
         account = accounts[account_id]
         next nil unless account
-        Row.new(account: account, amount_cents: sum.to_i, count: count.to_i)
+        Row.new(account: account, amount_cents: sum.to_i, count: count.to_i, currency: currency)
       end
     end
   end

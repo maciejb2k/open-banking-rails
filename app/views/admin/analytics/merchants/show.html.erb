@@ -1,6 +1,6 @@
 <%
   user_accounts = current_user.bank_accounts.to_a + current_user.cash_wallets.to_a
-  total = Money.new(@total_cents, "PLN")
+  total = Money.new(@total_cents, @filter.currency)
 
   trend_labels = @monthly_trend.map { |b| b[:bucket].strftime("%b %y") }
   trend_values = @monthly_trend.map { |b| (b[:value].to_i / 100.0).round(2) }
@@ -9,17 +9,20 @@
     data: {
       labels: trend_labels,
       datasets: [{
-        label: "Spend (PLN)",
+        label: "Spend (#{@filter.currency})",
         data: trend_values,
         backgroundColor: "rgb(99, 102, 241)",
         borderRadius: 4
       }]
     },
     options: {
+      currency: @filter.currency,
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } }
+      scales: {
+        y: { beginAtZero: true, ticks: { tickFormat: "money" } }
+      }
     }
   }
 %>

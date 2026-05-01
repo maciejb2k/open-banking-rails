@@ -24,14 +24,14 @@ module Admin
           return
         end
 
-        @rows        = ::Analytics::SpendBreakdown.by_merchant_in_category(@filter.scope, @category, user: current_user)
+        @rows        = ::Analytics::SpendBreakdown.by_merchant_in_category(@filter.scope, @category, user: current_user, currency: @filter.currency)
         @total_cents = @rows.sum(&:amount_cents)
 
         # Subtree breakdown one level deeper than the category itself —
         # so on `food.cooking` you see supermarket / convenience / bakery /
         # specialty even before drilling further.
         @subtree_rows = if @category.descendants.any?
-                          ::Analytics::SpendBreakdown.by_subpath(@filter.scope, under: @category, user: current_user)
+                          ::Analytics::SpendBreakdown.by_subpath(@filter.scope, under: @category, user: current_user, currency: @filter.currency)
         else
                           []
         end

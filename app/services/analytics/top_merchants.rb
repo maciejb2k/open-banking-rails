@@ -9,11 +9,11 @@ module Analytics
   # "merchantless" surface (LLM enrichment review queue), not into the
   # analytics top-list.
   class TopMerchants
-    Row = Struct.new(:merchant, :amount_cents, :count, keyword_init: true) do
-      def amount = Money.new(amount_cents, "PLN")
+    Row = Struct.new(:merchant, :amount_cents, :count, :currency, keyword_init: true) do
+      def amount = Money.new(amount_cents, currency)
     end
 
-    def self.call(scope, user:, limit: 8)
+    def self.call(scope, user:, currency:, limit: 8)
       pluck = scope.spend
                    .where.not(merchant_id: nil)
                    .group(:merchant_id)
@@ -28,7 +28,7 @@ module Analytics
       pluck.filter_map do |merchant_id, sum, count|
         merchant = merchants[merchant_id]
         next nil unless merchant
-        Row.new(merchant: merchant, amount_cents: sum.to_i, count: count.to_i)
+        Row.new(merchant: merchant, amount_cents: sum.to_i, count: count.to_i, currency: currency)
       end
     end
   end

@@ -1,10 +1,10 @@
 <%
   user_accounts = current_user.bank_accounts.to_a + current_user.cash_wallets.to_a
 
-  spend_total     = Money.new(@spend_cents, "PLN")
-  income_total    = Money.new(@income_cents, "PLN")
-  net_total       = Money.new(@net_cents, "PLN")
-  avg_daily_spend = Money.new(@avg_daily_spend_cents, "PLN")
+  spend_total     = Money.new(@spend_cents,           @filter.currency)
+  income_total    = Money.new(@income_cents,          @filter.currency)
+  net_total       = Money.new(@net_cents,             @filter.currency)
+  avg_daily_spend = Money.new(@avg_daily_spend_cents, @filter.currency)
 
   period_hint = pluralize(@filter.period.length_days, "day")
   bucket_label = { day: "day", week: "week", month: "month" }.fetch(@filter.bucket)
@@ -79,6 +79,7 @@
       }]
     },
     options: {
+      currency: @filter.currency,
       indexAxis: "y",
       responsive: true,
       maintainAspectRatio: false,
@@ -90,7 +91,7 @@
       scales: {
         x: {
           grid: { color: "rgba(148,163,184,0.15)" },
-          ticks: { tickFormat: "pln", font: { size: 11 } },
+          ticks: { tickFormat: "money", font: { size: 11 } },
           beginAtZero: true
         },
         y: {
@@ -134,6 +135,7 @@
       ]
     },
     options: {
+      currency: @filter.currency,
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
@@ -147,7 +149,7 @@
         x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, autoSkipPadding: 14, font: { size: 10 } } },
         y: {
           grid: { color: "rgba(148,163,184,0.15)" },
-          ticks: { tickFormat: "pln", font: { size: 11 } },
+          ticks: { tickFormat: "money", font: { size: 11 } },
           beginAtZero: true
         }
       }
@@ -156,7 +158,7 @@
 
   # ── Account breakdown donut.
   acct_total_cents = @account_rows.sum(&:amount_cents)
-  acct_total       = Money.new(acct_total_cents, "PLN")
+  acct_total       = Money.new(acct_total_cents, @filter.currency)
   acct_labels = @account_rows.map do |r|
     bank = r.account.current_bank_connection&.bank_name || r.account.current_bank_connection&.bank_slug
     [bank, r.account.display_name].compact_blank.join(" — ")
@@ -178,6 +180,7 @@
       }]
     },
     options: {
+      currency: @filter.currency,
       cutout: "65%",
       responsive: true,
       maintainAspectRatio: false,
@@ -216,6 +219,7 @@
       }]
     },
     options: {
+      currency: @filter.currency,
       indexAxis: "y",
       responsive: true,
       maintainAspectRatio: false,
@@ -227,7 +231,7 @@
       scales: {
         x: {
           grid: { color: "rgba(148,163,184,0.15)" },
-          ticks: { tickFormat: "pln", font: { size: 11 } },
+          ticks: { tickFormat: "money", font: { size: 11 } },
           beginAtZero: true
         },
         y: {
@@ -247,19 +251,34 @@
         title: "Analytics",
         subtitle: "Where your money goes — one filter, every view." %>
 
+  <% if @drill_category %>
+    <%# Active subtree narrow — surface it so the user can back out. The
+        only path here today is the "Spend by domain" chart bars; once a
+        second drill entry-point appears, lift this into a proper
+        breadcrumb component. %>
+    <div class="flex items-center gap-2 text-sm -mt-2">
+      <span class="text-muted-foreground">Drilled into:</span>
+      <span class="font-medium text-foreground <%= sensitive_class %>"><%= @drill_category.name %></span>
+      <%= link_to url_for(@filter.to_query_params.except(:under_path)),
+            class: "text-xs text-muted-foreground hover:text-foreground transition-colors" do %>
+        × Clear
+      <% end %>
+    </div>
+  <% end %>
+
   <%= render "admin/analytics/shared/filter_strip", filter: @filter, user_accounts: user_accounts %>
 
   <%# ── Stat cards row — 5 metrics, color-coded tones ── %>
   <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
     <%= render "admin/shared/components/stat_card",
           label: "Spend",
-          value: spend_total.format(no_cents_if_whole: true, symbol: false) + " zł",
+          value: spend_total.format(no_cents_if_whole: true),
           icon: "shopping_cart", tone: :destructive,
           hint: period_hint,
           value_class: sensitive_class %>
     <%= render "admin/shared/components/stat_card",
           label: "Avg daily spend",
-          value: avg_daily_spend.format(no_cents_if_whole: true, symbol: false) + " zł",
+          value: avg_daily_spend.format(no_cents_if_whole: true),
           icon: "trending_down", tone: :info,
           hint: "per day · #{pluralize(@filter.account_ids.size, "account")}",
           value_class: sensitive_class %>
@@ -282,9 +301,9 @@
     <% end %>
     <%= render "admin/shared/components/stat_card",
           label: "Income",
-          value: income_total.format(no_cents_if_whole: true, symbol: false) + " zł",
+          value: income_total.format(no_cents_if_whole: true),
           icon: "trending_up", tone: :success,
-          hint: "net #{@net_cents >= 0 ? '+' : ''}#{net_total.format(no_cents_if_whole: true, symbol: false)} zł",
+          hint: "net #{@net_cents >= 0 ? '+' : ''}#{net_total.format(no_cents_if_whole: true)}",
           value_class: sensitive_class %>
     <% if @savings_rate_pct.nil? %>
       <%= render "admin/shared/components/stat_card",
@@ -324,12 +343,12 @@
           <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
             <div>
               <div class="text-xs text-muted-foreground"><%= pair.left.label %></div>
-              <div class="font-bold tabular-nums <%= sensitive_class %>"><%= pair.left.amount.format(no_cents_if_whole: true, symbol: false) %> zł</div>
+              <div class="font-bold tabular-nums <%= sensitive_class %>"><%= pair.left.amount.format(no_cents_if_whole: true) %></div>
               <div class="text-xs text-muted-foreground"><%= pair.left_share_pct %>% · <%= pluralize(pair.left.count, "tx") %></div>
             </div>
             <div>
               <div class="text-xs text-muted-foreground"><%= pair.right.label %></div>
-              <div class="font-bold tabular-nums <%= sensitive_class %>"><%= pair.right.amount.format(no_cents_if_whole: true, symbol: false) %> zł</div>
+              <div class="font-bold tabular-nums <%= sensitive_class %>"><%= pair.right.amount.format(no_cents_if_whole: true) %></div>
               <div class="text-xs text-muted-foreground"><%= pair.right_share_pct %>% · <%= pluralize(pair.right.count, "tx") %></div>
             </div>
           </div>
@@ -345,7 +364,7 @@
             title: "Spend by category",
             subtitle: safe_join([
               "total ",
-              sensitive("#{spend_total.format(no_cents_if_whole: true, symbol: false)} zł"),
+              sensitive(spend_total.format(no_cents_if_whole: true)),
               " · #{visible.size}#{rest.any? ? " + tail (#{rest.size})" : ""} · hover for Δ vs prev."
             ]) do %>
         <% if category_labels_present %>
@@ -404,14 +423,14 @@
             <div>
               <p class="text-xs text-muted-foreground">Net flow</p>
               <p class="amount text-lg <%= @net_cents >= 0 ? 'text-success' : 'text-destructive' %> <%= sensitive_class %>">
-                <%= @net_cents >= 0 ? "+" : "" %><%= net_total.format(no_cents_if_whole: true, symbol: false) %> zł
+                <%= @net_cents >= 0 ? "+" : "" %><%= net_total.format(no_cents_if_whole: true) %>
               </p>
             </div>
             <% if biggest && !biggest.quiet? %>
               <div class="text-right">
                 <p class="text-xs text-muted-foreground">Biggest <%= bucket_label %></p>
                 <p class="amount text-sm <%= sensitive_class %>">
-                  <%= biggest.net_cents >= 0 ? "+" : "" %><%= biggest.amount.format(no_cents_if_whole: true, symbol: false) %> zł
+                  <%= biggest.net_cents >= 0 ? "+" : "" %><%= biggest.amount.format(no_cents_if_whole: true) %>
                   <span class="text-muted-foreground text-xs font-normal">· <%= biggest.date.strftime(date_fmt) %></span>
                 </p>
               </div>
@@ -459,13 +478,13 @@
               <% end %>
             </div>
             <p class="text-base font-bold tabular-nums mt-2 <%= sensitive_class %>">
-              <%= mover.current_amount.format(no_cents_if_whole: true, symbol: false) %> zł
+              <%= mover.current_amount.format(no_cents_if_whole: true) %>
             </p>
             <p class="text-xs text-muted-foreground mt-0.5 <%= sensitive_class %>">
               <% if mover.new_spend? %>
                 new this period
               <% else %>
-                <%= mover.direction == :up ? "+" : "−" %><%= mover.delta_amount.format(no_cents_if_whole: true, symbol: false) %> zł vs prev
+                <%= mover.direction == :up ? "+" : "−" %><%= mover.delta_amount.format(no_cents_if_whole: true) %> vs prev
               <% end %>
             </p>
           <% end %>
@@ -519,7 +538,7 @@
                  style="left: 0; right: 50%">
               <p class="text-xs text-muted-foreground">Total</p>
               <p class="text-lg font-bold text-foreground <%= sensitive_class %>">
-                <%= acct_total.format(no_cents_if_whole: true, symbol: false) %> zł
+                <%= acct_total.format(no_cents_if_whole: true) %>
               </p>
               <p class="text-xs text-muted-foreground"><%= pluralize(@account_rows.size, "account") %></p>
             </div>
@@ -529,7 +548,73 @@
     </div>
   </div>
 
-  <%# ── Row 4: biggest single transactions ── %>
+  <%# ── Layer-1 rollup — top-level domains (or one level under current drill).
+      Click on a bar narrows the whole dashboard via ?under_path; the
+      detailed leaf chart in Row 1 stays in sync because it shares the
+      same scope. ── %>
+  <% if @domain_breakdown.any? %>
+    <%
+      domain_visible    = @domain_breakdown.first(10)
+      domain_labels     = domain_visible.map { |r| hidden_for_row.call(r) ? "•••" : r.name }
+      domain_values     = domain_visible.map { |r| (r.amount_cents / 100.0).round(2) }
+      domain_metadata   = domain_visible.map { |r| { count: r.count, delta: r.delta_pct }.compact }
+      domain_urls       = domain_visible.map { |r|
+        next nil if hidden_for_row.call(r)
+        url_for(@filter.to_query_params.merge(under_path: r.path))
+      }
+
+      domain_chart_config = {
+        type: "bar",
+        data: {
+          labels: domain_labels,
+          datasets: [ {
+            data: domain_values,
+            backgroundColor: current_color,
+            borderRadius: 4,
+            barThickness: 22
+          } ]
+        },
+        options: {
+          currency: @filter.currency,
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          metadata: domain_metadata,
+          plugins: {
+            legend: { display: false },
+            datalabels: { display: false }
+          },
+          scales: {
+            x: {
+              grid: { color: "rgba(148,163,184,0.15)" },
+              ticks: { tickFormat: "money", font: { size: 11 } },
+              beginAtZero: true
+            },
+            y: {
+              grid: { display: false },
+              ticks: { font: { size: 12 }, autoSkip: false }
+            }
+          }
+        }
+      }
+      domain_chart_height = (domain_labels.size * 36) + 40
+
+      domain_card_title    = @drill_category ? "Spend in #{@drill_category.name}" : "Spend by domain"
+      domain_card_subtitle = "click a bar to narrow the dashboard to that area"
+    %>
+    <%= render "admin/shared/components/card",
+          title:    domain_card_title,
+          subtitle: domain_card_subtitle do %>
+      <div data-controller="chart"
+           data-chart-config-value="<%= domain_chart_config.to_json %>"
+           data-chart-urls-value="<%= domain_urls.to_json %>"
+           style="height: <%= domain_chart_height %>px">
+        <canvas></canvas>
+      </div>
+    <% end %>
+  <% end %>
+
+  <%# ── Row 5: biggest single transactions ── %>
   <% if @top_transactions.any? %>
     <%
       all_transactions_url = admin_bank_transactions_path(q: {

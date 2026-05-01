@@ -11,12 +11,12 @@ module Analytics
   # explicitly off-balance for "what hit my available money". Same
   # partitioning rule as everywhere — Category#kind first.
   class CashFlow
-    Point = Struct.new(:date, :spend_cents, :income_cents, keyword_init: true) do
+    Point = Struct.new(:date, :spend_cents, :income_cents, :currency, keyword_init: true) do
       def net_cents    = income_cents - spend_cents
       # Back-compat alias — callers reading `.amount_cents` (e.g.
       # "biggest day" lookup) still get net flow.
       def amount_cents = net_cents
-      def amount       = Money.new(net_cents, "PLN")
+      def amount       = Money.new(net_cents, currency)
       def positive?    = net_cents.positive?
       def quiet?       = spend_cents.zero? && income_cents.zero?
     end
@@ -25,12 +25,12 @@ module Analytics
     # buckets. Bucket granularity comes from `period.bucket` (day/week/
     # month) — the SQL `DATE_TRUNC` switches via `period.date_trunc_sql`,
     # so the same query shape works for all three.
-    def self.series(scope, period:)
+    def self.series(scope, period:, currency:)
       spend_by  = bucketed_sum(scope.spend, period)
       income_by = bucketed_sum(scope.income, period)
 
       period.buckets.map do |b|
-        Point.new(date: b, spend_cents: spend_by.fetch(b, 0), income_cents: income_by.fetch(b, 0))
+        Point.new(date: b, spend_cents: spend_by.fetch(b, 0), income_cents: income_by.fetch(b, 0), currency: currency)
       end
     end
 

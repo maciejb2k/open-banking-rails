@@ -9,33 +9,45 @@ Chart.register(...registerables, ChartDataLabels)
 // Override the plugin default so unrelated charts don't sprout labels.
 Chart.defaults.plugins.datalabels = { display: false }
 
-const formatPLN = (value) => {
+// Bare lookup — Intl symbols can be locale-dependent ("zł" / "PLN")
+// but for axis ticks we want a tight, predictable suffix. Anything not
+// here falls back to " <ISO>" (e.g. " GBP") which is ugly but explicit.
+const SYMBOL = { PLN: " zł", EUR: " €", USD: " $", GBP: " £" }
+const symbolFor = (currency) => SYMBOL[currency] || (" " + currency)
+
+const formatMoney = (value, currency) => {
   const v = Number(value)
   if (!isFinite(v)) return ""
+  const sym = symbolFor(currency || "PLN")
   const abs = Math.abs(v)
   if (abs >= 1000) {
     const k = Math.round(abs / 100) / 10
-    return (v < 0 ? "-" : "") + k.toString().replace(/\.0$/, "") + "k zł"
+    return (v < 0 ? "-" : "") + k.toString().replace(/\.0$/, "") + "k" + sym
   }
-  return Math.round(v) + " zł"
+  return Math.round(v) + sym
 }
 
-const formatPLNFull = (value) => {
+const formatMoneyFull = (value, currency) => {
   const v = Number(value)
   if (!isFinite(v)) return ""
-  return new Intl.NumberFormat("pl-PL", { style: "currency", currency: "PLN", maximumFractionDigits: 0 }).format(v)
+  return new Intl.NumberFormat("pl-PL", { style: "currency", currency: currency || "PLN", maximumFractionDigits: 0 }).format(v)
 }
 
 // Walks a config built in the view and replaces declarative string flags
 // with real JS callbacks — keeps chart configs in JSON-friendly ERB.
 function installFormatters(config) {
   const opts = config.options = config.options || {}
+  // Reporting currency baked into the chart by the view — defaults to
+  // PLN so old configs without `options.currency` still work.
+  const currency = opts.currency || "PLN"
 
-  // Axis tick formatters: scales.{x|y|r}.ticks.tickFormat = "pln"
+  // Axis tick formatters: scales.{x|y|r}.ticks.tickFormat = "money"
+  // (legacy "pln" still accepted for backwards compatibility).
   ;["x", "y", "r"].forEach((axis) => {
     const scale = opts.scales && opts.scales[axis]
-    if (scale && scale.ticks && scale.ticks.tickFormat === "pln") {
-      scale.ticks.callback = (value) => formatPLN(value)
+    const flag = scale && scale.ticks && scale.ticks.tickFormat
+    if (flag === "money" || flag === "pln") {
+      scale.ticks.callback = (value) => formatMoney(value, currency)
       delete scale.ticks.tickFormat
     }
   })
@@ -59,13 +71,13 @@ function installFormatters(config) {
   const plugins = (opts.plugins = opts.plugins || {})
   const replaceFormatter = (obj) => {
     if (!obj) return
-    if (obj.formatter === "pln") {
-      obj.formatter = (value) => (value > 0 ? formatPLN(value) : "")
+    if (obj.formatter === "money" || obj.formatter === "pln") {
+      obj.formatter = (value) => (value > 0 ? formatMoney(value, currency) : "")
     }
-    if (obj.formatter === "pln_with_delta") {
+    if (obj.formatter === "money_with_delta" || obj.formatter === "pln_with_delta") {
       obj.formatter = (value, ctx) => {
         if (!(value > 0)) return ""
-        const base = formatPLN(value)
+        const base = formatMoney(value, currency)
         const meta = (ctx.chart.options.metadata || [])[ctx.dataIndex]
         if (!meta || meta.delta == null) return base
         const sign = meta.delta > 0 ? "+" : ""
@@ -109,7 +121,7 @@ function installFormatters(config) {
         ? ctx.parsed.x
         : ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.parsed
       const ds = ctx.dataset.label ? ctx.dataset.label + ": " : ""
-      return ds + formatPLNFull(v)
+      return ds + formatMoneyFull(v, currency)
     }
 
     cbs.afterBody = (items) => {

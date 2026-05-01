@@ -27,7 +27,7 @@ module Admin
         )
 
         @monthly_trend = ::Analytics::SpendBreakdown.merchant_monthly_trend(
-          user: current_user, merchant_id: @merchant.id
+          user: current_user, merchant_id: @merchant.id, currency: @filter.currency
         )
 
         # Resolve the dominant category for this merchant, used as the

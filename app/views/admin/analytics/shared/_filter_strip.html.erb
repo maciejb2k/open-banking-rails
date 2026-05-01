@@ -114,6 +114,23 @@
       </div>
     </div>
 
+    <%# ── Currency section ───────────────────────────────────────────── %>
+    <%# Reporting currency for every aggregate on the page. Hidden for
+        single-currency users (the chip group would be a noise of one). %>
+    <% if filter.available_currencies.size > 1 %>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-border/40">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-20 shrink-0">Currency</span>
+        <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+          <% filter.available_currencies.each do |iso| %>
+            <% is_active = filter.currency == iso %>
+            <% href = url_for(filter.to_query_params.merge(currency: iso)) %>
+            <% cls = "rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors #{is_active ? active_chip_cls : inactive_chip_cls}" %>
+            <%= link_to iso, href, class: cls %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
     <%# ── Accounts section ───────────────────────────────────────────── %>
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-border/40">
       <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-20 shrink-0">Accounts</span>

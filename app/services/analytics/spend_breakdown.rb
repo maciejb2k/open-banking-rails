@@ -14,9 +14,9 @@ module Analytics
   # next level under a given root. Both are powered by the GiST-indexed
   # `category_path` (ltree) projected by the `ledger_entries` view.
   class SpendBreakdown
-    Row = Struct.new(:path, :name, :merchant, :amount_cents, :prev_amount_cents, :count, keyword_init: true) do
-      def amount = Money.new(amount_cents, "PLN")
-      def prev_amount = Money.new(prev_amount_cents.to_i, "PLN")
+    Row = Struct.new(:path, :name, :merchant, :amount_cents, :prev_amount_cents, :count, :currency, keyword_init: true) do
+      def amount = Money.new(amount_cents, currency)
+      def prev_amount = Money.new(prev_amount_cents.to_i, currency)
       def slug = path.to_s.tr(".", "_")
 
       def delta_pct
@@ -41,12 +41,12 @@ module Analytics
     #
     # Pass `previous_scope:` for delta-vs-previous; pass `user:` so the
     # path → display-name hydration uses the user's own categories.
-    def self.by_category(scope, user:, depth: nil, previous_scope: nil)
-      rows = bucket_by_path(scope.spend, depth)
+    def self.by_category(scope, user:, currency:, depth: nil, previous_scope: nil)
+      rows = bucket_by_path(scope.spend, depth, currency)
       hydrate_names!(rows, user: user)
 
       if previous_scope
-        prev = bucket_by_path(previous_scope.spend, depth).index_by(&:path)
+        prev = bucket_by_path(previous_scope.spend, depth, currency).index_by(&:path)
         rows.each { |r| r.prev_amount_cents = prev[r.path]&.amount_cents.to_i }
       end
 
@@ -56,12 +56,12 @@ module Analytics
     # Drill-down: rows directly under `under` (single-segment expansion).
     # `under` accepts either a Category or a path string. Returns rows
     # at depth = under.depth + 1 within that subtree only.
-    def self.by_subpath(scope, under:, user:)
+    def self.by_subpath(scope, under:, user:, currency:)
       under_path = under.is_a?(Category) ? under.path.to_s : under.to_s
       depth = under_path.count(".") + 2  # next level down (1-indexed in subpath)
 
       narrowed = scope.spend.under_path(under_path)
-      rows = bucket_by_path(narrowed, depth)
+      rows = bucket_by_path(narrowed, depth, currency)
       hydrate_names!(rows, user: user)
       rows.sort_by { |r| -r.amount_cents }
     end
@@ -71,7 +71,7 @@ module Analytics
     # any category, get its descendants too. Unmatched (merchant_id IS NULL
     # but category was assigned via category_override) bucket is grouped
     # under a sentinel.
-    def self.by_merchant_in_category(scope, category, user:)
+    def self.by_merchant_in_category(scope, category, user:, currency:)
       pluck = scope.spend
                    .under_path(category)
                    .group(:merchant_id)
@@ -86,7 +86,8 @@ module Analytics
           name:         merchant&.display,
           merchant:     merchant,
           amount_cents: sum.to_i,
-          count:        count.to_i
+          count:        count.to_i,
+          currency:     currency
         )
       end.sort_by { |r| -r.amount_cents }
     end
@@ -94,12 +95,14 @@ module Analytics
     # 12-month trend for a single merchant, gap-filled. Always last 12 months
     # ending today (independent of the dashboard period — drill-down trend
     # is always "history of this merchant", not "this merchant in selected
-    # window").
-    def self.merchant_monthly_trend(user:, merchant_id:, months: 12)
+    # window"). Currency-scoped to keep the same partitioning rule as the
+    # dashboard — a merchant charged in EUR shouldn't smear into a PLN trend.
+    def self.merchant_monthly_trend(user:, merchant_id:, currency:, months: 12)
       from = (months - 1).months.ago.beginning_of_month.to_date
       period = Period.new(from: from, to: Date.current, bucket: :month)
 
       raw = LedgerEntry.where(bank_account_id: user.all_bank_account_ids)
+                       .where(currency: currency)
                        .booked.spend
                        .where(merchant_id: merchant_id)
                        .in_range(period.from, period.to)
@@ -116,13 +119,13 @@ module Analytics
     # `food.cooking.bakery` collapses into `food.cooking` at depth=2.
     # Rows whose `category_path` is NULL (unmatched) are excluded —
     # they belong on a "needs review" surface, not the spend chart.
-    def self.bucket_by_path(relation, depth)
+    def self.bucket_by_path(relation, depth, currency)
       grouping_sql = depth ? "subpath(category_path, 0, #{depth.to_i})::text" : "category_path::text"
       base = relation.where.not(category_path: nil)
       base = base.where("nlevel(category_path) >= ?", depth) if depth
       base.group(Arel.sql(grouping_sql))
           .pluck(Arel.sql("#{grouping_sql}, SUM(amount_cents), COUNT(*)"))
-          .map { |path, sum, count| Row.new(path: path, amount_cents: sum.to_i, count: count.to_i) }
+          .map { |path, sum, count| Row.new(path: path, amount_cents: sum.to_i, count: count.to_i, currency: currency) }
     end
     private_class_method :bucket_by_path
 

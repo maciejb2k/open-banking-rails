@@ -6,6 +6,7 @@ module Admin
       def index
         scope      = @filter.scope
         prev_scope = @filter.previous_scope
+        currency   = @filter.currency
 
         # Stat-card aggregates. Two single-query passes (current totals,
         # previous totals); the previous pass powers the spend Δ%.
@@ -29,18 +30,35 @@ module Admin
         # (one bar per distinct path with spend). For the "ile na jedzenie
         # ogólnie" rollup, the user can filter ?under_path=food which
         # narrows the whole dashboard to that subtree.
-        @cash_flow      = ::Analytics::CashFlow.series(scope, period: @filter.period)
+        @cash_flow      = ::Analytics::CashFlow.series(scope, period: @filter.period, currency: currency)
         @breakdown      = ::Analytics::SpendBreakdown.by_category(
                             scope,
                             user: current_user,
+                            currency: currency,
                             previous_scope: prev_scope
                           )
-        @top_merchants  = ::Analytics::TopMerchants.call(scope, user: current_user, limit: 8)
-        @account_rows   = ::Analytics::AccountBreakdown.call(scope, user: current_user)
+        @top_merchants  = ::Analytics::TopMerchants.call(scope, user: current_user, currency: currency, limit: 8)
+        @account_rows   = ::Analytics::AccountBreakdown.call(scope, user: current_user, currency: currency)
+
+        # Layer-1 rollup. Depth follows current drill — at root that's 1
+        # (food / mobility / home / …), one level under "food" it becomes 2
+        # (food.cooking / food.eating_out), and so on. Empty when the user
+        # has drilled to a leaf with no descendants — the card just hides.
+        @domain_breakdown = ::Analytics::SpendBreakdown.by_category(
+                              scope,
+                              user:           current_user,
+                              currency:       currency,
+                              depth:          @filter.aggregation_depth,
+                              previous_scope: prev_scope
+                            )
+
+        # Active drill — used by the "× Clear" affordance below the page
+        # header and to title the rollup card ("Spend in Food").
+        @drill_category = current_user.categories.find_by(path: @filter.under_path) if @filter.under_path.present?
 
         # Layer 2 facet breakdowns — independent of hierarchy.
-        @essential_pair = ::Analytics::FacetBreakdown.essential(scope)
-        @recurring_pair = ::Analytics::FacetBreakdown.recurring(scope)
+        @essential_pair = ::Analytics::FacetBreakdown.essential(scope, currency: currency)
+        @recurring_pair = ::Analytics::FacetBreakdown.recurring(scope, currency: currency)
 
         # "Co się zmieniło" — categories with biggest abs swing vs. prev
         # period. Reuses the breakdown rows (already have prev attached),
