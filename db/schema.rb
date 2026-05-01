@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_01_150713) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_01_153007) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "ltree"
   enable_extension "pg_catalog.plpgsql"
@@ -84,6 +84,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_150713) do
     t.string "bank_transaction_code"
     t.date "booking_date", null: false
     t.string "counterparty_iban"
+    t.string "counterparty_kind", default: "unknown", null: false
     t.string "counterparty_name"
     t.datetime "created_at", null: false
     t.string "currency", limit: 3, null: false
@@ -101,6 +102,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_150713) do
     t.index ["bank_account_id", "booking_date"], name: "index_bank_transactions_on_bank_account_id_and_booking_date"
     t.index ["bank_account_id", "external_id"], name: "index_bank_transactions_on_bank_account_id_and_external_id", unique: true
     t.index ["bank_account_id"], name: "index_bank_transactions_on_bank_account_id"
+    t.index ["counterparty_kind"], name: "index_bank_transactions_on_counterparty_kind"
     t.index ["payment_method"], name: "index_bank_transactions_on_payment_method"
     t.index ["status"], name: "index_bank_transactions_on_status"
   end
@@ -161,6 +163,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_150713) do
     t.bigint "amount_cents", null: false
     t.bigint "bank_account_id", null: false
     t.date "booking_date", null: false
+    t.string "counterparty_kind", default: "unknown", null: false
     t.string "counterparty_name"
     t.datetime "created_at", null: false
     t.bigint "created_by_user_id", null: false
@@ -176,6 +179,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_150713) do
     t.datetime "updated_at", null: false
     t.index ["bank_account_id", "booking_date"], name: "index_manual_transactions_on_bank_account_id_and_booking_date"
     t.index ["bank_account_id"], name: "index_manual_transactions_on_bank_account_id"
+    t.index ["counterparty_kind"], name: "index_manual_transactions_on_counterparty_kind"
     t.index ["created_by_user_id"], name: "index_manual_transactions_on_created_by_user_id"
     t.index ["linked_bank_transaction_id"], name: "idx_manual_transactions_one_per_linked_bank_tx", unique: true, where: "(linked_bank_transaction_id IS NOT NULL)"
     t.index ["linked_bank_transaction_id"], name: "index_manual_transactions_on_linked_bank_transaction_id"
@@ -379,6 +383,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_150713) do
       bt.payment_method,
       bt.title,
       bt.counterparty_name,
+      bt.counterparty_kind,
       te.id AS enrichment_id,
       te.merchant_id,
       COALESCE(te.category_id, m.default_category_id) AS effective_category_id,
@@ -408,6 +413,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_150713) do
       mt.payment_method,
       mt.title,
       mt.counterparty_name,
+      mt.counterparty_kind,
       te.id AS enrichment_id,
       te.merchant_id,
       COALESCE(te.category_id, m.default_category_id) AS effective_category_id,

@@ -66,6 +66,27 @@ class User < ApplicationRecord
                .pluck(:id)
   end
 
+  def owned_bank_accounts
+    BankAccount.where(id: all_bank_account_ids)
+  end
+
+  # Holder names across every account the user owns, normalized for
+  # case-insensitive comparison. Banks fill BankAccount#name differently
+  # (mBank uppercase, Revolut titlecase, PKO sometimes empty), so callers
+  # match against this set rather than a single canonical value.
+  def own_holder_names
+    owned_bank_accounts.pluck(:name).compact_blank.map { |n| n.strip.upcase }.uniq
+  end
+
+  # Every IBAN the user owns — primary IBAN of each account plus any
+  # alternates the bank advertised. Normalized (no spaces, uppercase) so
+  # SQL/Ruby comparisons can use exact equality.
+  def own_ibans
+    accounts = owned_bank_accounts
+    (accounts.pluck(:iban).compact + accounts.find_each.flat_map(&:alternate_ibans))
+      .compact_blank.map { |i| i.gsub(/\s+/, "").upcase }.uniq
+  end
+
   def initials
     return "?" if name.blank?
 

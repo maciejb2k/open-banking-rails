@@ -25,6 +25,9 @@ module Cash
 
     def call
       ActiveRecord::Base.transaction do
+        payment_method    = @params[:payment_method].presence || @transaction.payment_method
+        counterparty_name = @params[:counterparty_name]
+
         @transaction.assign_attributes(
           amount_cents:      parsed_amount_cents,
           direction:         @params[:direction].presence || @transaction.direction,
@@ -32,8 +35,14 @@ module Cash
           transaction_date:  parsed_date(@params[:transaction_date]),
           title:             @params[:title],
           note:              @params[:note],
-          counterparty_name: @params[:counterparty_name],
-          payment_method:    @params[:payment_method].presence || @transaction.payment_method
+          counterparty_name: counterparty_name,
+          payment_method:    payment_method,
+          counterparty_kind: Banking::CounterpartyResolver.call(
+            payment_method:    payment_method,
+            counterparty_iban: nil,
+            counterparty_name: counterparty_name,
+            user:              transaction_user
+          )
         )
         @transaction.save!
 

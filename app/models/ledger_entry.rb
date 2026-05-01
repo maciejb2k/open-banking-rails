@@ -53,6 +53,14 @@ class LedgerEntry < ApplicationRecord
   scope :debits,   -> { where(direction: "debit") }
   scope :in_range, ->(from, to) { where(booking_date: from..to) }
 
+  # Identity of the other side of the entry, set at sync time by
+  # Banking::CounterpartyResolver and projected through from the source
+  # tables. `with_external_counterparty` is the canonical filter for
+  # "real" transactions — own-account moves are excluded, so analytics
+  # don't double-count money that's just shuffling around.
+  scope :to_self,                    -> { where(counterparty_kind: "self") }
+  scope :with_external_counterparty, -> { where(counterparty_kind: %w[external unknown]) }
+
   # Layer 1 — subtree containment via the view's `category_path` (ltree
   # projected from categories.path). Pass a Category, ltree string, or
   # array of either. Empty input returns `none` so a missing filter

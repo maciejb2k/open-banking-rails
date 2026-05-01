@@ -28,6 +28,12 @@ class BankTransaction < ApplicationRecord
     fee other
   ].freeze
 
+  # Set by Banking::CounterpartyResolver at sync time. See that service for
+  # signal priority. "self" means the counterparty is one of the user's own
+  # accounts; "external" means a third party; "unknown" means we can't tell
+  # (no IBAN, no name).
+  COUNTERPARTY_KINDS = %w[self external unknown].freeze
+
   belongs_to :bank_account
   has_one :tpp_credential, through: :bank_account
   has_one :user, through: :tpp_credential
@@ -44,6 +50,7 @@ class BankTransaction < ApplicationRecord
   validates :direction, inclusion: { in: DIRECTIONS }
   validates :status,    inclusion: { in: STATUSES }
   validates :payment_method, inclusion: { in: PAYMENT_METHODS }, allow_nil: true
+  validates :counterparty_kind, inclusion: { in: COUNTERPARTY_KINDS }
 
   scope :booked,  -> { where(status: "booked") }
   scope :pending, -> { where(status: "pending") }
@@ -55,8 +62,8 @@ class BankTransaction < ApplicationRecord
 
   def self.ransackable_attributes(_auth_object = nil)
     %w[id external_id booking_date value_date transaction_date amount_cents currency
-       direction status title type_hint counterparty_name counterparty_iban payment_method
-       bank_transaction_code bank_account_id created_at updated_at]
+       direction status title type_hint counterparty_name counterparty_iban counterparty_kind
+       payment_method bank_transaction_code bank_account_id created_at updated_at]
   end
 
   def self.ransackable_associations(_auth_object = nil)

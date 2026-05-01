@@ -27,27 +27,27 @@ module Enrichment
     }.freeze
 
     # Fallback when no MerchantRule matched: assign a generic category
-    # based on (direction, payment_method). Direction matters: an
-    # incoming wire is salary, an outgoing wire is an own-account
-    # transfer — same payment_method, completely different category.
-    # Values are full ltree paths.
+    # based on (direction, payment_method [, counterparty_kind]).
     #
-    # Anything missing from this map falls into source=`unmatched`
-    # (NULL category) and is invisible to all `.spend` / `.income`
-    # totals until reviewed.
+    # Direction matters: an incoming wire is salary, an outgoing wire is
+    # an own-account transfer — same payment_method, completely different
+    # category.
     #
-    # Default fallback per (direction, payment_method) is the most
-    # common interpretation. User can override via merchant rule or
-    # transaction-level category override; this is just the cold-start
-    # behavior so the dashboard isn't 100% noise on first sync.
+    # For `blik_p2p` and `transfer` we also branch on counterparty_kind:
+    # money to/from yourself is a transfer; money to/from anyone else is
+    # an expense (or income on the credit side). Without that branch the
+    # fallback would lump real spending into transfers and hide it from
+    # totals — which is exactly the bug the column was added to fix.
+    #
+    # Values are full ltree paths. Anything missing from this map falls
+    # into source=`unmatched` (NULL category) and is invisible to all
+    # `.spend` / `.income` totals until reviewed.
     PAYMENT_METHOD_FALLBACK = {
       # ─── Outgoing (debit) — spending or own-transfer ──────────────
       [ "debit", "blik_pos" ]           => "noise.unmatched.blik",
       [ "debit", "blik_atm" ]           => "money.transfers.atm",
-      [ "debit", "blik_p2p" ]           => "money.transfers.private",
       [ "debit", "card" ]               => "noise.unmatched.card",
       [ "debit", "card_authorization" ] => "noise.authorizations.card",
-      [ "debit", "transfer" ]           => "money.transfers.own",
       [ "debit", "internal_transfer" ]  => "money.transfers.own",
       [ "debit", "topup" ]              => "money.transfers.own",
       [ "debit", "fee" ]                => "services.financial.fees",
@@ -59,16 +59,11 @@ module Enrichment
       [ "debit", "cash_adjustment" ]    => "noise.adjustments.cash",
 
       # ─── Incoming (credit) — income or refund or own-transfer ─────
-      # External wire → likely salary. Most common case for regular
-      # incoming bank transfers; user can reclassify exotic ones.
-      [ "credit", "transfer" ]           => "income.work.salary",
       # Internal / topup — moving money between user's own surfaces
       [ "credit", "internal_transfer" ]  => "money.transfers.own",
       [ "credit", "topup" ]              => "money.transfers.own",
       # Card credit = refund / cashback from a merchant.
       [ "credit", "card" ]               => "income.refunds.refunds",
-      # P2P incoming = someone sent us BLIK / transfer.
-      [ "credit", "blik_p2p" ]           => "money.transfers.private",
       # ATM credit = unusual but exists (cash deposit at ATM).
       [ "credit", "blik_atm" ]           => "money.transfers.atm",
       # Cash credit = mystery source — flag as income but specify "other".
@@ -76,6 +71,42 @@ module Enrichment
       [ "credit", "cash_atm_topup" ]     => "money.transfers.atm",
       [ "credit", "cash_deposit" ]       => "money.transfers.own"
     }.freeze
+
+    # Identity-aware fallback for payment methods where "to/from self vs
+    # external" changes the kind of category we want. Keyed by
+    # (direction, payment_method, counterparty_kind). `unknown` is treated
+    # as `external` — if there's no signal that it's our own account, we
+    # err on the side of counting it as a real transaction. Worst case the
+    # user moves it back via a per-transaction override.
+    IDENTITY_AWARE_FALLBACK = {
+      # Outgoing BLIK P2P / external wire: money out to someone else is
+      # spend (lands in noise.unmatched.other → kind=expense → visible
+      # on the spend list); to my own surfaces it's a transfer.
+      [ "debit", "blik_p2p", "self" ]     => "money.transfers.own",
+      [ "debit", "blik_p2p", "external" ] => "noise.unmatched.other",
+      [ "debit", "blik_p2p", "unknown" ]  => "noise.unmatched.other",
+
+      [ "debit", "transfer", "self" ]     => "money.transfers.own",
+      [ "debit", "transfer", "external" ] => "noise.unmatched.other",
+      [ "debit", "transfer", "unknown" ]  => "noise.unmatched.other",
+
+      # Incoming BLIK P2P / external wire: from self = own-transfer;
+      # from someone else = income (refund-shaped) by default. Salary
+      # is the most-likely external wire, so credit+transfer+external
+      # keeps the legacy salary-default behavior — user reclassifies
+      # exotic incoming wires.
+      [ "credit", "blik_p2p", "self" ]     => "money.transfers.own",
+      [ "credit", "blik_p2p", "external" ] => "income.refunds.refunds",
+      [ "credit", "blik_p2p", "unknown" ]  => "income.refunds.refunds",
+
+      [ "credit", "transfer", "self" ]     => "money.transfers.own",
+      [ "credit", "transfer", "external" ] => "income.work.salary",
+      [ "credit", "transfer", "unknown" ]  => "income.work.salary"
+    }.freeze
+
+    # All paths the enricher might assign as a fallback — used to preload
+    # category records once per user instead of per transaction.
+    ALL_FALLBACK_PATHS = (PAYMENT_METHOD_FALLBACK.values + IDENTITY_AWARE_FALLBACK.values).uniq.freeze
 
     def self.call(transaction, user:) = new(user: user).enrich(transaction)
 
@@ -171,16 +202,22 @@ module Enrichment
     # Resolve fallback categories once per user and reuse across the loop.
     # Keyed by full ltree path — unique per user, no collision risk.
     def load_fallback_categories
-      @user.categories.where(path: PAYMENT_METHOD_FALLBACK.values.uniq)
+      @user.categories.where(path: ALL_FALLBACK_PATHS)
            .index_by { |c| c.path.to_s }
     end
 
-    # Lookup is keyed on (direction, payment_method) — same payment
-    # method has different meaning depending on direction (incoming
-    # transfer = salary, outgoing transfer = own-account move).
+    # Two lookups, in order of specificity:
+    #   1. Identity-aware: (direction, payment_method, counterparty_kind)
+    #      for methods where "to/from self" vs "to/from other" changes
+    #      the answer (blik_p2p, transfer).
+    #   2. Plain: (direction, payment_method) for everything else.
     def fallback_category_for(transaction)
-      key  = [ transaction.direction.to_s, transaction.payment_method.to_s ]
-      path = PAYMENT_METHOD_FALLBACK[key]
+      direction = transaction.direction.to_s
+      method    = transaction.payment_method.to_s
+      kind      = transaction.try(:counterparty_kind).to_s
+
+      path = IDENTITY_AWARE_FALLBACK[[ direction, method, kind ]] ||
+             PAYMENT_METHOD_FALLBACK[[ direction, method ]]
       path && @fallback_categories[path]
     end
   end

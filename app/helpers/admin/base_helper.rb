@@ -144,6 +144,27 @@ module Admin
       end
     end
 
+    # Compact age label for a sync timestamp: "4m" / "3h" / "2d".
+    # Returns "never" when the timestamp is blank.
+    def sync_age_label(synced_at)
+      return "never" if synced_at.blank?
+      diff = Time.current - synced_at
+      if    diff < 1.hour   then "#{(diff / 60).to_i}m"
+      elsif diff < 24.hours then "#{(diff / 3600).to_i}h"
+      else                       "#{(diff / 86400).to_i}d"
+      end
+    end
+
+    # Tailwind text-color class based on sync age.
+    def sync_age_class(synced_at)
+      return "text-destructive" if synced_at.blank?
+      diff = Time.current - synced_at
+      if    diff <= 24.hours then "text-muted-foreground"
+      elsif diff <= 7.days   then "text-warning"
+      else                        "text-destructive"
+      end
+    end
+
     private
 
     def numeric_id?(segment)

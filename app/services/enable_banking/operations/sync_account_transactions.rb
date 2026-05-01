@@ -50,10 +50,17 @@ module EnableBanking
         inserted = 0
         skipped  = 0
         fetched_at = Time.current
+        user = @account.owner
 
         BankTransaction.transaction do
           Array(data["transactions"]).each do |payload|
             attrs = TransactionNormalizer.call(payload, bank_account: @account, fetched_at: fetched_at)
+            attrs[:counterparty_kind] = Banking::CounterpartyResolver.call(
+              payment_method:    attrs[:payment_method],
+              counterparty_iban: attrs[:counterparty_iban],
+              counterparty_name: attrs[:counterparty_name],
+              user:              user
+            )
 
             record = @account.bank_transactions.find_or_initialize_by(external_id: attrs[:external_id])
             if record.new_record?

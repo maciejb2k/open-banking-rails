@@ -29,6 +29,9 @@ module Cash
       wallet   = WalletResolver.call(user: @user, currency: currency)
 
       ActiveRecord::Base.transaction do
+        payment_method = @params[:payment_method].presence || "cash"
+        counterparty_name = @params[:counterparty_name].presence
+
         tx = ManualTransaction.new(
           bank_account:      wallet,
           amount_cents:      parsed_amount_cents(currency),
@@ -39,8 +42,14 @@ module Cash
           transaction_date:  parsed_date(@params[:transaction_date]),
           title:             @params[:title].presence,
           note:              @params[:note].presence,
-          counterparty_name: @params[:counterparty_name].presence,
-          payment_method:    @params[:payment_method].presence || "cash",
+          counterparty_name: counterparty_name,
+          payment_method:    payment_method,
+          counterparty_kind: Banking::CounterpartyResolver.call(
+            payment_method:    payment_method,
+            counterparty_iban: nil,
+            counterparty_name: counterparty_name,
+            user:              @user
+          ),
           source:            "manual",
           created_by_user:   @user
         )

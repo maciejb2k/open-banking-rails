@@ -137,6 +137,9 @@
               <% elsif currency %>
                 <span class="text-muted-foreground font-normal ml-1">· <%= currency %></span>
               <% end %>
+              <% if bc %>
+                <span class="font-normal ml-1 <%= sync_age_class(bc.last_synced_at) %>">· <%= sync_age_label(bc.last_synced_at) %></span>
+              <% end %>
             </span>
           <% end %>
         <% end %>

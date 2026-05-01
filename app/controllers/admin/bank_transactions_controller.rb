@@ -56,11 +56,12 @@ module Admin
     #   llm_ready      — what the next LLM run would actually pick up.
     #                    Defers to EnrichmentRunner so the count here matches
     #                    the count there exactly. That scope filters out
-    #                    non-merchant payment methods, own IBANs and own
-    #                    holder names, so "ready to send" is honest.
+    #                    non-merchant payment methods and rows already
+    #                    resolved as counterparty_kind: "self", so "ready to
+    #                    send" is honest.
     #   no_llm_signal  — merchantless minus llm_ready: rows that won't ever
     #                    benefit from the LLM (BLIK codes, "PRZELEW", numeric
-    #                    junk, own-account leakage) and need manual
+    #                    junk, own-account moves) and need manual
     #                    classification or a different rule.
     def filter_by_enrichment_state(scope, state)
       merchantless = scope.joins(:enrichment).merge(TransactionEnrichment.merchantless)

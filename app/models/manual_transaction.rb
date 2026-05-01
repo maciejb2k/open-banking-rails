@@ -28,6 +28,12 @@ class ManualTransaction < ApplicationRecord
   #                         drifts from physical wallet
   PAYMENT_METHODS = %w[cash cash_atm_topup cash_deposit cash_fx_conversion cash_adjustment].freeze
 
+  # Same enum + semantics as BankTransaction::COUNTERPARTY_KINDS.
+  # Manual rows have no counterparty_iban, so resolution is name-based
+  # (or implied by payment_method for cash_atm_topup / cash_deposit /
+  # cash_fx_conversion / cash_adjustment, which are always self).
+  COUNTERPARTY_KINDS = %w[self external unknown].freeze
+
   # Provenance:
   #   manual       — user typed it in
   #   atm_link     — auto-created by Cash::AtmWithdrawalLinker (Phase 3)
@@ -48,6 +54,7 @@ class ManualTransaction < ApplicationRecord
   validates :status,         inclusion: { in: STATUSES }
   validates :payment_method, inclusion: { in: PAYMENT_METHODS }, allow_nil: true
   validates :source,         inclusion: { in: SOURCES }
+  validates :counterparty_kind, inclusion: { in: COUNTERPARTY_KINDS }
   validate  :bank_account_must_be_a_wallet
   validate  :currency_matches_wallet
 
@@ -73,7 +80,7 @@ class ManualTransaction < ApplicationRecord
 
   def self.ransackable_attributes(_auth_object = nil)
     %w[id booking_date transaction_date amount_cents currency direction status
-       title counterparty_name payment_method source bank_account_id
+       title counterparty_name counterparty_kind payment_method source bank_account_id
        linked_bank_transaction_id created_at updated_at]
   end
 
