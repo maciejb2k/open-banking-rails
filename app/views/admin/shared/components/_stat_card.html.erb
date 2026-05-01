@@ -28,7 +28,7 @@
         <% else %>
           <%= render "admin/shared/icons/trending_down", classes: "h-3 w-3" %>
         <% end %>
-        <%= change.abs %>%
+        <span class="<%= value_class %>"><%= change.abs %>%</span>
       </span>
     <% end %>
   </div>

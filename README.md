@@ -1,24 +1,165 @@
-# README
+# Open Banking Rails
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+<p>
+  <img src="https://img.shields.io/badge/ruby-%23CC342D.svg?style=for-the-badge&logo=ruby&logoColor=white" alt="Ruby">
+  <img src="https://img.shields.io/badge/rails_8-%23CC0000.svg?style=for-the-badge&logo=ruby-on-rails&logoColor=white" alt="Rails 8">
+  <img src="https://img.shields.io/badge/hotwire-%234c4c4c.svg?style=for-the-badge&logo=hotwire&logoColor=white" alt="Hotwire">
+  <img src="https://img.shields.io/badge/postgresql_17-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL 17">
+  <img src="https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white" alt="Redis">
+  <img src="https://img.shields.io/badge/sidekiq-%23B1003E.svg?style=for-the-badge&logo=sidekiq&logoColor=white" alt="Sidekiq">
+  <img src="https://img.shields.io/badge/opentelemetry-%23425CC7.svg?style=for-the-badge&logo=opentelemetry&logoColor=white" alt="OpenTelemetry">
+  <img src="https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+</p>
 
-Things you may want to cover:
+### Automatic personal finance tracking and analysis
 
-* Ruby version
+Open Banking aggregator with PSD2-compliant multi-bank sync via Enable
+Banking and a hybrid rules + LLM categorization engine. Transactions
+arrive and sync on their own. Merchants and categories are inferred, not typed.
 
-* System dependencies
+![Analytics](docs/screenshots/analytics.png)
 
-* Configuration
+---
 
-* Database creation
+## What you get
 
-* Database initialization
+<table>
+<tr>
+<td width="50%" valign="top">
 
-* How to run the test suite
+- 🏦 **Any EU bank**
+  - Personal accounts via Enable Banking (AISP).
+  - One-time PSD2 consent, no screen scraping.
 
-* Services (job queues, cache servers, search engines, etc.)
+- 🔄 **Syncs itself**
+  - New transactions show up automatically.
+  - No CSV imports, no manual refresh.
 
-* Deployment instructions
+- 🏷️ **Categorizes itself**
+  - Rules cover the obvious cases, an LLM does the rest.
+  - Monthly AI summary, with every number verified.
 
-* ...
+- 💶 **Tracks cash too**
+  - Manual entries for what your bank doesn't see.
+  - Same categories and dashboard as bank transactions.
+
+</td>
+<td width="50%" valign="top">
+
+- 🏠 **Self-hosted**
+  - Runs on your own server, VPS or VPN.
+  - No SaaS account, full observability built in.
+
+- 🔒 **Encrypted at rest**
+  - Sensitive columns encrypted in the database.
+  - LLM only sees normalized titles and counterparties.
+
+- 🕶️ **Privacy filter**
+  - One toggle blurs amounts, IBANs and names on the UI.
+  - Made for safe screen-shares and screenshots.
+
+- 📜 **Open source**
+  - MIT licensed.
+  - Fork it, modify it, deploy it yourself.
+
+</td>
+</tr>
+</table>
+
+![Dashboard](docs/screenshots/hero.png)
+
+---
+
+## Tech stack
+
+| Layer            | Choice                                                        |
+| ---------------- | ------------------------------------------------------------- |
+| Web              | Rails 8.1, Hotwire (Turbo + Stimulus), Tailwind, Propshaft, Importmap |
+| Database         | PostgreSQL 17, `scenic` for versioned views, `paper_trail` for audit |
+| Background jobs  | Sidekiq + Redis 7                                             |
+| Auth             | Devise                                                        |
+| Open Banking     | [Enable Banking](https://enablebanking.com/) (PSD2 AISP)      |
+| LLM              | [`ruby_llm`](https://github.com/crmne/ruby_llm) (OpenAI `gpt-4.1-mini` default) |
+| Money            | `money-rails` - Money Archetype |
+| Search / paging  | Pagy, Ransack                                                 |
+| Observability    | OpenTelemetry SDK → Collector → Tempo / Loki / Prometheus / Grafana / Alertmanager |
+| Testing          | RSpec, FactoryBot, shoulda-matchers, SimpleCov                |
+| Security         | Brakeman, bundler-audit, ActiveRecord encryption              |
+
+---
+
+## Architecture
+
+### End-to-end flow
+
+A transaction at your bank reaches your dashboard without anyone
+touching it.
+
+```mermaid
+flowchart LR
+    Bank["Your bank"] -->|PSD2<br/>Enable Banking| Sync["Background sync"]
+    Sync --> Engine["Rules + LLM<br/>categorization"]
+    Engine --> DB[("Encrypted ledger")]
+    DB --> Dash["Dashboard<br/>+ AI summary"]
+```
+
+### Trust boundary
+
+What lives on your infrastructure, and the minimum that ever leaves it.
+
+```mermaid
+flowchart LR
+    subgraph External["External"]
+        Bank["Your bank<br/>via PSD2"]
+        LLM["LLM API"]
+    end
+
+    subgraph Self["Your infrastructure"]
+        App["App + jobs"]
+        DB[("Encrypted Postgres")]
+        UI["Dashboard"]
+    end
+
+    Bank -->|transactions| App
+    App --> DB
+    App -.->|titles only| LLM
+    LLM -.->|categories| App
+    DB --> UI
+```
+
+### Hybrid classification
+
+Each new transaction gets a merchant and a category. Rules match the
+obvious cases. The LLM picks up the long tail, gated by a confidence
+threshold before auto-applying.
+
+```mermaid
+flowchart LR
+    TX["New transaction"] --> Rule{"Rule<br/>match?"}
+    Rule -->|yes| Apply["Apply merchant<br/>+ category"]
+    Rule -->|no| LLM["LLM suggester<br/>(merchant + category)"]
+    LLM --> Conf{"Confidence<br/>≥ threshold?"}
+    Conf -->|yes| Apply
+    Conf -->|no| Review["Pending review"]
+    Apply --> DB[("Ledger entry")]
+```
+
+---
+
+## Styleguide & Component Library
+
+No `ActiveAdmin`, no `Avo`. The admin panel is hand-rolled on Tailwind
+and shipped fast with Claude Code, following project rules
+(`AGENTS.md`) that pin the LLM to design tokens, sensitive-data
+wrapping and reusable partials. The output is a small component library
+and a fully responsive admin built on top of it.
+
+Browse `/admin/styleguide` for every component and its variants.
+
+![Styleguide](docs/screenshots/styleguide.png)
+
+---
+
+## License
+
+MIT. See [`LICENSE`](LICENSE).

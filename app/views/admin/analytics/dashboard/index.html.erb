@@ -259,7 +259,8 @@
             label: "Δ vs prev.",
             value: "—",
             icon: "bar_chart_3",
-            hint: "no prior data" %>
+            hint: "no prior data",
+            value_class: sensitive_class %>
     <% else %>
       <%= render "admin/shared/components/stat_card",
             label: "Δ vs prev.",
@@ -267,7 +268,8 @@
             change: @spend_delta_pct,
             trend:  @spend_delta_pct >= 0 ? :up : :down,
             icon:   "bar_chart_3",
-            hint:   "vs previous #{pluralize(@filter.period.length_days, 'day')}" %>
+            hint:   "vs previous #{pluralize(@filter.period.length_days, 'day')}",
+            value_class: sensitive_class %>
     <% end %>
     <%= render "admin/shared/components/stat_card",
           label: "Income",
@@ -280,7 +282,8 @@
             label: "Savings rate",
             value: "—",
             icon: "trending_up", tone: :muted,
-            hint: "no income in period" %>
+            hint: "no income in period",
+            value_class: sensitive_class %>
     <% else %>
       <%# Savings rate = (income − spend) / income. The KPI of personal
           finance — what % of what came in stayed in. Negative = overspent
@@ -290,7 +293,8 @@
             value: "#{@savings_rate_pct}%",
             icon: "trending_up",
             tone: @savings_rate_pct >= 0 ? :success : :destructive,
-            hint: @savings_rate_pct >= 0 ? "of income kept" : "spent more than earned" %>
+            hint: @savings_rate_pct >= 0 ? "of income kept" : "spent more than earned",
+            value_class: sensitive_class %>
     <% end %>
   </div>
 
@@ -299,7 +303,11 @@
     <div class="lg:col-span-7">
       <%= render "admin/shared/components/card",
             title: "Spend by category",
-            subtitle: "total #{spend_total.format(no_cents_if_whole: true, symbol: false)} zł · #{visible.size}#{rest.any? ? " + tail (#{rest.size})" : ""} · hover for Δ vs prev." do %>
+            subtitle: safe_join([
+              "total ",
+              sensitive("#{spend_total.format(no_cents_if_whole: true, symbol: false)} zł"),
+              " · #{visible.size}#{rest.any? ? " + tail (#{rest.size})" : ""} · hover for Δ vs prev."
+            ]) do %>
         <% if category_labels_present %>
           <div data-controller="chart"
                data-chart-config-value="<%= category_chart_config.to_json %>"
