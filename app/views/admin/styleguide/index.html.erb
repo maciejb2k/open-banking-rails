@@ -841,4 +841,45 @@
       Items come from <code class="bg-muted px-1 rounded text-xs">admin_nav_sections</code> helper. No extra props — already wired up.
     </p>
   </section>
+
+  <%# ── CENTERED NARROW LAYOUT ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Centered narrow layout</h2>
+    <p class="text-sm text-muted-foreground">
+      Pages that don't need the full content width — settings, profile screens,
+      forms with focused content — use <code class="bg-muted px-1 rounded text-xs">mx-auto max-w-4xl</code>
+      on the outer wrapper so the content stays centered on wide displays
+      instead of clinging to the left edge. Pair with an in-page side nav
+      (<code class="bg-muted px-1 rounded text-xs">grid lg:grid-cols-[220px_minmax(0,1fr)]</code>)
+      when sections need to be navigable; the aside collapses to a horizontal
+      scroll strip below <code class="bg-muted px-1 rounded text-xs">lg</code>
+      so adding more sections doesn't break the layout.
+    </p>
+    <p class="text-sm text-muted-foreground">
+      Live example: <code class="bg-muted px-1 rounded text-xs">app/views/admin/settings/preferences/_layout.html.erb</code>
+      — drives <a href="<%= admin_settings_preferences_path %>" class="text-primary hover:underline">/admin/settings/preferences</a>.
+      The aside iterates a registry helper (<code class="bg-muted px-1 rounded text-xs">preferences_sections</code>)
+      so adding a tab is one entry + one controller action + one view.
+    </p>
+
+    <%# Visual demo of the shell — fake aside + main inside the wrapper. %>
+    <div class="mx-auto max-w-4xl border-2 border-dashed border-muted-foreground/20 rounded-lg p-3">
+      <p class="text-xs text-muted-foreground uppercase tracking-wider mb-2">mx-auto max-w-4xl</p>
+      <div class="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-6">
+        <aside class="space-y-1">
+          <div class="rounded-lg bg-primary/10 text-primary px-3 py-2 text-sm font-medium">Section A</div>
+          <div class="rounded-lg px-3 py-2 text-sm font-medium text-foreground">Section B</div>
+          <div class="rounded-lg px-3 py-2 text-sm font-medium text-foreground">Section C</div>
+        </aside>
+        <main class="min-w-0">
+          <div class="admin-section">
+            <h3 class="text-base font-semibold">Active section content</h3>
+            <p class="text-sm text-muted-foreground mt-1">
+              Forms, definition lists, callouts — whatever the section needs — live here.
+            </p>
+          </div>
+        </main>
+      </div>
+    </div>
+  </section>
 </div>

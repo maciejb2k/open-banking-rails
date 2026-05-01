@@ -79,10 +79,24 @@ Rails.application.routes.draw do
     namespace :settings do
       get "/", to: redirect("/admin/settings/tpp_credentials"), as: :root
 
-      resource :preferences, only: %i[edit update] do
-        patch :update_password
-        patch :update_llm
-        post  :test_llm
+      # Bare /preferences lands on the first section.
+      get "preferences", to: redirect("/admin/settings/preferences/profile"),
+                         as: :preferences
+
+      # Each preference section is its own GET (form) + PATCH (save) — keeps
+      # params permitted lists cleanly scoped per concern, and lets us add
+      # a fourth section without growing one fat controller action.
+      scope "preferences", as: :preferences do
+        get   "profile",  to: "preferences#profile",         as: :profile
+        patch "profile",  to: "preferences#update_profile"
+        patch "password", to: "preferences#update_password", as: :password
+
+        get   "app",      to: "preferences#app",             as: :app
+        patch "app",      to: "preferences#update_app"
+
+        get   "llm",      to: "preferences#llm",             as: :llm
+        patch "llm",      to: "preferences#update_llm"
+        post  "llm/test", to: "preferences#test_llm",        as: :test_llm
       end
 
       resources :tpp_credentials do

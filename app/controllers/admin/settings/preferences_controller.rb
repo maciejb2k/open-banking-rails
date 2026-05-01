@@ -2,50 +2,69 @@
 
 module Admin
   module Settings
-    # Per-user preferences: profile (name, email), cash tracking, hidden
-    # categories. Password changes go through `update_password`, which uses
-    # Devise's `update_with_password` so the current password is required.
+    # Per-user preferences split across three side-nav sections:
     #
-    # Toggling track_cash off→on triggers a one-shot setup so the user's
-    # next visit to /admin/cash_transactions isn't an empty state:
-    #   - a PLN cash wallet is created (if absent), and
-    #   - historical BLIK ATM withdrawals are linked retroactively.
-    # Both steps are idempotent — running them more than once is safe.
+    #   - profile : display name + password
+    #   - app     : cash tracking, hidden categories
+    #   - llm     : AI provider, API key, connection test
+    #
+    # Each section gets its own GET (render the section) + PATCH (save).
+    # That keeps params permitted lists scoped to one concern and makes
+    # adding a fourth section a copy-paste of one of the existing pairs
+    # — no fat update action accumulating fields.
     class PreferencesController < BaseController
-      before_action :load_form_objects
+      before_action :load_user
 
-      def edit
-      end
+      # ── Profile ──────────────────────────────────────────────────────
+      def profile; end
 
-      def update
-        was_tracking = @user.track_cash?
-
-        if @user.update(preference_params)
-          notice = "Preferences saved."
-          if !was_tracking && @user.track_cash?
-            stats = enable_cash_tracking!(@user)
-            notice += " Created a PLN wallet and linked #{stats[:linked]} historical ATM withdrawal(s)."
-          end
-          redirect_to edit_admin_settings_preferences_path, notice: notice
+      def update_profile
+        if @user.update(profile_params)
+          redirect_to admin_settings_preferences_profile_path, notice: "Profile saved."
         else
           flash.now[:alert] = @user.errors.full_messages.join(", ")
-          render :edit, status: :unprocessable_entity
+          render :profile, status: :unprocessable_entity
         end
       end
 
       def update_password
         if @user.update_with_password(password_params)
-          # Rememberable rotates the auth token on password change; rebind the
-          # session so the user isn't kicked out mid-flow.
+          # Rememberable rotates the auth token on password change; rebind
+          # the session so the user isn't kicked out mid-flow.
           bypass_sign_in(@user)
-          redirect_to edit_admin_settings_preferences_path, notice: "Password changed."
+          redirect_to admin_settings_preferences_profile_path, notice: "Password changed."
         else
           flash.now[:alert] = @user.errors.full_messages.join(", ")
-          render :edit, status: :unprocessable_entity
+          render :profile, status: :unprocessable_entity
         end
       end
 
+      # ── App ──────────────────────────────────────────────────────────
+      def app; end
+
+      def update_app
+        was_tracking = @user.track_cash?
+
+        if @user.update(app_params)
+          notice = "App settings saved."
+          if !was_tracking && @user.track_cash?
+            stats = enable_cash_tracking!(@user)
+            notice += " Created a PLN wallet and linked #{stats[:linked]} historical ATM withdrawal(s)."
+          end
+          redirect_to admin_settings_preferences_app_path, notice: notice
+        else
+          flash.now[:alert] = @user.errors.full_messages.join(", ")
+          render :app, status: :unprocessable_entity
+        end
+      end
+
+      # ── LLM ──────────────────────────────────────────────────────────
+      def llm
+        load_llm_form_objects
+      end
+
       def update_llm
+        load_llm_form_objects
         attrs = llm_params
 
         # Empty api_key on an existing record means "keep the current key" —
@@ -54,16 +73,18 @@ module Admin
         attrs.delete(:api_key) if attrs[:api_key].blank? && @llm_setting.persisted?
 
         if @llm_setting.update(attrs)
-          redirect_to edit_admin_settings_preferences_path, notice: "LLM settings saved."
+          redirect_to admin_settings_preferences_llm_path, notice: "LLM settings saved."
         else
           flash.now[:alert] = @llm_setting.errors.full_messages.join(", ")
-          render :edit, status: :unprocessable_entity
+          render :llm, status: :unprocessable_entity
         end
       end
 
       def test_llm
+        load_llm_form_objects
+
         unless @llm_setting.configured?
-          redirect_to edit_admin_settings_preferences_path,
+          redirect_to admin_settings_preferences_llm_path,
                       alert: "Save a provider and API key first." and return
         end
 
@@ -107,39 +128,46 @@ module Admin
           )
           run.succeed!(summary: { "request" => request_payload, "response" => response })
           @llm_setting.record_test_success!
-          redirect_to edit_admin_settings_preferences_path,
+          redirect_to admin_settings_preferences_llm_path,
                       notice: "Connection OK — #{@llm_setting.provider_label} (#{@llm_setting.effective_model})."
         rescue Llm::Client::Error => e
           run.fail!(error: e.message, summary: { "request" => request_payload, "response" => nil })
           @llm_setting.record_test_failure!(e.message) if @llm_setting.persisted?
-          redirect_to edit_admin_settings_preferences_path,
+          redirect_to admin_settings_preferences_llm_path,
                       alert: "Test failed: #{e.message}"
         end
       end
 
       private
 
-      def load_form_objects
-        @user        = current_user
-        @llm_setting = current_user.llm_setting ||
-                       current_user.build_llm_setting(provider: Llm::Providers.keys.first)
-        @last_llm_test = OperationRun
-                           .where(kind: "llm_connection_test", triggered_by_user: current_user)
-                           .order(created_at: :desc)
-                           .first
+      def load_user
+        @user = current_user
       end
 
-      def preference_params
-        permitted = params.require(:user).permit(:name, :track_cash, hidden_category_ids: [])
+      def load_llm_form_objects
+        @llm_setting   = current_user.llm_setting ||
+                         current_user.build_llm_setting(provider: Llm::Providers.keys.first)
+        @last_llm_test = current_user.operation_runs
+                                     .where(kind: "llm_connection_test")
+                                     .order(created_at: :desc)
+                                     .first
+      end
+
+      def profile_params
+        params.require(:user).permit(:name)
+      end
+
+      def password_params
+        params.require(:user).permit(:current_password, :password, :password_confirmation)
+      end
+
+      def app_params
+        permitted = params.require(:user).permit(:track_cash, hidden_category_ids: [])
         # multi_select renders no hidden inputs when nothing is selected, so
         # the param is omitted entirely from the form. Force an empty array
         # so the has_many through can clear the join table.
         permitted[:hidden_category_ids] ||= []
         permitted
-      end
-
-      def password_params
-        params.require(:user).permit(:current_password, :password, :password_confirmation)
       end
 
       def llm_params

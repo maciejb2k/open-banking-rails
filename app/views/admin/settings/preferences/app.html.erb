@@ -1,0 +1,55 @@
+<%= render layout: "admin/settings/preferences/layout", locals: { current: :app } do %>
+  <%= form_with model: @user,
+                url: admin_settings_preferences_app_path,
+                method: :patch,
+                scope: :user,
+                class: "space-y-6", local: true do |f| %>
+    <div class="admin-section space-y-4">
+      <h2 class="text-base font-semibold text-foreground">Cash tracking</h2>
+      <p class="text-sm text-muted-foreground -mt-2">
+        When enabled, every BLIK ATM withdrawal is mirrored as a top-up in
+        your cash wallet, and both rows are classified as transfers (excluded
+        from spend). You're then expected to log cash spending manually under
+        <a href="<%= admin_cash_transactions_path %>" class="text-primary hover:underline">Cash Transactions</a>.
+      </p>
+
+      <%= render "admin/shared/form/toggle",
+            form: f, field: :track_cash,
+            label: "Track cash spending",
+            on_label: "Tracking on",
+            off_label: "Tracking off",
+            hint: "Existing ATM withdrawals stay as-is until you run the backfill task (cash:backfill_atm_links)." %>
+    </div>
+
+    <div class="admin-section space-y-4">
+      <h2 class="text-base font-semibold text-foreground">Hidden categories</h2>
+      <p class="text-sm text-muted-foreground -mt-2">
+        Transactions in the selected categories are always masked (••• instead
+        of title, merchant, category, and amount). Analytics totals stay
+        accurate. Drill-down into these categories / transactions is blocked
+        — to open one, remove the category from this list.
+      </p>
+
+      <%# Self-cloak: selected categories are masked with bullets in the chip
+          itself, so a passerby glancing at this page can't see what you've
+          hidden. Once opened, the dropdown shows the full list with search,
+          sorted alphabetically — so with 50+ categories you can quickly find
+          the right one. %>
+      <%= render "admin/shared/form/multi_select",
+            form: f, field: :hidden_category_ids,
+            label: "Categories to hide",
+            placeholder: "Choose categories…",
+            cloak_selected: true,
+            searchable: true,
+            options: current_user.categories.active.includes(:parent).map { |c|
+              { value: c.id, label: c.parent ? "#{c.parent.name} → #{c.name}" : c.name }
+            }.sort_by { |o| o[:label].downcase } %>
+    </div>
+
+    <div class="flex justify-end">
+      <%= render "admin/shared/components/button",
+            label: "Save app settings",
+            type: :submit %>
+    </div>
+  <% end %>
+<% end %>

@@ -1,0 +1,36 @@
+<%# locals: (current:) %>
+<%# Two-column shell shared by every preferences section. Left aside lists
+<%# every entry from preferences_sections (the registry); right pane gets
+<%# the section's form via yield. On <lg the aside becomes a horizontally
+<%# scrollable strip so adding many sections never breaks the layout. %>
+<%# `mx-auto max-w-4xl` centers the whole shell (aside + main) on wide
+<%# screens. Without this, the narrow main column hugs the left edge of
+<%# the admin content area and the right side stays empty — feels
+<%# unbalanced. See styleguide → "Centered narrow layout" for the
+<%# canonical pattern; reuse the same wrapper for any settings-style
+<%# sub-nav page. %>
+<div class="mx-auto max-w-4xl space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "Preferences",
+        subtitle: "Personal settings, app behavior, and integrations." %>
+
+  <div class="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-6">
+    <aside class="lg:sticky lg:top-4 lg:self-start">
+      <nav class="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible -mx-1 px-1 pb-1 lg:pb-0">
+        <% preferences_sections.each do |s| %>
+          <% active = s[:id].to_s == current.to_s %>
+          <%= link_to s[:path],
+                class: "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap " +
+                       (active ? "bg-primary/10 text-primary" : "text-foreground hover:bg-card-hover") do %>
+            <%= render "admin/shared/icons/#{s[:icon]}", classes: "h-4 w-4 shrink-0" %>
+            <%= s[:label] %>
+          <% end %>
+        <% end %>
+      </nav>
+    </aside>
+
+    <main class="min-w-0">
+      <%= yield %>
+    </main>
+  </div>
+</div>

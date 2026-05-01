@@ -1,0 +1,131 @@
+<%= render layout: "admin/settings/preferences/layout", locals: { current: :llm } do %>
+  <div class="space-y-6">
+    <%# Custom: provider→model cascade is too small to extract into a shared
+        partial today (one place uses it). Reassess if a second LLM-config
+        surface appears (e.g. per-account override). %>
+    <%= form_with model: @llm_setting,
+                  url: admin_settings_preferences_llm_path,
+                  method: :patch,
+                  scope: :llm_setting,
+                  class: "space-y-6", local: true,
+                  data: {
+                    controller: "llm-provider",
+                    llm_provider_models_value:   Llm::Providers.models_by_provider.to_json,
+                    llm_provider_defaults_value: Llm::Providers::REGISTRY.transform_values { |c| c[:default_model] }.to_json
+                  } do |f| %>
+
+      <div class="admin-section space-y-4">
+        <h2 class="text-base font-semibold text-foreground">AI / LLM</h2>
+        <p class="text-sm text-muted-foreground -mt-2">
+          AI features (merchant recognition, monthly summaries) use an external
+          LLM provider. Your API key is stored encrypted. Without a key, AI
+          features are disabled — no data leaves this app.
+        </p>
+
+        <%= render "admin/shared/form/select",
+              form: f, field: :provider,
+              label: "Provider",
+              options: Llm::Providers.options_for_select,
+              html: {
+                data: {
+                  llm_provider_target: "provider",
+                  action: "change->llm-provider#change"
+                }
+              } %>
+
+        <%= render "admin/shared/form/select",
+              form: f, field: :model,
+              label: "Model",
+              options: Llm::Providers.fetch(@llm_setting.provider).fetch(:models).map { |m| [ m, m ] },
+              hint: "Provider's default model is used if you leave this empty.",
+              html: {
+                data: { llm_provider_target: "model" }
+              } %>
+
+        <%# Sensitive: API key. Never echoed back — placeholder signals that a
+            key is saved; leave blank to keep it, type a new one to replace. %>
+        <%= render "admin/shared/form/password_field",
+              form: f, field: :api_key,
+              label: "API key",
+              required: !@llm_setting.persisted?,
+              hint: @llm_setting.persisted? ?
+                      "A key is saved. Leave blank to keep it, or type a new one to replace." :
+                      "Paste the key from the selected provider. Stored encrypted.",
+              html: {
+                autocomplete: "off",
+                placeholder: @llm_setting.persisted? ? "••• key saved" : "sk-…"
+              } %>
+      </div>
+
+      <div class="flex justify-end">
+        <%= render "admin/shared/components/button",
+              label: "Save LLM settings",
+              type: :submit %>
+      </div>
+    <% end %>
+
+    <%# Separate card for the connection test. button_to renders its own
+        <form>, which can't be nested inside the settings form above — and
+        keeping the result callout next to its trigger makes the cause/effect
+        obvious. %>
+    <% if @llm_setting.persisted? && @llm_setting.configured? %>
+      <div class="admin-section space-y-4">
+        <h2 class="text-base font-semibold text-foreground">Connection test</h2>
+        <p class="text-sm text-muted-foreground -mt-2">
+          Sends a tiny structured-output ping to <%= @llm_setting.provider_label %>
+          (<%= @llm_setting.effective_model %>) using your saved key. No transaction
+          data is included.
+        </p>
+
+        <% if @last_llm_test %>
+          <% test_time = @last_llm_test.finished_at || @last_llm_test.created_at %>
+          <% when_str  = "#{time_ago_in_words(test_time)} ago (#{l(test_time, format: :short)})" %>
+          <% if @last_llm_test.status == "succeeded" %>
+            <%= render "admin/shared/components/callout",
+                  variant: :success,
+                  title: "Last test: OK — #{when_str}",
+                  message: "#{@last_llm_test.params['provider']} (#{@last_llm_test.params['model']})" %>
+          <% else %>
+            <%= render "admin/shared/components/callout",
+                  variant: :destructive,
+                  title: "Last test failed — #{when_str}",
+                  message: sensitive(@last_llm_test.error.to_s) %>
+          <% end %>
+
+          <% req = @last_llm_test.summary["request"] %>
+          <% res = @last_llm_test.summary["response"] %>
+          <% if req.present? || res.present? %>
+            <details class="text-xs">
+              <summary class="cursor-pointer text-muted-foreground hover:text-foreground">
+                Show LLM I/O — exactly what was sent and what came back
+              </summary>
+              <div class="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div>
+                  <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Sent (input)</p>
+                  <%= render "admin/shared/components/json_viewer", json: req, sensitive: false %>
+                </div>
+                <div>
+                  <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">LLM response</p>
+                  <%= render "admin/shared/components/json_viewer", json: res, sensitive: false %>
+                </div>
+              </div>
+            </details>
+          <% end %>
+        <% else %>
+          <p class="text-xs text-muted-foreground">
+            Not tested yet — run the test below. The exact request and response will be shown here.
+          </p>
+        <% end %>
+
+        <div class="flex justify-end">
+          <%= button_to admin_settings_preferences_test_llm_path,
+                method: :post,
+                class: "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors h-10 px-4 py-2 text-sm border bg-card hover:bg-card-hover text-foreground" do %>
+            <%= render "admin/shared/icons/refresh_cw", classes: "h-4 w-4" %>
+            Test connection
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% end %>

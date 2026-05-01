@@ -8,6 +8,26 @@ module Admin
       request.path == path || request.path.start_with?(path + "/")
     end
 
+    # Registry of /admin/settings/preferences sub-sections. Single source of
+    # truth for the in-page side nav AND default-redirect order — the first
+    # entry is what bare /preferences redirects to (kept in sync via
+    # routes.rb). Adding a section: one entry here + one controller action +
+    # one view. The aside layout in admin/settings/preferences/_layout.html.erb
+    # iterates this list verbatim, so it scales with however many we add.
+    def preferences_sections
+      [
+        { id: :profile, label: "Profile", icon: "users",
+          path: admin_settings_preferences_profile_path,
+          desc: "Display name, password." },
+        { id: :app,     label: "App",     icon: "sliders_horizontal",
+          path: admin_settings_preferences_app_path,
+          desc: "Cash tracking, hidden categories." },
+        { id: :llm,     label: "LLM",     icon: "sparkles",
+          path: admin_settings_preferences_llm_path,
+          desc: "AI provider, API key, connection test." }
+      ]
+    end
+
     def admin_nav_sections
       [
         {
@@ -36,7 +56,7 @@ module Admin
         {
           title: "Settings",
           items: [
-            { name: "Preferences", path: edit_admin_settings_preferences_path, icon: "settings" },
+            { name: "Preferences", path: admin_settings_preferences_path, icon: "settings" },
             { name: "TPP Credentials", path: admin_settings_tpp_credentials_path, icon: "file_text" },
             { name: "Bank Connections", path: admin_settings_bank_connections_path, icon: "package" },
             { name: "Bank Accounts", path: admin_settings_bank_accounts_path, icon: "dollar_sign" },

@@ -32,7 +32,7 @@ module Admin
 
     def create
       unless current_user.llm_setting&.configured?
-        redirect_to edit_admin_settings_preferences_path,
+        redirect_to admin_settings_preferences_llm_path,
                     alert: "Configure an LLM provider in Preferences before running enrichment."
         return
       end
