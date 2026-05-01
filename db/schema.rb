@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_30_230000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_01_112131) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -123,6 +123,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_230000) do
     t.index ["user_id"], name: "index_categories_on_user_id"
   end
 
+  create_table "llm_settings", force: :cascade do |t|
+    t.text "api_key", null: false
+    t.datetime "created_at", null: false
+    t.text "last_test_error"
+    t.datetime "last_tested_at"
+    t.string "model"
+    t.string "provider", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_llm_settings_on_user_id", unique: true
+  end
+
   create_table "manual_transactions", force: :cascade do |t|
     t.bigint "amount_cents", null: false
     t.bigint "bank_account_id", null: false
@@ -211,7 +223,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_230000) do
     t.string "subject_type"
     t.jsonb "summary", default: {}, null: false
     t.string "trigger", default: "manual", null: false
-    t.bigint "triggered_by_user_id"
+    t.bigint "triggered_by_user_id", null: false
     t.datetime "updated_at", null: false
     t.index ["created_at"], name: "index_operation_runs_on_created_at"
     t.index ["kind", "status"], name: "index_operation_runs_on_kind_and_status"
@@ -309,6 +321,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_230000) do
   add_foreign_key "bank_transactions", "bank_accounts"
   add_foreign_key "categories", "categories", column: "parent_id"
   add_foreign_key "categories", "users"
+  add_foreign_key "llm_settings", "users"
   add_foreign_key "manual_transactions", "bank_accounts"
   add_foreign_key "manual_transactions", "bank_transactions", column: "linked_bank_transaction_id"
   add_foreign_key "manual_transactions", "users", column: "created_by_user_id"

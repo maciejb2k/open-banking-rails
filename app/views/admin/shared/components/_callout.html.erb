@@ -1,22 +1,22 @@
 <%# locals: (variant: :info, title: nil, message: nil) %>
 <%# Static, non-dismissible inline alert. Block content overrides message:. %>
-<%# For dismissible flash, use admin/shared/_flash.html.erb. %>
+<%# Structure deliberately mirrors _flash.html.erb (single <p> inside a
+<%# flex container) so vertical centering matches. Stacked title+message
+<%# in a wrapper div breaks centering — keep it flat. %>
 <%
   variants = {
-    info: "border-info/30 bg-info/5 text-info",
-    warning: "border-warning/30 bg-warning/5 text-warning",
-    destructive: "border-destructive/30 bg-destructive/5 text-destructive",
-    success: "border-success/30 bg-success/5 text-success"
+    info: "border-info/30 bg-info/10 text-info",
+    warning: "border-warning/30 bg-warning/10 text-warning",
+    destructive: "border-destructive/30 bg-destructive/10 text-destructive",
+    success: "border-success/30 bg-success/10 text-success"
   }
   cls = variants.fetch(variant.to_sym, variants[:info])
+  has_body = block_given? || message.present?
 %>
-<div class="rounded-lg border p-3 <%= cls %>">
-  <% if title %>
-    <p class="text-sm font-medium"><%= title %></p>
-  <% end %>
-  <% if block_given? %>
-    <div class="text-xs<%= " mt-1" if title %>"><%= yield %></div>
-  <% elsif message %>
-    <p class="text-xs<%= " mt-1" if title %>"><%= message %></p>
-  <% end %>
+<div class="flex items-center gap-3 rounded-xl border px-4 py-3 text-sm <%= cls %>">
+  <p>
+    <% if title %><span class="font-medium"><%= title %></span><% end %>
+    <% if title && has_body %> — <% end %>
+    <% if block_given? %><%= yield %><% elsif message %><%= message %><% end %>
+  </p>
 </div>

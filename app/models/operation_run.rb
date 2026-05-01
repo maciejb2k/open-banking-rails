@@ -18,6 +18,7 @@ class OperationRun < ApplicationRecord
     connection_refresh
     account_details_refresh
     llm_enrichment
+    llm_connection_test
   ].freeze
 
   STATUSES = %w[queued running succeeded partial failed].freeze
@@ -25,17 +26,23 @@ class OperationRun < ApplicationRecord
   TERMINAL_STATUSES = %w[succeeded partial failed].freeze
 
   belongs_to :subject, polymorphic: true, optional: true
-  belongs_to :triggered_by_user, class_name: "User", optional: true
+  belongs_to :triggered_by_user, class_name: "User"
 
   validates :kind,    presence: true, inclusion: { in: KINDS }
   validates :status,  presence: true, inclusion: { in: STATUSES }
   validates :trigger, presence: true, inclusion: { in: TRIGGERS }
 
+  # Kinds that have a show page subscribing to the per-run Turbo Stream.
+  # Other kinds (e.g. synchronous tests run inline from a controller) don't
+  # need broadcasts — and broadcasting without a `_run_progress` partial
+  # just enqueues failing render jobs.
+  STREAMED_KINDS = %w[transaction_sync llm_enrichment].freeze
+
   # Live progress to the run show page. Each `update!` (the job calls one
   # after every account synced) re-renders _run_progress.html.erb in place.
   # Stream channel is per-run so multiple admins watching different runs
   # don't cross-talk.
-  after_update_commit :broadcast_progress
+  after_update_commit :broadcast_progress, if: -> { STREAMED_KINDS.include?(kind) }
 
   scope :recent,        -> { order(created_at: :desc) }
   scope :running,       -> { where(status: "running") }

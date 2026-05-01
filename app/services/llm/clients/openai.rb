@@ -10,16 +10,13 @@ module Llm
     class OpenAI < Llm::Client
       MAX_RETRIES = 4
 
-      def initialize(model: nil)
-        @model = model || ENV.fetch("LLM_MODEL", "gpt-4o-mini")
-      end
-
       def structured(system_prompt:, user_prompt:, schema:)
         attempts = 0
         begin
-          chat = RubyLLM.chat(model: @model)
-                        .with_instructions(system_prompt)
-                        .with_schema(schema)
+          chat = ruby_llm_context
+                   .chat(model: @model)
+                   .with_instructions(system_prompt)
+                   .with_schema(schema)
           parse_content(chat.ask(user_prompt))
         rescue RubyLLM::RateLimitError => e
           attempts += 1

@@ -10,14 +10,11 @@ module Llm
     # we get back a parsed Hash, not free-form text, so callers don't need
     # to handle markdown fences or hallucinated prose.
     class Gemini < Llm::Client
-      def initialize(model: nil)
-        @model = model || ENV.fetch("LLM_MODEL", "gemini-2.5-flash")
-      end
-
       def structured(system_prompt:, user_prompt:, schema:)
-        chat = RubyLLM.chat(model: @model)
-                      .with_instructions(system_prompt)
-                      .with_schema(schema)
+        chat = ruby_llm_context
+                 .chat(model: @model)
+                 .with_instructions(system_prompt)
+                 .with_schema(schema)
 
         response = chat.ask(user_prompt)
         parse_content(response)

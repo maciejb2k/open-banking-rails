@@ -81,6 +81,8 @@ Rails.application.routes.draw do
 
       resource :preferences, only: %i[edit update] do
         patch :update_password
+        patch :update_llm
+        post  :test_llm
       end
 
       resources :tpp_credentials do

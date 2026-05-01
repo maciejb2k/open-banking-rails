@@ -17,8 +17,10 @@
   <% unless @api_key_set %>
     <%= render "admin/shared/components/callout",
           variant: :warning,
-          title: "No API key configured",
-          message: "Set OPENAI_API_KEY in .env and restart the server." %>
+          title: "No LLM provider configured" do %>
+      To run enrichment, set a provider and API key in
+      <%= link_to "Preferences", edit_admin_settings_preferences_path, class: "underline" %>.
+    <% end %>
   <% end %>
 
   <%# Custom: stat-with-explanation list. stat_card requires change/trend %>

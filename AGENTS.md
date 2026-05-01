@@ -4,6 +4,23 @@ Guide for agents working on this codebase. Add a new section per area as
 conventions emerge — don't pad sections with content that isn't established
 yet.
 
+## Language
+
+**UI copy is always English. No exceptions.** Labels, buttons, hints, flash
+messages, callout titles, validation copy, page titles, empty states,
+controller-rendered alerts/notices — all English. Even if surrounding
+features were authored in another language by mistake, new code is
+English and old code gets translated when you touch it.
+
+User-supplied data (transaction titles, merchant names, notes, category
+names typed by the user, prompts sent to the LLM) is whatever language
+the user wrote it in — that's their choice and not something to
+"normalize." Render it as-is. Same for LLM prompts where the model's
+behavior is tuned for a specific language: leave them alone.
+
+The boundary is "did the developer write this string, or did the user /
+model?" Developer strings → English. Everything else → don't touch.
+
 ## Admin UI
 
 Read before touching `app/views/admin/`. Goal: keep the panel consistent and

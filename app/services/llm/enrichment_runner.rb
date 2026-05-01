@@ -26,9 +26,16 @@ module Llm
       @user             = user
       @scope            = scope || default_scope
       @limit            = limit
-      @client           = client || Llm::Client.default
+      # Client resolved lazily — the index action instantiates the runner
+      # purely to inspect groups (build_groups), and we don't want that to
+      # raise NotConfiguredError when LLM hasn't been set up yet.
+      @client_override  = client
       @throttle_seconds = throttle_seconds
       @on_batch         = on_batch
+    end
+
+    def client
+      @client ||= @client_override || Llm::Client.for(user: @user)
     end
 
     def call
@@ -43,7 +50,7 @@ module Llm
       batches.each_with_index do |batch, batch_idx|
         batch_auto = batch_pending = batch_skipped = 0
         batch_errors = []
-        suggester = Llm::MerchantSuggester.new(user: @user, items: batch, client: @client)
+        suggester = Llm::MerchantSuggester.new(user: @user, items: batch, client: client)
 
         begin
           suggestions = suggester.call
@@ -221,7 +228,7 @@ module Llm
         kind:             allowed_kind(suggestion.merchant_kind),
         source:           merchant.persisted? ? merchant.source : "llm",
         confidence:       suggestion.confidence,
-        model:            ENV.fetch("LLM_MODEL", "gemini-2.5-flash"),
+        model:            client.model,
         default_category: @user.categories.find_by(slug: suggestion.category_slug) || @user.categories.find_by(slug: "uncategorized"),
         notes:            [ merchant.notes, suggestion.reasoning ].compact_blank.uniq.join("\n").presence
       )
@@ -237,7 +244,7 @@ module Llm
       rule.user       = @user
       rule.source     = "llm"
       rule.confidence = suggestion.confidence
-      rule.model      = ENV.fetch("LLM_MODEL", "gemini-2.5-flash")
+      rule.model      = client.model
       rule.priority   = 50
       rule.enabled    = suggestion.confident?(AUTO_APPROVE_THRESHOLD)
       rule.save!

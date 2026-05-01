@@ -62,7 +62,7 @@ module Llm
     def initialize(user:, items:, client: nil)
       @user   = user
       @items  = items
-      @client = client || Llm::Client.default
+      @client = client || Llm::Client.for(user: user)
     end
 
     def call

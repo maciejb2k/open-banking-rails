@@ -37,14 +37,16 @@ module Analytics
 
     def initialize(filter:, client: nil)
       @filter = filter
-      @client = client || Llm::Client.default
+      @client = client
     end
 
     def call
       facts = FactsBuilder.new(filter: @filter).call
       return Result.new(text: "", facts: facts, status: :empty) if facts[:spend_total_pln].zero?
 
-      response = @client.structured(
+      client = @client || Llm::Client.for(user: @filter.user)
+
+      response = client.structured(
         system_prompt: system_prompt,
         user_prompt:   user_prompt(facts),
         schema:        SCHEMA
@@ -59,6 +61,8 @@ module Analytics
       end
 
       Result.new(text: text, facts: facts, status: :ok)
+    rescue Llm::Client::NotConfiguredError
+      Result.new(text: "", facts: nil, status: :empty)
     rescue Llm::Client::Error => e
       Rails.logger.warn("[Analytics::AiInsight] LLM error: #{e.message}")
       Result.new(text: "", facts: nil, status: :degraded, error_message: e.message)

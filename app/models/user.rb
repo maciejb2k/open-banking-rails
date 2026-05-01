@@ -17,6 +17,14 @@ class User < ApplicationRecord
   has_many :merchants,       dependent: :destroy
   has_many :merchant_rules,  dependent: :destroy
 
+  has_one :llm_setting, dependent: :destroy
+
+  # Audit log of every long-running operation the user triggered (sync, LLM
+  # enrichment, connection test). Cascade on delete — the FK is NOT NULL so
+  # without :destroy a user delete would be blocked by the constraint, and
+  # a vanished user's run history isn't useful on its own.
+  has_many :operation_runs, foreign_key: :triggered_by_user_id, dependent: :destroy
+
   # Always-on (no separate toggle). The act of selecting a category in
   # /admin/settings/preferences IS the hide trigger; the topbar
   # privacy_mode is orthogonal and broader (everything sensitive at once).

@@ -15,7 +15,8 @@ module Admin
       @suggestible_count  = merchantless_with_signal.count
       @group_count        = build_group_count
       @new_groups_count   = Llm::EnrichmentRunner.new(user: current_user).send(:build_groups, merchantless_with_signal).size
-      @api_key_set        = ENV["OPENAI_API_KEY"].present? || ENV["GEMINI_API_KEY"].present?
+      @llm_setting        = current_user.llm_setting
+      @api_key_set        = @llm_setting&.configured?
 
       @pending_merchants = current_user.merchants.where(source: "llm", approved_at: nil)
                                        .includes(:default_category, :merchant_rules)
@@ -30,8 +31,9 @@ module Admin
     end
 
     def create
-      unless ENV["OPENAI_API_KEY"].present? || ENV["GEMINI_API_KEY"].present?
-        redirect_to admin_llm_enrichments_path, alert: "OPENAI_API_KEY missing in ENV."
+      unless current_user.llm_setting&.configured?
+        redirect_to edit_admin_settings_preferences_path,
+                    alert: "Configure an LLM provider in Preferences before running enrichment."
         return
       end
 
