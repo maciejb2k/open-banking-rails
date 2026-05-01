@@ -528,4 +528,53 @@
       <% end %>
     </div>
   </div>
+
+  <%# ── Row 4: biggest single transactions ── %>
+  <% if @top_transactions.any? %>
+    <%
+      all_transactions_url = admin_bank_transactions_path(q: {
+        booking_date_gteq: @filter.period.from.iso8601,
+        booking_date_lteq: @filter.period.to.iso8601,
+        direction_eq: "debit",
+        s: "amount_cents desc"
+      })
+      biggest_actions = capture do %>
+        <%= link_to "See all", all_transactions_url,
+              class: "text-sm text-muted-foreground hover:text-foreground transition-colors" %>
+    <% end %>
+    <%= render "admin/shared/components/card",
+          title: "Biggest transactions",
+          subtitle: "top #{@top_transactions.size} · #{pluralize(@filter.period.length_days, 'day')} window",
+          actions: biggest_actions do %>
+      <%= render "admin/shared/components/data_table",
+            columns: [
+              { label: "Date",             width: "w-28" },
+              { label: "Merchant / title" },
+              { label: "Account" },
+              { label: "Amount",           align: :right }
+            ] do %>
+        <% @top_transactions.each do |tx| %>
+          <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors cursor-pointer"
+              onclick="window.location='<%= ledger_entry_path(tx) %>'">
+            <td class="px-4 py-3 font-mono text-xs whitespace-nowrap text-muted-foreground">
+              <%= tx.booking_date.strftime("%-d %b %Y") %>
+            </td>
+            <td class="px-4 py-3 max-w-xs truncate">
+              <% label = tx.merchant&.display.presence || tx.title.presence || tx.counterparty_name.presence || "—" %>
+              <span class="<%= sensitive_class %>"><%= label %></span>
+            </td>
+            <td class="px-4 py-3 text-xs text-muted-foreground <%= sensitive_class %>">
+              <%= tx.bank_account.display_name %>
+            </td>
+            <td class="px-4 py-3 text-right whitespace-nowrap">
+              <span class="font-semibold tabular-nums <%= sensitive_class %>">
+                <%= Money.new(tx.amount_cents, tx.currency).format(no_cents_if_whole: false, symbol: false) %>
+              </span>
+              <span class="text-muted-foreground text-xs ml-1"><%= tx.currency %></span>
+            </td>
+          </tr>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
 </div>

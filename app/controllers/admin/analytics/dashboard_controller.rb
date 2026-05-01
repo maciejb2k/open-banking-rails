@@ -46,6 +46,11 @@ module Admin
         # period. Reuses the breakdown rows (already have prev attached),
         # so the panel and the bar chart agree to the cent.
         @top_movers = ::Analytics::TopMovers.from_breakdown(@breakdown, limit: 5)
+
+        @top_transactions = scope.spend
+                                 .includes(:merchant, :bank_account)
+                                 .order(amount_cents: :desc)
+                                 .limit(5)
       end
 
       private

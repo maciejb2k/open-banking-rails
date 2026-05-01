@@ -12,6 +12,7 @@
     { label: "30d",   days: 30  },
     { label: "60d",   days: 60  },
     { label: "90d",   days: 90  },
+    { label: "180d",  days: 180 },
     { label: "365d",  days: 365 }
   ]
   active_preset_days = presets.find { |p| p[:days] == filter.period.length_days }&.dig(:days)

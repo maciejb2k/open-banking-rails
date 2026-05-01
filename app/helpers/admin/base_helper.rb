@@ -144,6 +144,16 @@ module Admin
       end
     end
 
+    # URL to the source transaction detail page. LedgerEntry is a view —
+    # the two source types have separate admin surfaces.
+    def ledger_entry_path(entry)
+      if entry.source_type == "BankTransaction"
+        admin_bank_transaction_path(entry.source_id)
+      else
+        admin_cash_transaction_path(entry.source_id)
+      end
+    end
+
     # Compact age label for a sync timestamp: "4m" / "3h" / "2d".
     # Returns "never" when the timestamp is blank.
     def sync_age_label(synced_at)
