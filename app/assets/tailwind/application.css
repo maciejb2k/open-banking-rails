@@ -118,9 +118,19 @@
     user-select: none;
   }
 
-  /* :blur — bullets only (controller handles text replacement). Privacy
+  /* :blur / :mask — bullets only (controller handles text replacement). Privacy
      mode is intentionally all-or-nothing: no hover reveal, otherwise
-     screen-shares leak content the moment the cursor moves. */
+     screen-shares leak content the moment the cursor moves.
+
+     Pre-mask shield: until the controller swaps text to bullets and sets
+     `data-masked="1"`, hide the raw text via text-shadow. Without this,
+     Turbo navigation paints the new HTML for a frame before the
+     MutationObserver fires — leaking unredacted content. */
+  html.privacy-mode .sensitive:not(.sensitive--strong):not(.sensitive--redact):not([data-masked="1"]),
+  html.privacy-mode .sensitive:not(.sensitive--strong):not(.sensitive--redact):not([data-masked="1"]) * {
+    color: transparent !important;
+    text-shadow: 0 0 8px var(--color-foreground);
+  }
 
   /* :strong — text-only blur via text-shadow. Layout (border/bg/padding)
      stays sharp; only the characters get smudged. JSON viewers / payloads. */
