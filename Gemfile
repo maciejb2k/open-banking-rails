@@ -13,41 +13,27 @@ gem "bootsnap", require: false
 gem "image_processing", "~> 1.2"
 gem "redis", "~> 5.0"
 
-# Authentication
 gem "devise"
 
-# Open Banking integration (Enable Banking adapter)
 gem "faraday", "~> 2.9"
 gem "jwt", "~> 2.8"
 
-# Money handling — encapsulates (amount, currency) pair with proper precision
-# (cents under the hood, currency-aware formatting/arithmetic).
 gem "money-rails", "~> 3.0"
 
-# Admin / pagination / search / audit
 gem "pagy", "~> 43.3"
 gem "rack-cors"
 gem "ransack"
 gem "paper_trail"
 
-# Free-form tags on TransactionEnrichment (Layer 3 of category model).
-# Layer 1 (hierarchy) uses PG `ltree` directly — see Category model.
 gem "gutentag", "~> 3.0"
 
-# Versioned database views — backs the `ledger_entries` PG view that unifies
-# BankTransaction + ManualTransaction for analytics. See AGENTS.md
-# "Analytics data access".
 gem "scenic", "~> 1.8"
 
-# Background jobs
 gem "sidekiq", "~> 7.0"
 gem "connection_pool", "~> 2.4"
 
-# LLM client — multi-provider abstraction (we use Gemini Flash on free tier;
-# swap providers in config/initializers/ruby_llm.rb).
 gem "ruby_llm", "~> 1.10"
 
-# Logging / observability
 gem "lograge"
 gem "opentelemetry-sdk", "~> 1.10"
 gem "opentelemetry-instrumentation-all", "~> 0.91.0"
