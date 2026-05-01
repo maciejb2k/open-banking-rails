@@ -48,8 +48,8 @@ module Admin
         if @user.update(app_params)
           notice = "App settings saved."
           if !was_tracking && @user.track_cash?
-            stats = enable_cash_tracking!(@user)
-            notice += " Created a PLN wallet and linked #{stats[:linked]} historical ATM withdrawal(s)."
+            result = Cash::Tracking.enable!(user: @user)
+            notice += " Created a #{result.wallet.currency} wallet and linked #{result.linked} historical ATM withdrawal(s)."
           end
           redirect_to admin_settings_preferences_app_path, notice: notice
         else
@@ -88,54 +88,11 @@ module Admin
                       alert: "Save a provider and API key first." and return
         end
 
-        run = OperationRun.create!(
-          kind:              "llm_connection_test",
-          status:            "running",
-          trigger:           "manual",
-          started_at:        Time.current,
-          triggered_by_user: current_user,
-          subject:           current_user,
-          params:            { "provider" => @llm_setting.provider, "model" => @llm_setting.effective_model },
-          summary:           {}
-        )
-
-        # Embed the current timestamp in the prompt so the I/O panel proves
-        # this isn't a cached response — and echo it back via the schema so
-        # a misbehaving provider that returns canned JSON is visible.
-        sent_at        = Time.current.iso8601
-        system_prompt  = "You are a connectivity probe. Reply with exactly the JSON {\"ok\": true, \"echo\": \"<the sent_at value from the user message>\"}."
-        user_prompt    = "ping sent_at=#{sent_at}"
-        schema = {
-          type: "object", additionalProperties: false,
-          required: %w[ok echo],
-          properties: {
-            ok:   { type: "boolean" },
-            echo: { type: "string", description: "Echo of the sent_at timestamp from the user message." }
-          }
-        }
-
-        request_payload = {
-          "provider"      => @llm_setting.provider,
-          "model"         => @llm_setting.effective_model,
-          "system_prompt" => system_prompt,
-          "user_prompt"   => user_prompt,
-          "schema"        => schema
-        }
-
-        begin
-          response = @llm_setting.build_client.structured(
-            system_prompt: system_prompt, user_prompt: user_prompt, schema: schema
-          )
-          run.succeed!(summary: { "request" => request_payload, "response" => response })
-          @llm_setting.record_test_success!
-          redirect_to admin_settings_preferences_llm_path,
-                      notice: "Connection OK — #{@llm_setting.provider_label} (#{@llm_setting.effective_model})."
-        rescue Llm::Client::Error => e
-          run.fail!(error: e.message, summary: { "request" => request_payload, "response" => nil })
-          @llm_setting.record_test_failure!(e.message) if @llm_setting.persisted?
-          redirect_to admin_settings_preferences_llm_path,
-                      alert: "Test failed: #{e.message}"
-        end
+        result = Llm::ConnectionTestRunner.call(user: current_user)
+        redirect_to admin_settings_preferences_llm_path,
+                    notice: "Connection OK — #{result.setting.provider_label} (#{result.setting.effective_model})."
+      rescue Llm::ConnectionTestRunner::Failed => e
+        redirect_to admin_settings_preferences_llm_path, alert: "Test failed: #{e.message}"
       end
 
       private
@@ -172,18 +129,6 @@ module Admin
 
       def llm_params
         params.require(:llm_setting).permit(:provider, :api_key, :model)
-      end
-
-      def enable_cash_tracking!(user)
-        Cash::WalletResolver.call(user: user, currency: "PLN")
-
-        linked = 0
-        BankTransaction.for_user(user)
-                       .where(payment_method: "blik_atm", direction: "debit")
-                       .find_each do |tx|
-          linked += 1 if Cash::AtmWithdrawalLinker.link!(tx)
-        end
-        { linked: linked }
       end
     end
   end

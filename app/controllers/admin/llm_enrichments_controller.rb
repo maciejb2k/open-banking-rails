@@ -11,10 +11,15 @@ module Admin
 
     def index
       user_enrichments = TransactionEnrichment.for_user(current_user)
+      enrichable_scope = Llm::EnrichableQuery.scope(user: current_user)
+
       @merchantless_count = user_enrichments.merchantless.count
-      @suggestible_count  = merchantless_with_signal.count
-      @group_count        = build_group_count
-      @new_groups_count   = Llm::EnrichmentRunner.new(user: current_user).send(:build_groups, merchantless_with_signal).size
+      @suggestible_count  = enrichable_scope.count
+      @group_count        = build_group_count(enrichable_scope)
+      # `@new_groups_count <= @group_count` — same scope, but excludes
+      # groups already covered by an existing MerchantRule (those won't be
+      # sent to the LLM on the next run).
+      @new_groups_count   = Llm::EnrichableQuery.groups(user: current_user, scope: enrichable_scope).size
       @llm_setting        = current_user.llm_setting
       @api_key_set        = @llm_setting&.configured?
 
@@ -57,14 +62,12 @@ module Admin
       OperationRun.where(kind: KIND, triggered_by_user_id: current_user.id)
     end
 
-    # Defer to the runner so the dashboard always shows what an actual run
-    # would process. Avoids drifting filters between display and execution.
-    def merchantless_with_signal
-      Llm::EnrichmentRunner.new(user: current_user).send(:default_scope)
-    end
-
-    def build_group_count
-      keys = merchantless_with_signal.pluck(:title, :counterparty_name).map do |t, cp|
+    # Distinct (normalized_title, counterparty_name) signatures across
+    # the enrichable scope — every group costs ~1 LLM call so this drives
+    # the cost preview. Counts ALL groups, including ones already covered
+    # by a MerchantRule; pair with @new_groups_count for the delta.
+    def build_group_count(scope)
+      keys = scope.pluck(:title, :counterparty_name).map do |t, cp|
         [ Enrichment::TitleNormalizer.call(t), cp.to_s ]
       end
       keys.uniq.count { |k| k != [ "", "" ] }

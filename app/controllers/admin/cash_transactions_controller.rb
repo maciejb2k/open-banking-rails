@@ -43,7 +43,10 @@ module Admin
     end
 
     def create
-      result = Cash::TransactionCreator.call(user: current_user, params: cash_params)
+      result = Cash::TransactionCreator.call(
+        user: current_user,
+        input: Cash::TransactionCreator::Input.new(**cash_params.to_h.symbolize_keys)
+      )
       if result.success?
         redirect_to admin_cash_transactions_path,
                     notice: t_kind(result.transaction, action: :created)
@@ -68,7 +71,10 @@ module Admin
     end
 
     def update
-      result = Cash::TransactionUpdater.call(transaction: @cash_transaction, params: cash_params)
+      result = Cash::TransactionUpdater.call(
+        transaction: @cash_transaction,
+        input: Cash::TransactionUpdater::Input.new(**cash_params.to_h.symbolize_keys.except(:currency))
+      )
       if result.success?
         redirect_to admin_cash_transactions_path,
                     notice: t_kind(@cash_transaction, action: :updated)

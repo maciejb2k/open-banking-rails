@@ -70,10 +70,9 @@ module Admin
       when "merchantless"
         merchantless
       when "llm_ready"
-        Llm::EnrichmentRunner.new(user: current_user).send(:default_scope).where(id: merchantless.select(:id))
+        Llm::EnrichableQuery.scope(user: current_user).where(id: merchantless.select(:id))
       when "no_llm_signal"
-        ready_ids = Llm::EnrichmentRunner.new(user: current_user).send(:default_scope).select(:id)
-        merchantless.where.not(id: ready_ids)
+        merchantless.where.not(id: Llm::EnrichableQuery.scope(user: current_user).select(:id))
       else
         scope
       end

@@ -24,11 +24,12 @@ module Llm
 
     def initialize(user:, scope: nil, limit: DEFAULT_LIMIT, client: nil, throttle_seconds: 2, on_batch: nil)
       @user             = user
-      @scope            = scope || default_scope
+      @scope            = scope
       @limit            = limit
-      # Client resolved lazily — the index action instantiates the runner
-      # purely to inspect groups (build_groups), and we don't want that to
-      # raise NotConfiguredError when LLM hasn't been set up yet.
+      # Client resolved lazily — historically callers instantiated the
+      # runner just to introspect groups; today that path goes through
+      # EnrichableQuery directly, but lazy client resolution still makes
+      # the runner safe to construct without an LLM provider configured.
       @client_override  = client
       @throttle_seconds = throttle_seconds
       @on_batch         = on_batch
@@ -42,7 +43,7 @@ module Llm
       auto = pending = skipped = 0
       errors = []
 
-      samples = build_groups(@scope).first(@limit).map { |_sig, sample| sample }
+      samples = EnrichableQuery.new(@user).groups(scope: @scope).first(@limit).map { |_sig, sample| sample }
       batches = samples.each_slice(Llm::MerchantSuggester::BATCH_SIZE).to_a
 
       Rails.logger.info("[Llm::EnrichmentRunner] #{samples.size} groups → #{batches.size} batch calls (auto-approve ≥ #{AUTO_APPROVE_THRESHOLD})")
@@ -99,58 +100,6 @@ module Llm
 
     private
 
-    # Payment methods where the concept of "merchant" doesn't apply:
-    # BLIK to a phone is a transfer between people, ATM is a cash withdrawal,
-    # internal transfers / topups move money within your own accounts, fees
-    # are bank charges. Sending these to the LLM produces noise at best
-    # ("John Doe is a merchant" — nope, that's the user) and bad rules
-    # at worst (counterparty_name=exact lockouts that catch innocent strangers).
-    NON_MERCHANT_PAYMENT_METHODS = %w[blik_p2p blik_atm internal_transfer topup fee].freeze
-
-    # Anything without a merchant (source = unmatched OR system_fallback) AND
-    # that could plausibly have one. We exclude:
-    #
-    #   1. Payment methods that aren't merchant-shaped (see constant above).
-    #   2. Rows already resolved as `counterparty_kind: "self"` — own-account
-    #      moves can't have a merchant, and the LLM would happily propose
-    #      "John Doe" as one. counterparty_kind is set at sync time by
-    #      Banking::CounterpartyResolver, so this single column replaces the
-    #      old per-row IBAN + holder-name re-derivation.
-    def default_scope
-      BankTransaction.for_user(@user)
-        .joins(:enrichment)
-        .merge(TransactionEnrichment.merchantless)
-        .where("(title IS NOT NULL AND title <> '' AND title !~ '^[0-9]+$') OR (counterparty_name IS NOT NULL AND counterparty_name <> '')")
-        .where.not(payment_method: NON_MERCHANT_PAYMENT_METHODS)
-        .where.not(counterparty_kind: "self")
-    end
-
-    # Build groups of unmatched transactions and skip those already covered
-    # by an existing MerchantRule (regardless of enabled/source) — sending
-    # them to the LLM would yield the same suggestion and waste tokens.
-    # User must accept the existing pending merchant to release the group.
-    def build_groups(scope)
-      rules = @user.merchant_rules.to_a
-
-      scope.find_each.each_with_object({}) do |tx, acc|
-        key = [ Enrichment::TitleNormalizer.call(tx.title), tx.counterparty_name.to_s ]
-        next if key == [ "", "" ]
-        next if covered_by_existing_rule?(rules, tx)
-        acc[key] ||= { title: tx.title, counterparty_name: tx.counterparty_name }
-      end
-    end
-
-    def covered_by_existing_rule?(rules, tx)
-      rules.any? do |r|
-        value = case r.field
-                when "title"             then tx.title
-                when "counterparty_name" then tx.counterparty_name
-                when "counterparty_iban" then tx.counterparty_iban
-                end
-        value.present? && r.matches?(value)
-      end
-    end
-
     def process_suggestion(suggestion, sample)
       return :skipped if suggestion.merchant_name.blank? || suggestion.confidence.zero?
 
@@ -180,9 +129,9 @@ module Llm
     #      instead of persisting a useless disabled rule.
     def enforce_pattern_matches(suggestion, sample)
       sample_value = case suggestion.rule_field
-                     when "title"             then sample[:title]
-                     when "counterparty_name" then sample[:counterparty_name]
-                     end
+      when "title"             then sample[:title]
+      when "counterparty_name" then sample[:counterparty_name]
+      end
       return nil if sample_value.blank?
 
       llm_probe = MerchantRule.new(

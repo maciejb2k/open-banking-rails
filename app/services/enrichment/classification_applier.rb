@@ -17,6 +17,19 @@ module Enrichment
   #
   # Returns Result.new(success:, message:).
   class ClassificationApplier
+    # Carries the whole user edit payload — what classification to write,
+    # what propagation mode, and (for :create_rule) the seed rule. The
+    # controller resolves merchant/category to AR records before
+    # constructing this; raw ids never reach the service.
+    Input = Struct.new(
+      :mode, :merchant, :category, :rule_field, :rule_kind, :rule_pattern,
+      keyword_init: true
+    ) do
+      def normalized_mode      = mode.to_sym
+      def normalized_rule_kind = (rule_kind.presence || "contains").to_s
+      def normalized_rule_field = (rule_field.presence || "title").to_s
+    end
+
     Result = Struct.new(:success, :message, keyword_init: true) do
       def success? = success
     end
@@ -25,31 +38,27 @@ module Enrichment
 
     def self.call(...) = new(...).call
 
-    def initialize(transaction:, merchant:, category:, mode:, rule_field: nil, rule_pattern: nil, rule_kind: "contains", actor: nil)
-      @transaction  = transaction
-      @merchant     = merchant
-      @category     = category
-      @mode         = mode.to_sym
-      @rule_field   = rule_field
-      @rule_pattern = rule_pattern
-      @rule_kind    = rule_kind
-      @actor        = actor
+    def initialize(transaction:, input:, actor:)
+      @transaction = transaction
+      @input       = input
+      @actor       = actor
     end
 
     def call
-      return failure("Nieznany tryb propagacji: #{@mode}") unless PROPAGATION_MODES.include?(@mode)
-      return failure("Wybierz sprzedawcę") if @merchant.nil? && @mode != :only_this
-      return failure("Wybierz wzorzec") if @mode == :create_rule && @rule_pattern.blank?
+      mode = @input.normalized_mode
+      return failure("Nieznany tryb propagacji: #{mode}") unless PROPAGATION_MODES.include?(mode)
+      return failure("Wybierz sprzedawcę") if @input.merchant.nil? && mode != :only_this
+      return failure("Wybierz wzorzec") if mode == :create_rule && @input.rule_pattern.blank?
 
       ActiveRecord::Base.transaction do
-        case @mode
+        case mode
         when :only_this        then apply_only_this
         when :all_for_merchant then apply_all_for_merchant
         when :create_rule      then apply_create_rule
         end
       end
 
-      success("Zastosowano: #{label_for_mode(@mode)}")
+      success("Zastosowano: #{label_for_mode(mode)}")
     rescue ActiveRecord::RecordInvalid => e
       failure(e.record.errors.full_messages.join(", "))
     end
@@ -58,9 +67,9 @@ module Enrichment
 
     def apply_only_this
       enrichment = @transaction.enrichment || @transaction.build_enrichment
-      enrichment.merchant            = @merchant
-      enrichment.category            = @category
-      enrichment.category_overridden = @category.present?
+      enrichment.merchant            = @input.merchant
+      enrichment.category            = @input.category
+      enrichment.category_overridden = @input.category.present?
       enrichment.source              = "manual"
       enrichment.merchant_rule       = nil
       enrichment.confidence          = nil
@@ -73,12 +82,12 @@ module Enrichment
       # Update merchant default category (if user picked one) so every
       # transaction enriched against this merchant inherits it through
       # `effective_category` — no DB write per transaction needed.
-      @merchant.update!(default_category: @category) if @category
+      @input.merchant.update!(default_category: @input.category) if @input.category
 
       # Re-enrich this transaction against the rule set so it tracks the
       # merchant going forward (clears any prior `manual` lock).
       enrichment = @transaction.enrichment || @transaction.build_enrichment
-      enrichment.merchant            = @merchant
+      enrichment.merchant            = @input.merchant
       enrichment.category            = nil
       enrichment.category_overridden = false
       enrichment.source              = "user_rule"
@@ -88,10 +97,10 @@ module Enrichment
 
     def apply_create_rule
       rule = @actor.merchant_rules.create!(
-        merchant: @merchant,
-        kind: @rule_kind,
-        field: @rule_field || "title",
-        pattern: @rule_pattern,
+        merchant: @input.merchant,
+        kind: @input.normalized_rule_kind,
+        field: @input.normalized_rule_field,
+        pattern: @input.rule_pattern,
         priority: 100,
         source: "user",
         enabled: true,
@@ -99,7 +108,9 @@ module Enrichment
         approved_by: @actor
       )
       # Optionally update merchant default if user picked a category.
-      @merchant.update!(default_category: @category) if @category && @merchant.default_category_id != @category.id
+      if @input.category && @input.merchant.default_category_id != @input.category.id
+        @input.merchant.update!(default_category: @input.category)
+      end
 
       Enrichment::TransactionEnricher.rebuild!(user: @actor)
       rule

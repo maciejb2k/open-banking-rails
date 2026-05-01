@@ -11,6 +11,49 @@ module Cash
   # as untouchable. If only a merchant was picked, the effective category
   # falls back to merchant.default_category at read time.
   class TransactionCreator
+    # Explicit boundary between the controller (raw form params) and the
+    # service. Carries every attribute the creator can consume; helper
+    # methods normalize/parse values that arrive as strings from a form
+    # but as Date / Integer from internal callers.
+    Input = Struct.new(
+      :amount, :currency, :direction, :booking_date, :transaction_date,
+      :title, :note, :counterparty_name, :merchant_id, :category_id,
+      :payment_method,
+      keyword_init: true
+    ) do
+      def normalized_currency
+        currency.to_s.strip.upcase.presence || "PLN"
+      end
+
+      def normalized_direction      = direction.presence || "debit"
+      def normalized_payment_method = payment_method.presence || "cash"
+
+      # Parses the form-supplied amount string ("12,50") into integer cents
+      # under the given currency. Returns nil for blank input — the caller
+      # passes that straight through and lets model validation surface a
+      # presence error. ArgumentError from BigDecimal collapses to nil for
+      # the same reason.
+      def amount_cents_in(currency_iso)
+        raw = amount.to_s.strip.tr(",", ".")
+        return nil if raw.blank?
+        Money.from_amount(BigDecimal(raw), currency_iso).cents
+      rescue ArgumentError
+        nil
+      end
+
+      def parsed_booking_date     = parse_date(booking_date) || Date.current
+      def parsed_transaction_date = parse_date(transaction_date)
+
+      private
+
+      def parse_date(value)
+        return nil if value.blank?
+        value.is_a?(Date) ? value : Date.parse(value.to_s)
+      rescue Date::Error
+        nil
+      end
+    end
+
     Result = Struct.new(:success?, :transaction, :enrichment, :error_messages, keyword_init: true) do
       def error
         Array(error_messages).join(", ")
@@ -19,29 +62,29 @@ module Cash
 
     def self.call(...) = new(...).call
 
-    def initialize(user:, params:)
-      @user   = user
-      @params = params
+    def initialize(user:, input:)
+      @user  = user
+      @input = input
     end
 
     def call
-      currency = normalized_currency
+      currency = @input.normalized_currency
       wallet   = WalletResolver.call(user: @user, currency: currency)
 
       ActiveRecord::Base.transaction do
-        payment_method = @params[:payment_method].presence || "cash"
-        counterparty_name = @params[:counterparty_name].presence
+        payment_method    = @input.normalized_payment_method
+        counterparty_name = @input.counterparty_name.presence
 
         tx = ManualTransaction.new(
           bank_account:      wallet,
-          amount_cents:      parsed_amount_cents(currency),
+          amount_cents:      @input.amount_cents_in(currency),
           currency:          currency,
-          direction:         @params[:direction].presence || "debit",
+          direction:         @input.normalized_direction,
           status:            "booked",
-          booking_date:      parsed_date(@params[:booking_date]) || Date.current,
-          transaction_date:  parsed_date(@params[:transaction_date]),
-          title:             @params[:title].presence,
-          note:              @params[:note].presence,
+          booking_date:      @input.parsed_booking_date,
+          transaction_date:  @input.parsed_transaction_date,
+          title:             @input.title.presence,
+          note:              @input.note.presence,
           counterparty_name: counterparty_name,
           payment_method:    payment_method,
           counterparty_kind: Banking::CounterpartyResolver.call(
@@ -59,7 +102,7 @@ module Cash
           merchant:            resolve_merchant,
           category:            resolve_category,
           source:              "manual",
-          category_overridden: @params[:category_id].present?,
+          category_overridden: @input.category_id.present?,
           enriched_at:         Time.current
         )
         enrichment.save!
@@ -74,34 +117,14 @@ module Cash
 
     private
 
-    def normalized_currency
-      raw = @params[:currency].to_s.strip.upcase
-      raw.presence || "PLN"
-    end
-
-    def parsed_amount_cents(currency)
-      raw = @params[:amount].to_s.strip.tr(",", ".")
-      return nil if raw.blank?
-      Money.from_amount(BigDecimal(raw), currency).cents
-    rescue ArgumentError
-      nil
-    end
-
-    def parsed_date(value)
-      return nil if value.blank?
-      value.is_a?(Date) ? value : Date.parse(value.to_s)
-    rescue Date::Error
-      nil
-    end
-
     def resolve_merchant
-      return nil if @params[:merchant_id].blank?
-      @user.merchants.active.find_by(id: @params[:merchant_id])
+      return nil if @input.merchant_id.blank?
+      @user.merchants.active.find_by(id: @input.merchant_id)
     end
 
     def resolve_category
-      return nil if @params[:category_id].blank?
-      @user.categories.active.find_by(id: @params[:category_id])
+      return nil if @input.category_id.blank?
+      @user.categories.active.find_by(id: @input.category_id)
     end
   end
 end
