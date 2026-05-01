@@ -5,7 +5,6 @@
   <img src="https://img.shields.io/badge/rails_8-%23CC0000.svg?style=for-the-badge&logo=ruby-on-rails&logoColor=white" alt="Rails 8">
   <img src="https://img.shields.io/badge/hotwire-%234c4c4c.svg?style=for-the-badge&logo=hotwire&logoColor=white" alt="Hotwire">
   <img src="https://img.shields.io/badge/postgresql_17-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL 17">
-  <img src="https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white" alt="Redis">
   <img src="https://img.shields.io/badge/sidekiq-%23B1003E.svg?style=for-the-badge&logo=sidekiq&logoColor=white" alt="Sidekiq">
   <img src="https://img.shields.io/badge/opentelemetry-%23425CC7.svg?style=for-the-badge&logo=opentelemetry&logoColor=white" alt="OpenTelemetry">
   <img src="https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
@@ -19,56 +18,20 @@ arrive and sync on their own. Merchants and categories are inferred, not typed.
 
 ![Analytics](docs/screenshots/analytics.png)
 
----
-
 ## What you get
 
-<table>
-<tr>
-<td width="50%" valign="top">
-
-- 🏦 **Any EU bank**
-  - Personal accounts via Enable Banking (AISP).
-  - One-time PSD2 consent, no screen scraping.
-
-- 🔄 **Syncs itself**
-  - New transactions show up automatically.
-  - No CSV imports, no manual refresh.
-
-- 🏷️ **Categorizes itself**
-  - Rules cover the obvious cases, an LLM does the rest.
-  - Monthly AI summary, with every number verified.
-
-- 💶 **Tracks cash too**
-  - Manual entries for what your bank doesn't see.
-  - Same categories and dashboard as bank transactions.
-
-</td>
-<td width="50%" valign="top">
-
-- 🏠 **Self-hosted**
-  - Runs on your own server, VPS or VPN.
-  - No SaaS account, full observability built in.
-
-- 🔒 **Encrypted at rest**
-  - Sensitive columns encrypted in the database.
-  - LLM only sees normalized titles and counterparties.
-
-- 🕶️ **Privacy filter**
-  - One toggle blurs amounts, IBANs and names on the UI.
-  - Made for safe screen-shares and screenshots.
-
-- 📜 **Open source**
-  - MIT licensed.
-  - Fork it, modify it, deploy it yourself.
-
-</td>
-</tr>
-</table>
+| Feature                    | What it does                                                                                                |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 🏦 **Any EU bank**         | Personal accounts via Enable Banking (AISP). One-time PSD2 consent, no screen scraping.                     |
+| 🔄 **Syncs itself**        | New transactions show up automatically. No CSV imports, no manual refresh.                                  |
+| 🏷️ **Categorizes itself**  | Rules cover the obvious cases, an LLM does the rest. Monthly AI summary, with every number verified.        |
+| 💶 **Tracks cash too**     | Manual entries for what your bank doesn't see. Same categories and dashboard as bank transactions.          |
+| 🏠 **Self-hosted**         | Runs on your own server, VPS or VPN. No SaaS account, full observability built in.                          |
+| 🔒 **Encrypted at rest**   | Sensitive columns encrypted in the database. LLM only sees normalized titles and counterparties.            |
+| 🕶️ **Privacy filter**      | One toggle blurs amounts, IBANs and names on the UI. Made for safe screen-shares and screenshots.           |
+| 📜 **Open source**         | MIT licensed. Fork it, modify it, deploy it yourself.                                                       |
 
 ![Dashboard](docs/screenshots/hero.png)
-
----
 
 ## Tech stack
 
@@ -80,13 +43,11 @@ arrive and sync on their own. Merchants and categories are inferred, not typed.
 | Auth             | Devise                                                        |
 | Open Banking     | [Enable Banking](https://enablebanking.com/) (PSD2 AISP)      |
 | LLM              | [`ruby_llm`](https://github.com/crmne/ruby_llm) (OpenAI `gpt-4.1-mini` default) |
-| Money            | `money-rails` - Money Archetype |
+| Money            | `money-rails` → Money Archetype |
 | Search / paging  | Pagy, Ransack                                                 |
 | Observability    | OpenTelemetry SDK → Collector → Tempo / Loki / Prometheus / Grafana / Alertmanager |
 | Testing          | RSpec, FactoryBot, shoulda-matchers, SimpleCov                |
 | Security         | Brakeman, bundler-audit, ActiveRecord encryption              |
-
----
 
 ## Architecture
 
@@ -144,8 +105,6 @@ flowchart LR
     Apply --> DB[("Ledger entry")]
 ```
 
----
-
 ## Styleguide & Component Library
 
 No `ActiveAdmin`, no `Avo`. The admin panel is hand-rolled on Tailwind
@@ -157,8 +116,6 @@ and a fully responsive admin built on top of it.
 Browse `/admin/styleguide` for every component and its variants.
 
 ![Styleguide](docs/screenshots/styleguide.png)
-
----
 
 ## License
 
