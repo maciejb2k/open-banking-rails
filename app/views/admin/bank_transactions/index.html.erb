@@ -20,7 +20,7 @@
        params.dig(:q, :currency_eq).present?,
        params.dig(:q, :booking_date_gteq).present?,
        params.dig(:q, :booking_date_lteq).present?,
-       params.dig(:q, :title_or_counterparty_name_or_enrichment_merchant_name_or_enrichment_merchant_display_name_cont).present?,
+       params.dig(:q, :title_or_counterparty_name_or_enrichment_merchant_name_cont).present?,
        params[:merchant_id].present?,
        params[:category_id].present?,
        params[:payment_method].present?,
@@ -42,7 +42,7 @@
     <div class="flex items-center gap-3">
       <div class="relative flex-1 max-w-md">
         <%= render "admin/shared/icons/search", classes: "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" %>
-        <%= f.search_field :title_or_counterparty_name_or_enrichment_merchant_name_or_enrichment_merchant_display_name_cont,
+        <%= f.search_field :title_or_counterparty_name_or_enrichment_merchant_name_cont,
               placeholder: "Search title, counterparty or merchant…",
               class: "w-full rounded-lg border bg-card pl-9 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" %>
       </div>
@@ -84,9 +84,9 @@
                 label: "Date: #{params.dig(:q, :booking_date_gteq).presence || "…"} → #{params.dig(:q, :booking_date_lteq).presence || "…"}",
                 remove_path: admin_bank_transactions_path(q: params[:q].to_unsafe_h.except("booking_date_gteq", "booking_date_lteq")) %>
         <% end %>
-        <% if (val = params.dig(:q, :title_or_counterparty_name_or_enrichment_merchant_name_or_enrichment_merchant_display_name_cont)).present? %>
+        <% if (val = params.dig(:q, :title_or_counterparty_name_or_enrichment_merchant_name_cont)).present? %>
           <%= render "admin/shared/components/filter_chip",
-                remove_path: admin_bank_transactions_path(q: params[:q].to_unsafe_h.except("title_or_counterparty_name_or_enrichment_merchant_name_or_enrichment_merchant_display_name_cont")) do %>
+                remove_path: admin_bank_transactions_path(q: params[:q].to_unsafe_h.except("title_or_counterparty_name_or_enrichment_merchant_name_cont")) do %>
             Search: "<span class="<%= sensitive_class %>"><%= val %></span>"
           <% end %>
         <% end %>
@@ -193,13 +193,13 @@
       </div>
 
       <div class="space-y-1.5">
-        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Kategoria</label>
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Category</label>
         <select onchange="document.getElementById('ef_category_id').value = this.value"
                 class="form-input">
-          <option value="">Wszystkie kategorie</option>
-          <% current_user.categories.active.includes(:parent).order(:position, :name).each do |c| %>
+          <option value="">All categories</option>
+          <% current_user.categories.active.ordered.each do |c| %>
             <option value="<%= c.id %>" <%= 'selected' if params[:category_id].to_s == c.id.to_s %>>
-              <%= c.parent ? "#{c.parent.name} → #{c.name}" : c.name %>
+              <%= c.breadcrumb_names.join(" / ") %>
             </option>
           <% end %>
         </select>
@@ -304,12 +304,12 @@
             </td>
             <td class="px-4 py-3 text-xs">
               <% if cat %>
-                <div><%= hide_private_text(cat.name, cat) %></div>
-                <% if cat.parent %>
-                  <div class="text-muted-foreground"><%= hide_private_text(cat.parent.name, cat) %></div>
-                <% end %>
+                <%= render "admin/shared/components/category_breadcrumb", category: cat %>
               <% else %>
-                <span class="text-muted-foreground/50">—</span>
+                <%# No category at all = enrichment.source = "unmatched" or
+                    no enrichment row yet. Surface as a warning badge so
+                    the user knows it's actionable, not "intentionally blank". %>
+                <%= render "admin/shared/components/badge", text: "unclassified", variant: :warning %>
               <% end %>
             </td>
             <td class="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">

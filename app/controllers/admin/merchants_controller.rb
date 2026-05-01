@@ -9,7 +9,7 @@ module Admin
       scope = scope.active unless params[:show_archived] == "1"
       scope = scope.where(source: params[:source]) if params[:source].present?
       scope = scope.where(default_category_id: params[:category_id]) if params[:category_id].present?
-      scope = scope.where("name ILIKE ? OR display_name ILIKE ?", "%#{params[:q]}%", "%#{params[:q]}%") if params[:q].present?
+      scope = scope.where("name ILIKE ?", "%#{params[:q]}%") if params[:q].present?
 
       @pagy, @collection = pagy(:offset, scope.order(:name))
       # Counts the user's own transactions only — joining through the
@@ -77,7 +77,7 @@ module Admin
         if @merchant.default_category_id != old_default_category_id
           Rails.logger.info("[Merchant##{@merchant.id}] default_category #{old_default_category_id} -> #{@merchant.default_category_id} — propagated via effective_category")
         end
-        redirect_to admin_merchant_path(@merchant), notice: "Merchant updated."
+        redirect_to safe_return_to(default: admin_merchant_path(@merchant)), notice: "Merchant updated."
       else
         render :edit, status: :unprocessable_entity
       end
@@ -89,18 +89,18 @@ module Admin
                     alert: "Can't delete — this merchant has linked transactions. Archive it instead."
       else
         @merchant.destroy
-        redirect_to admin_merchants_path, notice: "Merchant deleted."
+        redirect_to safe_return_to(default: admin_merchants_path), notice: "Merchant deleted."
       end
     end
 
     def archive
       @merchant.update!(archived_at: Time.current)
-      redirect_to admin_merchants_path, notice: "Merchant archived."
+      redirect_to safe_return_to(default: admin_merchants_path), notice: "Merchant archived."
     end
 
     def unarchive
       @merchant.update!(archived_at: nil)
-      redirect_to admin_merchant_path(@merchant), notice: "Merchant restored."
+      redirect_to safe_return_to(default: admin_merchant_path(@merchant)), notice: "Merchant restored."
     end
 
     # Approves an LLM-proposed merchant: flips its rules to `enabled: true`,
@@ -114,7 +114,8 @@ module Admin
         end
       end
       Enrichment::TransactionEnricher.rebuild!(user: current_user)
-      redirect_back fallback_location: admin_merchant_path(@merchant), notice: "Approved — historical transactions re-classified."
+      redirect_to safe_return_to(default: admin_merchant_path(@merchant)),
+                  notice: "Approved — historical transactions re-classified."
     end
 
     private
@@ -124,7 +125,7 @@ module Admin
     end
 
     def merchant_params
-      params.expect(merchant: %i[name display_name slug kind default_category_id logo_url notes])
+      params.expect(merchant: %i[name slug kind default_category_id logo_url notes])
     end
 
     def generate_slug(name)

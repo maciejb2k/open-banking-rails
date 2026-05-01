@@ -16,8 +16,19 @@
 #
 # Rebuild rules: TransactionEnricher only touches rows where
 # source != 'manual' AND category_overridden = false.
+#
+# Layer 2/3 fields (orthogonal to merchant + category):
+#   * `recurring` (bool) + `recurrence_interval` (weekly/monthly/yearly)
+#     — populated by Recurrence::Detector. Treated as a property of the
+#     transaction, not a category — Spotify's enrichment lands in
+#     `lifestyle.entertainment.streaming` AND has `recurring: true`.
+#   * `tags` via gutentag — free-form labels for cross-cuts ("vacation 2026",
+#     "renovation"). Independent of category.
 class TransactionEnrichment < ApplicationRecord
+  Gutentag::ActiveRecord.call self
+
   SOURCES = %w[unmatched system_rule user_rule llm_rule llm_pending manual system_fallback].freeze
+  RECURRENCE_INTERVALS = %w[weekly monthly yearly].freeze
 
   belongs_to :enrichable, polymorphic: true
   belongs_to :merchant, optional: true
@@ -26,10 +37,13 @@ class TransactionEnrichment < ApplicationRecord
 
   validates :source, inclusion: { in: SOURCES }
   validates :confidence, numericality: { in: 0.0..1.0 }, allow_nil: true
+  validates :recurrence_interval, inclusion: { in: RECURRENCE_INTERVALS }, allow_nil: true
 
   scope :rebuildable, -> { where.not(source: "manual").where(category_overridden: false) }
   scope :unmatched,   -> { where(source: "unmatched") }
   scope :pending,     -> { where(source: "llm_pending") }
+  scope :recurring,   -> { where(recurring: true) }
+  scope :one_off,     -> { where(recurring: false) }
   # Anything without a merchant — covers `unmatched` AND `system_fallback`
   # (the latter has a generic payment-method category but no concrete seller).
   # This is the right scope for "what can the LLM still help with" — both
@@ -61,10 +75,10 @@ class TransactionEnrichment < ApplicationRecord
   def llm?        = source.in?(%w[llm_rule llm_pending])
 
   def self.ransackable_attributes(_auth_object = nil)
-    %w[id source merchant_id category_id]
+    %w[id source merchant_id category_id recurring recurrence_interval]
   end
 
   def self.ransackable_associations(_auth_object = nil)
-    %w[merchant category]
+    %w[merchant category tags]
   end
 end

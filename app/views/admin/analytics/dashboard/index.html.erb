@@ -43,12 +43,21 @@
   rest       = @breakdown.drop(20)
   rest_total = rest.sum(&:amount_cents)
 
-  category_labels = visible.map { |r| hide_private_text(r.category.name, r.category) }
+  # Path-based rows: each row has `path` (ltree string), `name` (rendered),
+  # `slug` (URL key), `amount_cents`, `prev_amount_cents`. The bar chart
+  # labels by name, drills by slug. Hiding a path subtree hides every
+  # row whose path starts with that prefix — covered by hide_private?
+  # (User#hides_category? walks the subtree).
+  hidden_for_row = ->(row) {
+    cat = current_user.categories.find_by(path: row.path)
+    cat && current_user.hides_category?(cat)
+  }
+  category_labels = visible.map { |r| hidden_for_row.call(r) ? "•••" : r.name }
   category_values = visible.map { |r| (r.amount_cents / 100.0).round(2) }
   category_metadata = visible.map { |r| { count: r.count, delta: r.delta_pct }.compact }
   category_urls   = visible.map { |r|
-    next nil if hide_private?(r.category)
-    r.category.slug ? admin_analytics_category_path(r.category.slug, @filter.to_query_params) : nil
+    next nil if hidden_for_row.call(r)
+    r.slug ? admin_analytics_category_path(r.slug, @filter.to_query_params) : nil
   }
 
   if rest.any?
@@ -298,6 +307,37 @@
     <% end %>
   </div>
 
+  <%# ── Layer 2 facets row — needs vs wants, recurring vs one-off ── %>
+  <%# Custom: paired stacked bars + share %. Each Pair has left/right
+      with amounts. If a 3rd two-axis facet shows up, extract _facet_pair. %>
+  <% if @spend_cents.positive? %>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <% [
+           [ "Essentials vs discretionary", @essential_pair, "of spend covers needs", :success, :info ],
+           [ "Recurring vs one-off",         @recurring_pair, "of spend repeats every cycle", :info, :muted ]
+         ].each do |title, pair, hint_suffix, left_tone, right_tone| %>
+        <%= render "admin/shared/components/card", title: title, subtitle: "#{pair.left_share_pct}% #{hint_suffix}" do %>
+          <div class="flex h-3 rounded-full overflow-hidden bg-muted">
+            <div class="bg-primary" style="width: <%= pair.left_share_pct %>%"></div>
+            <div class="bg-muted-foreground/30" style="width: <%= pair.right_share_pct %>%"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
+            <div>
+              <div class="text-xs text-muted-foreground"><%= pair.left.label %></div>
+              <div class="font-bold tabular-nums <%= sensitive_class %>"><%= pair.left.amount.format(no_cents_if_whole: true, symbol: false) %> zł</div>
+              <div class="text-xs text-muted-foreground"><%= pair.left_share_pct %>% · <%= pluralize(pair.left.count, "tx") %></div>
+            </div>
+            <div>
+              <div class="text-xs text-muted-foreground"><%= pair.right.label %></div>
+              <div class="font-bold tabular-nums <%= sensitive_class %>"><%= pair.right.amount.format(no_cents_if_whole: true, symbol: false) %> zł</div>
+              <div class="text-xs text-muted-foreground"><%= pair.right_share_pct %>% · <%= pluralize(pair.right.count, "tx") %></div>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+
   <%# ── Row 1: spend-by-category (rich bar) + cash-flow timeline ── %>
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
     <div class="lg:col-span-7">
@@ -316,10 +356,32 @@
             <canvas></canvas>
           </div>
         <% else %>
-          <%= render "admin/shared/components/empty_state",
-                title: "No spend",
-                description: "No spend in the selected period/accounts.",
-                icon: "shopping_cart" %>
+          <%# Distinguish three different "empty" states. Showing the same
+              "No spend in selected period" message for all of them is
+              misleading when raw debits exist — the user thinks the data
+              is missing. %>
+          <%
+            raw_debit_count = @filter.scope.debits.count
+            no_categories   = current_user.categories.active.empty?
+          %>
+          <% if no_categories %>
+            <%= render "admin/shared/components/empty_state",
+                  title: "Taxonomy not set up",
+                  description: "Categories haven't been seeded — analytics needs them to classify transactions. Use the banner above to load the baseline.",
+                  icon: "shopping_cart" %>
+          <% elsif raw_debit_count.positive? %>
+            <%= render "admin/shared/components/empty_state",
+                  title: "#{raw_debit_count} transactions awaiting classification",
+                  description: "Raw debits exist in the period but none have been mapped to a category yet. Run AI enrichment or classify them manually.",
+                  action_label: "Run AI enrichment",
+                  action_path: admin_llm_enrichments_path,
+                  icon: "shopping_cart" %>
+          <% else %>
+            <%= render "admin/shared/components/empty_state",
+                  title: "No spend",
+                  description: "No spending in the selected period/accounts.",
+                  icon: "shopping_cart" %>
+          <% end %>
         <% end %>
       <% end %>
     </div>
@@ -377,8 +439,9 @@
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <% @top_movers.each do |mover| %>
           <%
-            cat_hidden = hide_private?(mover.category)
-            href = (mover.category.slug && !cat_hidden) ? admin_analytics_category_path(mover.category.slug, @filter.to_query_params) : nil
+            mover_cat = current_user.categories.find_by(path: mover.path)
+            cat_hidden = mover_cat && current_user.hides_category?(mover_cat)
+            href = (mover.slug && !cat_hidden) ? admin_analytics_category_path(mover.slug, @filter.to_query_params) : nil
             tint = mover.direction == :up ? "bg-destructive/5 border-destructive/20" : "bg-success/5 border-success/20"
             delta_tone = mover.direction == :up ? "text-destructive" : "text-success"
             base_cls = "block rounded-lg border p-4 transition-colors #{tint} #{href ? 'hover:bg-muted/50 cursor-pointer' : ''}"
@@ -388,7 +451,7 @@
           %>
           <%= content_tag(wrapper_tag, wrapper_attrs) do %>
             <div class="flex items-baseline justify-between gap-2">
-              <p class="text-sm font-semibold truncate <%= sensitive_class %>"><%= hide_private_text(mover.category.name, mover.category) %></p>
+              <p class="text-sm font-semibold truncate <%= sensitive_class %>"><%= cat_hidden ? "•••" : mover.name %></p>
               <% if mover.new_spend? %>
                 <%= render "admin/shared/components/badge", text: "new", variant: :info %>
               <% elsif mover.delta_pct %>

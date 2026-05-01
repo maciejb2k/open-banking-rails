@@ -36,6 +36,7 @@
         <main class="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6 [scrollbar-gutter:stable]">
           <div class="mx-auto w-full max-w-[1400px]">
             <%= render "admin/shared/flash" %>
+            <%= render "admin/shared/setup_banner" if user_signed_in? %>
             <%= yield %>
           </div>
           <%= render "admin/shared/footer" %>

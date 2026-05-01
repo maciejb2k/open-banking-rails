@@ -9,20 +9,21 @@
 <div class="space-y-6">
   <%= render "admin/shared/components/page_header",
         title: "Categories",
-        subtitle: "Hierarchical expense categories. Sub-categories shown indented under their parent. Renaming doesn't change slugs.",
+        subtitle: "Tree of expense / income / transfer / savings buckets. Sub-categories indent under their parent — depth is unbounded. Renaming doesn't change slugs.",
         actions: page_actions %>
 
   <div class="admin-section p-0 overflow-hidden">
     <%= render "admin/shared/components/data_table",
           columns: [
             { label: "Name" },
-            { label: "Slug" },
+            { label: "Path" },
             { label: "Kind" },
+            { label: "Essential" },
             { label: "", width: "w-12" }
           ] do %>
-      <% if @top_level.empty? %>
+      <% if @categories.empty? %>
         <tr>
-          <td colspan="4">
+          <td colspan="5">
             <%= render "admin/shared/components/empty_state",
                   title: "No categories",
                   description: "Add your first category to get started.",
@@ -32,55 +33,52 @@
           </td>
         </tr>
       <% else %>
-        <% @top_level.each do |top| %>
-          <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors bg-muted/10">
-            <td class="px-4 py-3 font-semibold text-foreground"><%= hide_private_text(top.name, top) %></td>
-            <td class="px-4 py-3 font-mono text-xs text-muted-foreground"><%= hide_private_text(top.slug, top) %></td>
-            <td class="px-4 py-3">
-              <%= render "admin/shared/components/badge", text: top.kind, variant: top.kind == "expense" ? :default : :muted %>
+        <% @categories.each do |c| %>
+          <%
+            depth = c.path.to_s.count(".")
+            row_classes = depth.zero? ? "bg-muted/10" : ""
+            indent_px   = 16 + depth * 24
+            label_class = depth.zero? ? "font-semibold text-foreground" : "text-sm text-foreground/90"
+          %>
+          <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors <%= row_classes %>">
+            <td class="py-2.5 pr-4 <%= label_class %>" style="padding-left: <%= indent_px %>px;">
+              <% if depth.positive? %>
+                <span class="text-muted-foreground/60 mr-2">└</span>
+              <% end %>
+              <%= hide_private_text(c.name, c) %>
             </td>
-            <td class="px-4 py-3">
+            <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground"><%= hide_private_text(c.path.to_s, c) %></td>
+            <td class="px-4 py-2.5">
+              <%= render "admin/shared/components/badge", text: c.kind, variant: c.kind == "expense" ? :default : :muted %>
+            </td>
+            <td class="px-4 py-2.5 text-xs">
+              <% if c.essential %>
+                <%= render "admin/shared/components/badge", text: "essential", variant: :info %>
+              <% end %>
+            </td>
+            <td class="px-4 py-2.5">
               <%= render "admin/shared/components/dropdown_menu", items: [
-                    { label: "Edit", icon: "pencil", href: edit_admin_category_path(top) },
-                    { label: "Add sub-category", icon: "plus", href: new_admin_category_path(parent_id: top.id) },
+                    { label: "Edit", icon: "pencil", href: edit_admin_category_path(c) },
+                    { label: "Add sub-category", icon: "plus", href: new_admin_category_path(parent_path: c.path.to_s) },
                     { divider: true },
-                    { label: "Archive", icon: "eye_off", method: :post, href: archive_admin_category_path(top), variant: :destructive }
+                    { label: "Archive", icon: "eye_off", method: :post, href: archive_admin_category_path(c), variant: :destructive }
                   ] %>
             </td>
           </tr>
-          <% top.children.where(archived_at: nil).sort_by { |c| c.name.downcase }.each do |sub| %>
-            <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
-              <td class="px-4 py-2.5 pl-12 text-sm text-foreground/90">
-                <span class="text-muted-foreground/60 mr-2">└</span><%= hide_private_text(sub.name, sub) %>
-              </td>
-              <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground"><%= hide_private_text(sub.slug, sub) %></td>
-              <td class="px-4 py-2.5">
-                <%= render "admin/shared/components/badge", text: sub.kind, variant: sub.kind == "expense" ? :default : :muted %>
-              </td>
-              <td class="px-4 py-2.5">
-                <%= render "admin/shared/components/dropdown_menu", items: [
-                      { label: "Edit", icon: "pencil", href: edit_admin_category_path(sub) },
-                      { divider: true },
-                      { label: "Archive", icon: "eye_off", method: :post, href: archive_admin_category_path(sub), variant: :destructive }
-                    ] %>
-              </td>
-            </tr>
-          <% end %>
         <% end %>
       <% end %>
     <% end %>
   </div>
 
   <% if @archived.any? %>
-    <%= render "admin/shared/components/card", title: "Archived", subtitle: "Hidden from forms but historical links are preserved." do %>
+    <%= render "admin/shared/components/card", title: "Archived", subtitle: "Hidden from forms; historical links are preserved." do %>
       <ul class="divide-y -mx-4">
         <% @archived.each do |c| %>
           <li class="flex items-center justify-between px-4 py-2.5">
             <div class="min-w-0">
-              <span class="text-sm text-muted-foreground"><%= hide_private_text(c.name, c) %></span>
-              <% if c.parent %>
-                <span class="text-xs text-muted-foreground/70">in <%= hide_private_text(c.parent.name, c.parent) %></span>
-              <% end %>
+              <span class="text-sm text-muted-foreground">
+                <%= render "admin/shared/components/category_breadcrumb", category: c %>
+              </span>
             </div>
             <%= render "admin/shared/components/button",
                   label: "Restore",

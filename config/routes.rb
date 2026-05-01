@@ -35,6 +35,11 @@ Rails.application.routes.draw do
     root to: redirect("/admin/analytics")
     get "styleguide", to: "styleguide#index"
 
+    # Manual one-click escape hatch when the taxonomy isn't seeded
+    # (fresh signup, dev wipe). Production reg flow should call
+    # Seeders::Categories.call directly during user creation.
+    post "onboarding/seed_taxonomy", to: "onboarding#seed_taxonomy", as: :onboarding_seed_taxonomy
+
     resources :versions, only: [ :index, :show ]
 
     resources :bank_transactions, only: [ :index, :show ] do

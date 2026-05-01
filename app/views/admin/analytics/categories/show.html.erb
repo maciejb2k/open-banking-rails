@@ -3,6 +3,23 @@
   total = Money.new(@total_cents, "PLN")
 
   row_struct = Struct.new(:label, :amount_cents, :count, :href, :secondary, keyword_init: true)
+
+  # Two ways to drill: by child category (when descendants exist) and by
+  # merchant. Both render via the same breakdown_list component, just
+  # with different rows.
+  subtree_rows = @subtree_rows.map do |row|
+    next nil if row.amount_cents.zero?
+    cat = current_user.categories.find_by(path: row.path)
+    next nil unless cat
+    next nil if current_user.hides_category?(cat)
+    row_struct.new(
+      label:        row.name,
+      amount_cents: row.amount_cents,
+      count:        row.count,
+      href:         admin_analytics_category_path(cat.slug, @filter.to_query_params)
+    )
+  end.compact
+
   list_rows = @rows.map do |row|
     if row.merchant&.slug
       row_struct.new(
@@ -24,28 +41,46 @@
 <div class="space-y-6">
   <%= render "admin/shared/components/page_header",
         title: @category.name,
-        subtitle: "Merchants in this category — #{pluralize(@filter.period.length_days, 'day')}." %>
+        subtitle: "Path: #{@category.path}. #{pluralize(@filter.period.length_days, 'day')} window." %>
 
   <%= render "admin/analytics/shared/filter_strip", filter: @filter, user_accounts: user_accounts %>
 
-  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
     <%= render "admin/shared/components/stat_card",
-          label: "Total in category",
+          label: "Total in subtree",
           value: total.format(no_cents_if_whole: true, symbol: false) + " zł",
           icon:  "shopping_cart",
           tone:  :destructive,
           value_class: sensitive_class %>
     <%= render "admin/shared/components/stat_card",
-          label: "Merchants",
+          label: "Sub-categories",
+          value: @subtree_rows.size.to_s,
+          icon:  "tag",
+          tone:  :info %>
+    <%= render "admin/shared/components/stat_card",
+          label: "Merchants (this leaf)",
           value: @rows.size.to_s,
           icon:  "tag",
           tone:  :warning %>
   </div>
 
-  <%= render "admin/shared/components/card", title: "Merchants" do %>
+  <% if subtree_rows.any? %>
+    <%= render "admin/shared/components/card",
+          title: "Sub-categories",
+          subtitle: "Click to drill into a branch." do %>
+      <%= render "admin/shared/components/breakdown_list",
+            rows: subtree_rows,
+            total_cents: subtree_rows.sum(&:amount_cents),
+            empty_label: "No spend in any sub-category." %>
+    <% end %>
+  <% end %>
+
+  <%= render "admin/shared/components/card",
+        title: subtree_rows.any? ? "Merchants in entire subtree" : "Merchants",
+        subtitle: subtree_rows.any? ? "Aggregated across all descendants." : nil do %>
     <%= render "admin/shared/components/breakdown_list",
           rows: list_rows,
           total_cents: @total_cents,
-          empty_label: "No transactions in this category in the selected period." %>
+          empty_label: "No transactions in this subtree in the selected period." %>
   <% end %>
 </div>

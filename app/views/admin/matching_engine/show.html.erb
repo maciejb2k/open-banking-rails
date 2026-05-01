@@ -3,11 +3,23 @@
         title: "Matching engine",
         subtitle: "Every transaction flows through this cascade top-to-bottom. The first matching rule wins, the rest are skipped." %>
 
+  <% if current_user.categories.active.empty? %>
+    <%# Empty taxonomy — every fallback path lookup fails, so the cascade
+        view becomes 23 red "missing category" errors. Short-circuit with
+        a single setup CTA. %>
+    <%= render "admin/shared/components/empty_state",
+          title: "Taxonomy not set up yet",
+          description: "Categories haven't been seeded — the matching engine has nothing to map transactions to. Load the baseline taxonomy to get started.",
+          action_label: "Load baseline taxonomy",
+          action_path: admin_onboarding_seed_taxonomy_path,
+          action_method: :post,
+          icon: "shopping_cart" %>
+  <% else %>
   <%# ── STEP 1: RULES ── %>
   <%= render "admin/shared/components/card", padding: false do %>
     <div class="border-b px-4 py-3">
-      <h3 class="font-semibold">1. Match rules (<%= @rules.size %>)</h3>
-      <p class="text-xs text-muted-foreground">Sorted by: source (user → LLM → system) → priority → id. First match wins.</p>
+      <h3 class="font-semibold">1. Match rules (<%= @total_rules_count %>)</h3>
+      <p class="text-xs text-muted-foreground">Sorted by: source (user → LLM → system) → priority → id. First match wins. Numbering is global across pages.</p>
     </div>
     <%= render "admin/shared/components/data_table",
           columns: [
@@ -21,7 +33,7 @@
           ] do %>
       <% @rules.each_with_index do |rule, idx| %>
         <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors <%= 'opacity-50' unless rule.enabled? %>">
-          <td class="px-4 py-3 font-mono text-xs text-muted-foreground"><%= idx + 1 %></td>
+          <td class="px-4 py-3 font-mono text-xs text-muted-foreground"><%= @pagy.offset + idx + 1 %></td>
           <td class="px-4 py-3">
             <%= render "admin/shared/components/badge",
                   text: rule.source,
@@ -48,11 +60,7 @@
           </td>
           <td class="px-4 py-3 text-xs text-muted-foreground">
             <% if (cat = rule.merchant&.default_category) %>
-              <% if hide_private?(cat) %>
-                <%= hide_private_text(cat.parent ? "#{cat.parent.name} → #{cat.name}" : cat.name, cat) %>
-              <% else %>
-                <%= cat.parent ? "#{cat.parent.name} → #{cat.name}" : cat.name %>
-              <% end %>
+              <%= render "admin/shared/components/category_breadcrumb", category: cat %>
             <% else %>
               <span class="text-muted-foreground/50">—</span>
             <% end %>
@@ -70,6 +78,7 @@
         </tr>
       <% end %>
     <% end %>
+    <%= render "admin/shared/components/pagination", pagy: @pagy %>
   <% end %>
 
   <%# ── STEP 2: FALLBACK ── %>
@@ -80,25 +89,37 @@
     </div>
     <%= render "admin/shared/components/data_table",
           columns: [
+            { label: "Direction", width: "w-20" },
             { label: "Payment method" },
             { label: "→ Category" },
             { label: "Kind", width: "w-24" },
             { label: "Matches", width: "w-24" }
           ] do %>
-      <% @fallback_map.each do |pm, cat_slug| %>
-        <% cat = @fallback_categories[cat_slug] %>
+      <% @fallback_map.each do |(direction, payment_method), cat_path| %>
+        <% cat = @fallback_categories[cat_path] %>
         <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
-          <td class="px-4 py-3 font-mono text-xs"><%= pm %></td>
-          <td class="px-4 py-3 text-sm"><%= cat ? hide_private_text(cat.name, cat) : "<span class='text-destructive'>missing category: #{cat_slug}</span>".html_safe %></td>
+          <td class="px-4 py-3 text-xs">
+            <%= render "admin/shared/components/badge",
+                  text: direction,
+                  variant: direction == "credit" ? :success : :default %>
+          </td>
+          <td class="px-4 py-3 font-mono text-xs"><%= payment_method %></td>
+          <td class="px-4 py-3 text-sm">
+            <% if cat %>
+              <%= render "admin/shared/components/category_breadcrumb", category: cat %>
+            <% else %>
+              <span class="text-destructive">missing category: <%= cat_path %></span>
+            <% end %>
+          </td>
           <td class="px-4 py-3">
             <% if cat %>
               <%= render "admin/shared/components/badge",
                     text: cat.kind,
-                    variant: cat.kind == "ignored" ? :muted : :default %>
+                    variant: cat.kind == "ignored" ? :muted : (cat.kind == "income" ? :success : :default) %>
             <% end %>
           </td>
           <td class="px-4 py-3 font-mono text-sm tabular-nums">
-            <%= @fallback_counts[pm] || 0 %>
+            <%= @fallback_counts[[ direction, payment_method ]] || 0 %>
           </td>
         </tr>
       <% end %>
@@ -109,9 +130,10 @@
   <%= render "admin/shared/components/card", title: "Summary" do %>
     <%= render "admin/shared/components/definition_list", pairs: [
       { label: "All transactions",        value: @total_count, mono: true },
-      { label: "Classified by rule",      value: @rule_match_counts.values.sum, mono: true },
+      { label: "Classified by rule",      value: @total_rule_matches, mono: true },
       { label: "Classified by fallback",  value: @fallback_counts.values.sum, mono: true },
       { label: "Unmatched",               value: @unmatched_count, mono: true }
     ] %>
+  <% end %>
   <% end %>
 </div>

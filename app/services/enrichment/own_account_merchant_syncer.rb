@@ -64,7 +64,6 @@ module Enrichment
       merchant = user.merchants.find_or_initialize_by(slug: merchant_slug)
       merchant.assign_attributes(
         name:             merchant_name,
-        display_name:     merchant_name,
         kind:             "person",
         source:           "system",
         default_category: user.categories.find_by!(slug: OWN_TRANSFER_CATEGORY_SLUG),

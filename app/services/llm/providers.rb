@@ -24,8 +24,32 @@ module Llm
     REGISTRY = {
       "openai" => {
         label:         "OpenAI",
-        default_model: "gpt-4o-mini",
-        models:        %w[gpt-4o-mini gpt-4o gpt-4.1-mini gpt-4.1],
+        default_model: "gpt-5-mini",
+        # Curated for the merchant-classification workload (NER + enum
+        # output). Order is recommended-first; the form select renders
+        # in this order, and `default_model` is the first pick for new
+        # accounts. We deliberately don't list `gpt-5` / full-tier or
+        # `*-pro` models — classification is structured output over a
+        # bounded enum, premium reasoning is wasted spend.
+        #
+        #   gpt-5-mini    — sweet spot. Modern reasoning, solid schema
+        #                   following, ~$0.004 per 15-item batch.
+        #   gpt-5-nano    — cheapest sane choice; slight accuracy hit on
+        #                   long enum lists.
+        #   gpt-5.4-mini  — escalation when 5-mini misclassifies. ~3x
+        #                   pricier, noticeably better at obscure brands.
+        #   gpt-5.4-nano  — newer nano iteration; comparable to 5-mini
+        #                   at lower input cost.
+        #   gpt-4.1-mini  — legacy decent option; kept for back-compat.
+        #   gpt-4o-mini   — cheapest legacy; weakest at structured output.
+        models:        %w[
+          gpt-5-mini
+          gpt-5-nano
+          gpt-5.4-mini
+          gpt-5.4-nano
+          gpt-4.1-mini
+          gpt-4o-mini
+        ],
         client_class:  "Llm::Clients::OpenAI",
         config_key:    :openai_api_key
       },

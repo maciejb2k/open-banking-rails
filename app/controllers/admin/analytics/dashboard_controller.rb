@@ -25,11 +25,22 @@ module Admin
         # number ("ile średnio dziennie wydaję w tym oknie").
         @avg_daily_spend_cents = @spend_cents / @filter.period.length_days
 
-        # Cash flow timeline + spend-by-category (with prev overlay).
+        # Cash flow timeline + spend-by-category at full leaf granularity
+        # (one bar per distinct path with spend). For the "ile na jedzenie
+        # ogólnie" rollup, the user can filter ?under_path=food which
+        # narrows the whole dashboard to that subtree.
         @cash_flow      = ::Analytics::CashFlow.series(scope, period: @filter.period)
-        @breakdown      = ::Analytics::SpendBreakdown.by_category(scope, user: current_user, previous_scope: prev_scope)
+        @breakdown      = ::Analytics::SpendBreakdown.by_category(
+                            scope,
+                            user: current_user,
+                            previous_scope: prev_scope
+                          )
         @top_merchants  = ::Analytics::TopMerchants.call(scope, user: current_user, limit: 8)
         @account_rows   = ::Analytics::AccountBreakdown.call(scope, user: current_user)
+
+        # Layer 2 facet breakdowns — independent of hierarchy.
+        @essential_pair = ::Analytics::FacetBreakdown.essential(scope)
+        @recurring_pair = ::Analytics::FacetBreakdown.recurring(scope)
 
         # "Co się zmieniło" — categories with biggest abs swing vs. prev
         # period. Reuses the breakdown rows (already have prev attached),

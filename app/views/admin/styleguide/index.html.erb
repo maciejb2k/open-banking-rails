@@ -171,6 +171,36 @@
           message: "Connection verified successfully." %>
   </section>
 
+  <%# ── CRITICAL BANNER ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Critical Banner</h2>
+    <p class="text-sm text-muted-foreground">
+      Top-of-page blocking alert for system states the user must resolve before the rest of the page makes sense (no taxonomy seeded, no LLM provider configured, sync stuck). Loud red by default; warning/info variants exist for less-blocking states. Action button on the right, vertically centered.
+      <code class="bg-muted px-1 rounded text-xs">action_method: :post</code> switches to <code class="bg-muted px-1 rounded text-xs">button_to</code> for state-changing CTAs.
+      Compare with <strong>Callout</strong> (inline, contextual) and <strong>Empty State</strong> (replaces a missing list).
+    </p>
+    <%= render "admin/shared/components/critical_banner",
+          variant: :destructive,
+          title: "Set up your category taxonomy",
+          description: "Categories haven't been seeded — the dashboard, matching engine and LLM enrichment have nothing to classify against.",
+          action_label: "Load baseline taxonomy",
+          action_path: "#",
+          action_method: :post,
+          icon: "shopping_cart" %>
+    <%= render "admin/shared/components/critical_banner",
+          variant: :warning,
+          title: "LLM provider not configured",
+          description: "Set a provider and API key in Preferences before running enrichment.",
+          action_label: "Open preferences",
+          action_path: "#",
+          icon: "settings" %>
+    <%= render "admin/shared/components/critical_banner",
+          variant: :info,
+          title: "Background sync running",
+          description: "Latest snapshot is from 2 hours ago. New transactions will appear within minutes.",
+          icon: "refresh_cw" %>
+  </section>
+
   <%# ── TOAST ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Toast</h2>

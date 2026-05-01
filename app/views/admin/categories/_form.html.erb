@@ -1,4 +1,16 @@
 <%# locals: (category:) %>
+<%
+  # Parent options: every existing category EXCEPT this one and its
+  # descendants (would create a cycle). Top-level option ("blank") creates
+  # a new root domain. Path-ordered so the picker visually follows the
+  # tree.
+  forbidden_ids = category.persisted? ? category.self_and_descendants.pluck(:id) : []
+  parent_options = current_user.categories.active.where.not(id: forbidden_ids).ordered.map do |c|
+    next if current_user.hides_category?(c)
+    indent = "—" * c.path.to_s.count(".")
+    [ "#{indent} #{c.breadcrumb_names.join(" / ")}".strip, c.path.to_s ]
+  end.compact
+%>
 <%= form_with model: category, url: category.persisted? ? admin_category_path(category) : admin_categories_path, html: { class: "space-y-6" } do |f| %>
   <%= render "admin/shared/form/error_summary", object: category %>
 
@@ -12,21 +24,32 @@
     <%= render "admin/shared/form/text_field",
           form: f, field: :slug,
           label: "Slug",
-          hint: category.persisted? ? "Slug is stable — don't change it if rules or exports rely on it." : "Leave blank — generated from the name.",
-          placeholder: "restaurants" %>
+          hint: "Stable identifier; auto-generated from the path. Don't change it once rules or exports rely on it.",
+          placeholder: "lifestyle_shopping_electronics" %>
 
-    <%= render "admin/shared/form/select",
-          form: f, field: :parent_id,
-          label: "Parent category",
-          include_blank: "— top-level —",
-          options: current_user.categories.top_level.active.where.not(id: category.id).ordered.map { |c| [ c.name, c.id ] },
-          hint: "Empty = top-level. Hierarchy is limited to two levels." %>
+    <%# Custom: parent path picker. Selected value is the parent's
+        ltree path (or blank for a new top-level domain). The controller
+        composes the full path = "<parent_path>.<leaf_segment>" before
+        save. If a 2nd path-typed picker shows up, extract _path_select. %>
+    <div>
+      <%= f.label :parent_path, "Parent path", class: "block text-sm font-medium mb-1" %>
+      <%= f.select :parent_path,
+            options_for_select(parent_options, params[:parent_path] || category.path.to_s.split(".")[0..-2].join(".")),
+            { include_blank: "— top-level (new root) —" },
+            class: "form-input" %>
+      <p class="text-xs text-muted-foreground mt-1">Empty = new top-level domain. Otherwise the new category becomes a child of the selected path.</p>
+    </div>
 
     <%= render "admin/shared/form/select",
           form: f, field: :kind,
           label: "Kind",
           options: Category::KINDS.map { |k| [ k.humanize, k ] },
-          hint: "expense = counts toward spending. transfer/ignored = excluded from analytics." %>
+          hint: "expense counts toward spending. transfer / ignored are excluded from analytics totals." %>
+
+    <%= render "admin/shared/form/checkbox",
+          form: f, field: :essential,
+          label: "Essential (need)",
+          hint: "Counts toward the essentials KPI. Defaults to off — flip on for needs (rent, utilities, groceries, transit)." %>
 
     <%= render "admin/shared/form/text_field",
           form: f, field: :color,
@@ -41,7 +64,7 @@
     <%= render "admin/shared/form/number_field",
           form: f, field: :position,
           label: "Position",
-          hint: "Lower = higher on the list." %>
+          hint: "Lower = higher on the list within its level." %>
   </div>
 
   <div class="flex items-center justify-end gap-3">

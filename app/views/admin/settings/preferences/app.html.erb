@@ -38,12 +38,14 @@
       <%= render "admin/shared/form/multi_select",
             form: f, field: :hidden_category_ids,
             label: "Categories to hide",
+            hint: "Hiding a parent hides every descendant in the dashboard.",
             placeholder: "Choose categories…",
             cloak_selected: true,
             searchable: true,
-            options: current_user.categories.active.includes(:parent).map { |c|
-              { value: c.id, label: c.parent ? "#{c.parent.name} → #{c.name}" : c.name }
-            }.sort_by { |o| o[:label].downcase } %>
+            options: current_user.categories.active.ordered.map { |c|
+              indent = "—" * c.path.to_s.count(".")
+              { value: c.id, label: "#{indent} #{c.breadcrumb_names.join(" / ")}".strip }
+            } %>
     </div>
 
     <div class="flex justify-end">

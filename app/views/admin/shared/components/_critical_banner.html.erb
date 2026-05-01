@@ -1,0 +1,44 @@
+<%# locals: (title:, description:, action_label: nil, action_path: nil, action_method: :get, variant: :destructive, icon: "shopping_cart") %>
+<%# Top-of-page alert for blocking system states the user must resolve
+    (no taxonomy seeded, no LLM provider configured, sync stuck, …).
+    Loud by design — `:destructive` variant is the default because the
+    typical use is "without this you can't proceed".
+    Action goes on the right, vertically centered with the text block. %>
+<%
+  # Border + tint per variant. Button color tracks the variant — a
+  # destructive banner gets a destructive button, warning gets primary
+  # (less alarming), info gets primary too.
+  variants = {
+    destructive: { container: "border-destructive/40 bg-destructive/10 text-destructive",  button: "bg-destructive text-destructive-foreground hover:bg-destructive/90" },
+    warning:     { container: "border-warning/40 bg-warning/10 text-warning",              button: "bg-primary text-primary-foreground hover:bg-primary/90" },
+    info:        { container: "border-info/40 bg-info/10 text-info",                       button: "bg-primary text-primary-foreground hover:bg-primary/90" }
+  }
+  v       = variants.fetch(variant.to_sym, variants[:destructive])
+  btn_cls = "inline-flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-semibold transition-colors whitespace-nowrap #{v[:button]}"
+%>
+<%# Spacing rationale:
+    * `mb-12` — generous gap to the next block; the banner is loud and
+      must not feel glued to the page below it.
+    * `gap-10` — wide separation between the text block and the action
+      button so the CTA has visual breathing room (otherwise it reads
+      like part of the description).
+    * `px-6 py-5` — chunky inner padding; banner is supposed to feel
+      important, not cramped. %>
+<div class="mb-12 flex items-center gap-10 rounded-lg border-2 px-6 py-5 <%= v[:container] %>">
+  <%= render "admin/shared/icons/#{icon}", classes: "h-6 w-6 flex-shrink-0" %>
+  <div class="flex-1 min-w-0">
+    <p class="font-bold text-foreground"><%= title %></p>
+    <p class="text-sm text-muted-foreground mt-0.5"><%= description %></p>
+  </div>
+  <% if action_label && action_path %>
+    <% if action_method.to_sym == :post %>
+      <%= button_to action_path, method: :post, class: btn_cls do %>
+        <%= action_label %>
+      <% end %>
+    <% else %>
+      <%= link_to action_path, class: btn_cls do %>
+        <%= action_label %>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>

@@ -26,27 +26,55 @@ module Enrichment
       "llm"    => "llm_rule"
     }.freeze
 
-    # Fallback when no MerchantRule matched: assign a generic category based
-    # on payment_method. Catches BLIK without merchant info, card auths, etc.
-    # Every value in BankTransaction::PAYMENT_METHODS that has a meaningful
-    # generic bucket should appear here — anything missing falls into
-    # `unmatched` and won't surface in monthly stats.
+    # Fallback when no MerchantRule matched: assign a generic category
+    # based on (direction, payment_method). Direction matters: an
+    # incoming wire is salary, an outgoing wire is an own-account
+    # transfer — same payment_method, completely different category.
+    # Values are full ltree paths.
+    #
+    # Anything missing from this map falls into source=`unmatched`
+    # (NULL category) and is invisible to all `.spend` / `.income`
+    # totals until reviewed.
+    #
+    # Default fallback per (direction, payment_method) is the most
+    # common interpretation. User can override via merchant rule or
+    # transaction-level category override; this is just the cold-start
+    # behavior so the dashboard isn't 100% noise on first sync.
     PAYMENT_METHOD_FALLBACK = {
-      "blik_pos"           => "blik_pos_unmatched",
-      "blik_atm"           => "blik_atm_withdrawal",
-      "blik_p2p"           => "private_transfers",
-      "card"               => "card_unmatched",
-      "card_authorization" => "card_authorization",
-      "transfer"           => "transfers",
-      "internal_transfer"  => "transfers",
-      "topup"              => "transfers",
-      "fee"                => "fees",
-      # ManualTransaction (cash) — see ManualTransaction::PAYMENT_METHODS.
-      "cash"               => "cash_unmatched",
-      "cash_atm_topup"     => "cash_atm_topup",
-      "cash_deposit"       => "transfers",
-      "cash_fx_conversion" => "transfers",
-      "cash_adjustment"    => "cash_discrepancy"
+      # ─── Outgoing (debit) — spending or own-transfer ──────────────
+      [ "debit", "blik_pos" ]           => "noise.unmatched.blik",
+      [ "debit", "blik_atm" ]           => "money.transfers.atm",
+      [ "debit", "blik_p2p" ]           => "money.transfers.private",
+      [ "debit", "card" ]               => "noise.unmatched.card",
+      [ "debit", "card_authorization" ] => "noise.authorizations.card",
+      [ "debit", "transfer" ]           => "money.transfers.own",
+      [ "debit", "internal_transfer" ]  => "money.transfers.own",
+      [ "debit", "topup" ]              => "money.transfers.own",
+      [ "debit", "fee" ]                => "services.financial.fees",
+      # Cash debits (manual transactions)
+      [ "debit", "cash" ]               => "noise.unmatched.cash",
+      [ "debit", "cash_atm_topup" ]     => "money.transfers.atm",
+      [ "debit", "cash_deposit" ]       => "money.transfers.own",
+      [ "debit", "cash_fx_conversion" ] => "noise.adjustments.fx",
+      [ "debit", "cash_adjustment" ]    => "noise.adjustments.cash",
+
+      # ─── Incoming (credit) — income or refund or own-transfer ─────
+      # External wire → likely salary. Most common case for regular
+      # incoming bank transfers; user can reclassify exotic ones.
+      [ "credit", "transfer" ]           => "income.work.salary",
+      # Internal / topup — moving money between user's own surfaces
+      [ "credit", "internal_transfer" ]  => "money.transfers.own",
+      [ "credit", "topup" ]              => "money.transfers.own",
+      # Card credit = refund / cashback from a merchant.
+      [ "credit", "card" ]               => "income.refunds.refunds",
+      # P2P incoming = someone sent us BLIK / transfer.
+      [ "credit", "blik_p2p" ]           => "money.transfers.private",
+      # ATM credit = unusual but exists (cash deposit at ATM).
+      [ "credit", "blik_atm" ]           => "money.transfers.atm",
+      # Cash credit = mystery source — flag as income but specify "other".
+      [ "credit", "cash" ]               => "income.other.sale",
+      [ "credit", "cash_atm_topup" ]     => "money.transfers.atm",
+      [ "credit", "cash_deposit" ]       => "money.transfers.own"
     }.freeze
 
     def self.call(transaction, user:) = new(user: user).enrich(transaction)
@@ -140,15 +168,20 @@ module Enrichment
       end
     end
 
-    # Resolve fallback category lazily once and reuse across the loop.
-    # Returns nil when payment_method has no mapping or category isn't seeded.
+    # Resolve fallback categories once per user and reuse across the loop.
+    # Keyed by full ltree path — unique per user, no collision risk.
     def load_fallback_categories
-      @user.categories.where(slug: PAYMENT_METHOD_FALLBACK.values.uniq).index_by(&:slug)
+      @user.categories.where(path: PAYMENT_METHOD_FALLBACK.values.uniq)
+           .index_by { |c| c.path.to_s }
     end
 
+    # Lookup is keyed on (direction, payment_method) — same payment
+    # method has different meaning depending on direction (incoming
+    # transfer = salary, outgoing transfer = own-account move).
     def fallback_category_for(transaction)
-      slug = PAYMENT_METHOD_FALLBACK[transaction.payment_method.to_s]
-      slug && @fallback_categories[slug]
+      key  = [ transaction.direction.to_s, transaction.payment_method.to_s ]
+      path = PAYMENT_METHOD_FALLBACK[key]
+      path && @fallback_categories[path]
     end
   end
 end

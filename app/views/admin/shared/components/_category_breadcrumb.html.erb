@@ -1,0 +1,22 @@
+<%# locals: (category:, link: false, separator: " / ", muted_ancestors: true) %>
+<%# Renders a path-aware label for a category: "Lifestyle / Shopping / Electronics".
+    `link: true` makes the leaf clickable to its analytics drill-down (when not hidden). %>
+<%
+  segments = category.breadcrumb_names
+  hidden   = current_user.hides_category?(category) if defined?(current_user) && current_user
+  if hidden
+    label = "•••"
+  elsif muted_ancestors && segments.size > 1
+    label = capture do
+      concat content_tag(:span, segments[0..-2].join(separator) + separator, class: "text-muted-foreground")
+      concat segments.last
+    end
+  else
+    label = segments.join(separator)
+  end
+%>
+<% if link && !hidden && category.persisted? %>
+  <%= link_to label, admin_analytics_category_path(category.slug), class: "hover:underline" %>
+<% else %>
+  <span><%= label %></span>
+<% end %>

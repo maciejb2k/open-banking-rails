@@ -90,7 +90,7 @@
         value: @transaction.merchant && link_to(@transaction.merchant.display, admin_merchant_path(@transaction.merchant), class: "text-primary hover:underline"),
         sensitive: true },
       { label: "Category",
-        value: (cat = @transaction.effective_category) && (cat.parent ? "#{cat.parent.name} → #{cat.name}" : cat.name) },
+        value: @transaction.effective_category&.breadcrumb_names&.join(" / ") },
       { label: "Source",
         value: enrichment_source_badge(@transaction.enrichment&.source || "unmatched") },
       { label: "Rule",

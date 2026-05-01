@@ -1,0 +1,26 @@
+<%# Top-of-page callout when the user has no active categories. Renders
+    on every admin screen until the taxonomy gets seeded — the
+    Category.exists? check is a single indexed lookup so the banner adds
+    no measurable cost on populated accounts.
+
+    Counts unclassified raw transactions so the user knows what'll get
+    reclassified the moment they hit the button (not zero — the data is
+    already in the system, just structurally invisible to analytics). %>
+<% return if current_user.categories.active.exists? %>
+<%
+  raw_tx_count = BankTransaction.for_user(current_user).count +
+                 ManualTransaction.for_user(current_user).count
+  description = if raw_tx_count.positive?
+                  "Categories haven't been seeded — the dashboard, matching engine and LLM enrichment have nothing to classify against. " \
+                  "#{raw_tx_count} raw transaction#{'s' if raw_tx_count != 1} are waiting and will be auto-classified the moment you load the baseline."
+                else
+                  "Categories haven't been seeded — the dashboard, matching engine and LLM enrichment have nothing to classify against."
+                end
+%>
+<%= render "admin/shared/components/critical_banner",
+      title:         "Set up your category taxonomy",
+      description:   description,
+      action_label:  "Load baseline taxonomy",
+      action_path:   admin_onboarding_seed_taxonomy_path,
+      action_method: :post,
+      icon:          "shopping_cart" %>

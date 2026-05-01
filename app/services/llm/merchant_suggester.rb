@@ -11,7 +11,7 @@ module Llm
   class MerchantSuggester
     BATCH_SIZE = 15
 
-    Result = Struct.new(:merchant_name, :merchant_kind, :category_slug, :rule_field, :rule_kind, :rule_pattern, :confidence, :reasoning, keyword_init: true) do
+    Result = Struct.new(:merchant_name, :merchant_kind, :category_path, :rule_field, :rule_kind, :rule_pattern, :confidence, :reasoning, keyword_init: true) do
       def confident?(threshold = 0.85)
         confidence.to_f >= threshold
       end
@@ -20,12 +20,12 @@ module Llm
     ITEM_SCHEMA = {
       type: "object",
       additionalProperties: false,
-      required: %w[index merchant_name merchant_kind category_slug rule_field rule_kind rule_pattern confidence reasoning],
+      required: %w[index merchant_name merchant_kind category_path rule_field rule_kind rule_pattern confidence reasoning],
       properties: {
         index:         { type: "integer", description: "Same index as the input item." },
         merchant_name: { type: "string",  description: "Canonical merchant name. Empty string if unidentifiable." },
         merchant_kind: { type: "string",  enum: %w[company person charity government platform other unknown] },
-        category_slug: { type: "string",  description: "Slug from the provided category list. 'uncategorized' if unsure." },
+        category_path: { type: "string",  description: "Full ltree path from the provided list, e.g. 'food.cooking.supermarket'. Use 'noise.unmatched.other' if unsure." },
         rule_field:    { type: "string",  enum: %w[title counterparty_name counterparty_iban] },
         rule_kind:     { type: "string",  enum: %w[contains regex exact prefix iban] },
         rule_pattern:  { type: "string",  description: "Short substring that uniquely identifies the merchant across location variants." },
@@ -156,14 +156,44 @@ module Llm
 
         # KONTEKST
 
+        ## Pola wejściowe — title_raw vs title_normalized
+        Każdy item dostaje co najmniej `title_raw`. Gdy serwer wykrył że
+        warto, dorzuca `title_normalized` — to ten sam tytuł po stripie
+        miasta, "PL", kodu terminala i cyfr. Użyj go do **identyfikacji
+        sprzedawcy** (znacznie czystszy sygnał).
+          title_raw:        "RzeszowP.U.N.K.TPL"
+          title_normalized: "P U N K T"
+            → merchant_name="P.U.N.K.T"
+
+        ## Reguła musi matchować TITLE_RAW
+        Pattern (rule_pattern) jest sprawdzany contains/regex/exact-style
+        na ORYGINALNYM `title_raw`, nie na znormalizowanym. Wybierz
+        substring który NA PEWNO występuje w title_raw — najczęściej
+        leksykalny rdzeń normalized z zachowaniem oryginalnej
+        interpunkcji:
+          title_raw="RzeszowP.U.N.K.TPL"  → pattern="P.U.N.K.T"  (z kropkami!)
+          title_raw="RZESZOWLIDL 01PL"    → pattern="LIDL"
+          title_raw="RzeszowAl CaponePL"  → pattern="Capone"  (jednowyrazowy bezpiecznik)
+
+        Jeśli zaproponujesz pattern który NIE występuje w title_raw,
+        serwer wymieni go na deterministyczny derive — Twoja reguła
+        i tak działa, ale lepiej daj poprawny od razu.
+
         ## Format mBank dla płatności kartą (przykład klasy 1)
         Tytuł: <MIASTO><NAZWA_SKLEPU><kod_terminala>PL.
         Po stripie miasta i "PL" + kodu zostaje czysta nazwa sieci.
-        Przykład: "RZESZOWLIDL 01PL" → strip "RZESZOW" + "01PL" → "LIDL".
+        Przykład: title_raw="RZESZOWLIDL 01PL" → title_normalized="LIDL"
+        → merchant_name="Lidl", pattern="LIDL".
 
-        ## Dostępne slugi kategorii
-        #{available_category_slugs.join(", ")}
-        Gdy żadna nie pasuje precyzyjnie — użyj "uncategorized".
+        ## Dostępne ścieżki kategorii (ltree)
+        Hierarchia 10 domen × głębokość 2-3. Wybierz najbardziej pasujący liść
+        (najbardziej szczegółowy, ostatni segment). Przykład: Lidl →
+        "food.cooking.supermarket", Spotify → "lifestyle.entertainment.streaming".
+
+        #{available_category_paths.join("\n        ")}
+
+        Gdy żaden liść nie pasuje precyzyjnie — użyj "noise.unmatched.other"
+        (oznacza: czeka na ręczną klasyfikację, nie wlicza się do wydatków).
 
         # WYJŚCIE
         Każdy element MUSI mieć pole `index` równe indeksowi wejściowemu — nawet
@@ -173,22 +203,36 @@ module Llm
 
     def user_prompt
       lines = @items.each_with_index.map do |item, idx|
-        parts = [ "index: #{idx}", "title: #{item[:title].to_s.inspect}" ]
+        raw        = item[:title].to_s
+        normalized = Enrichment::TitleNormalizer.call(raw)
+        parts = [ "index: #{idx}", "title_raw: #{raw.inspect}" ]
+        # Only include normalized when it actually differs and adds signal.
+        # For "RzeszowP.U.N.K.TPL" → "P U N K T" — clearer for the model.
+        # For "Spotify" → "SPOTIFY" — redundant noise, skip.
+        parts << "title_normalized: #{normalized.inspect}" if normalized.present? && normalized.upcase != raw.upcase
         parts << "counterparty_name: #{item[:counterparty_name].to_s.inspect}" if item[:counterparty_name].present?
         "{ #{parts.join(", ")} }"
       end
       "Sklasyfikuj poniższe transakcje:\n[\n  #{lines.join(",\n  ")}\n]"
     end
 
-    def available_category_slugs
-      @user.categories.active.pluck(:slug).sort
+    # Leaf-only — paths with descendants are intermediate buckets, not
+    # classification targets. Renders sorted by path so the prompt's
+    # natural-language ordering matches the tree's left-right layout.
+    def available_category_paths
+      @user.categories.active.pluck(:path).map(&:to_s).sort.select do |p|
+        # Only emit leaves: a path is a leaf if no other path starts with
+        # "<this>." (i.e. it has no descendants in the active set).
+        all = @user.categories.active.pluck(:path).map(&:to_s)
+        all.none? { |other| other != p && other.start_with?("#{p}.") }
+      end
     end
 
     def build_result(raw)
       Result.new(
         merchant_name: raw["merchant_name"].to_s.strip,
         merchant_kind: raw["merchant_kind"].to_s.presence || "unknown",
-        category_slug: raw["category_slug"].to_s.presence || "uncategorized",
+        category_path: raw["category_path"].to_s.presence || "noise.unmatched.other",
         rule_field:    raw["rule_field"].to_s.presence || "title",
         rule_kind:     raw["rule_kind"].to_s.presence || "contains",
         rule_pattern:  raw["rule_pattern"].to_s.strip,
@@ -199,7 +243,7 @@ module Llm
 
     def null_result
       Result.new(
-        merchant_name: "", merchant_kind: "unknown", category_slug: "uncategorized",
+        merchant_name: "", merchant_kind: "unknown", category_path: "noise.unmatched.other",
         rule_field: "title", rule_kind: "contains", rule_pattern: "",
         confidence: 0.0, reasoning: "LLM did not return a result for this index."
       )

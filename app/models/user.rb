@@ -28,10 +28,28 @@ class User < ApplicationRecord
   # Always-on (no separate toggle). The act of selecting a category in
   # /admin/settings/preferences IS the hide trigger; the topbar
   # privacy_mode is orthogonal and broader (everything sensitive at once).
+  #
+  # Subtree-aware: hiding `food` hides every descendant
+  # (`food.cooking.*`, `food.eating_out.*`). The user-selected ids are
+  # widened to "any descendant of a hidden path" via an ltree subtree
+  # query. Memoized per-request — the answer is fixed within a render
+  # and the expansion is two queries (hidden ids → paths → descendants).
   def hides_category?(category_or_id)
+    return false if category_or_id.blank?
     id = category_or_id.respond_to?(:id) ? category_or_id.id : category_or_id
-    return false if id.blank?
-    hidden_category_ids.include?(id)
+    hidden_subtree_ids.include?(id)
+  end
+
+  def hidden_subtree_ids
+    @hidden_subtree_ids ||= begin
+      hidden_paths = categories.where(id: hidden_category_ids).pluck(:path).compact
+      if hidden_paths.empty?
+        Set.new
+      else
+        sql = hidden_paths.map { "path <@ ?" }.join(" OR ")
+        Set.new(categories.where(sql, *hidden_paths).pluck(:id))
+      end
+    end
   end
 
   def primary_tpp_credential

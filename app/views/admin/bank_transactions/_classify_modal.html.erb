@@ -35,13 +35,12 @@
       <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Category (override)</label>
       <select name="enrichment[category_id]" class="form-input">
         <option value="">— use merchant's default —</option>
-        <% current_user.categories.active.includes(:parent).order(:position, :name).each do |c| %>
-          <% c_hidden = hide_private?(c) %>
+        <% current_user.categories.active.ordered.each do |c| %>
           <option value="<%= c.id %>" <%= 'selected' if c.id == current_category_id %>>
-            <% if c_hidden %>
+            <% if hide_private?(c) %>
               •••
             <% else %>
-              <%= c.parent ? "#{c.parent.name} → #{c.name}" : c.name %>
+              <%= c.breadcrumb_names.join(" / ") %>
             <% end %>
           </option>
         <% end %>

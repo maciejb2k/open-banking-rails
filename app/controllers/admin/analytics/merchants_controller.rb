@@ -15,11 +15,16 @@ module Admin
         end
 
         scope = @filter.scope.spend.where(merchant_id: @merchant.id)
-        @transactions = scope.includes(:effective_category)
-                             .order(booking_date: :desc)
-                             .limit(200)
+        # Aggregates run on the unpaginated scope so the user sees totals
+        # for the full window, not just the current page. Pagy direct
+        # (not via the ransack-wrapping `paginated` helper) — sort is
+        # fixed and LedgerEntry doesn't allowlist ransack attributes.
         @total_cents = scope.sum(:amount_cents)
         @count       = scope.count
+        @pagy, @transactions = pagy(
+          :offset,
+          scope.includes(:effective_category).order(booking_date: :desc)
+        )
 
         @monthly_trend = ::Analytics::SpendBreakdown.merchant_monthly_trend(
           user: current_user, merchant_id: @merchant.id

@@ -36,12 +36,14 @@ class Merchant < ApplicationRecord
   scope :pending,  -> { where(source: "llm", approved_at: nil) }
   scope :for_user, ->(user) { where(user_id: user.id) }
 
-  def display = display_name.presence || name
+  # Thin alias kept so views can call `m.display` without churn. If a real
+  # display rule (truncation, sanitization) ever appears, this is the hook.
+  def display = name
   def archived? = archived_at.present?
   def approved? = approved_at.present?
 
   def self.ransackable_attributes(_auth_object = nil)
-    %w[id name display_name slug kind source]
+    %w[id name slug kind source]
   end
 
   def self.ransackable_associations(_auth_object = nil)

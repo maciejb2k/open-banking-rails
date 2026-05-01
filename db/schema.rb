@@ -10,8 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_01_112131) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_01_150713) do
   # These are extensions that must be enabled in order to support this database
+  enable_extension "ltree"
   enable_extension "pg_catalog.plpgsql"
 
   create_table "bank_accounts", force: :cascade do |t|
@@ -108,19 +109,40 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_112131) do
     t.datetime "archived_at"
     t.string "color"
     t.datetime "created_at", null: false
+    t.boolean "essential", default: false, null: false
     t.string "icon"
     t.string "kind", default: "expense", null: false
     t.string "name", null: false
-    t.bigint "parent_id"
+    t.ltree "path"
     t.integer "position", default: 0, null: false
     t.string "slug", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["archived_at"], name: "index_categories_on_archived_at"
-    t.index ["parent_id", "position"], name: "index_categories_on_parent_id_and_position"
-    t.index ["parent_id"], name: "index_categories_on_parent_id"
+    t.index ["path"], name: "index_categories_on_path", using: :gist
+    t.index ["path"], name: "index_categories_on_path_unique", unique: true
     t.index ["user_id", "slug"], name: "index_categories_on_user_id_and_slug", unique: true
     t.index ["user_id"], name: "index_categories_on_user_id"
+  end
+
+  create_table "gutentag_taggings", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "tag_id", null: false
+    t.bigint "taggable_id", null: false
+    t.string "taggable_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["tag_id"], name: "index_gutentag_taggings_on_tag_id"
+    t.index ["taggable_type", "taggable_id", "tag_id"], name: "unique_taggings", unique: true
+    t.index ["taggable_type", "taggable_id"], name: "index_gutentag_taggings_on_taggable_type_and_taggable_id"
+  end
+
+  create_table "gutentag_tags", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.integer "taggings_count", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_gutentag_tags_on_name", unique: true
+    t.index ["taggings_count"], name: "index_gutentag_tags_on_taggings_count"
   end
 
   create_table "llm_settings", force: :cascade do |t|
@@ -192,7 +214,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_112131) do
     t.decimal "confidence", precision: 4, scale: 3
     t.datetime "created_at", null: false
     t.bigint "default_category_id"
-    t.string "display_name"
     t.string "kind"
     t.string "logo_url"
     t.string "model"
@@ -268,6 +289,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_112131) do
     t.bigint "merchant_rule_id"
     t.string "model"
     t.text "notes"
+    t.string "recurrence_interval"
+    t.boolean "recurring", default: false, null: false
     t.string "source", null: false
     t.datetime "updated_at", null: false
     t.index ["category_id"], name: "index_transaction_enrichments_on_category_id"
@@ -275,6 +298,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_112131) do
     t.index ["enrichable_type", "enrichable_id"], name: "index_transaction_enrichments_on_enrichable"
     t.index ["merchant_id"], name: "index_transaction_enrichments_on_merchant_id"
     t.index ["merchant_rule_id"], name: "index_transaction_enrichments_on_merchant_rule_id"
+    t.index ["recurring"], name: "index_transaction_enrichments_on_recurring", where: "(recurring = true)"
     t.index ["source"], name: "index_transaction_enrichments_on_source"
   end
 
@@ -319,7 +343,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_112131) do
   add_foreign_key "bank_connections", "bank_connections", column: "replaces_id"
   add_foreign_key "bank_connections", "tpp_credentials"
   add_foreign_key "bank_transactions", "bank_accounts"
-  add_foreign_key "categories", "categories", column: "parent_id"
   add_foreign_key "categories", "users"
   add_foreign_key "llm_settings", "users"
   add_foreign_key "manual_transactions", "bank_accounts"
@@ -359,10 +382,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_112131) do
       te.id AS enrichment_id,
       te.merchant_id,
       COALESCE(te.category_id, m.default_category_id) AS effective_category_id,
+      c.path AS category_path,
+      COALESCE(c.essential, false) AS essential,
+      COALESCE(te.recurring, false) AS recurring,
+      te.recurrence_interval,
       te.source AS enrichment_source
-     FROM ((bank_transactions bt
+     FROM (((bank_transactions bt
        LEFT JOIN transaction_enrichments te ON ((((te.enrichable_type)::text = 'BankTransaction'::text) AND (te.enrichable_id = bt.id))))
        LEFT JOIN merchants m ON ((m.id = te.merchant_id)))
+       LEFT JOIN categories c ON ((c.id = COALESCE(te.category_id, m.default_category_id))))
   UNION ALL
    SELECT 'ManualTransaction'::text AS source_type,
       mt.id AS source_id,
@@ -383,9 +411,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_112131) do
       te.id AS enrichment_id,
       te.merchant_id,
       COALESCE(te.category_id, m.default_category_id) AS effective_category_id,
+      c.path AS category_path,
+      COALESCE(c.essential, false) AS essential,
+      COALESCE(te.recurring, false) AS recurring,
+      te.recurrence_interval,
       te.source AS enrichment_source
-     FROM ((manual_transactions mt
+     FROM (((manual_transactions mt
        LEFT JOIN transaction_enrichments te ON ((((te.enrichable_type)::text = 'ManualTransaction'::text) AND (te.enrichable_id = mt.id))))
-       LEFT JOIN merchants m ON ((m.id = te.merchant_id)));
+       LEFT JOIN merchants m ON ((m.id = te.merchant_id)))
+       LEFT JOIN categories c ON ((c.id = COALESCE(te.category_id, m.default_category_id))));
   SQL
 end

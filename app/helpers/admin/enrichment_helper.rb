@@ -62,19 +62,16 @@ module Admin
       include_blank ? [ [ "All", "" ] ] + opts : opts
     end
 
-    # Hierarchical select options: top-level groups with sub-categories
-    # nested under them (using OptGroups). Excludes archived.
-    # Scoped to current_user via the controller helper exposed by Devise.
+    # Path-aware select options: every active category as a full
+    # breadcrumb ("Lifestyle / Shopping / Electronics") so the leaf is
+    # unambiguous. Indented by depth so the visual order matches the
+    # tree's natural traversal. Scoped to current_user.
     def category_select_options(selected_id: nil)
-      groups = current_user.categories.active.top_level.ordered.includes(:children).map do |top|
-        children = top.children.where(archived_at: nil).order(:position, :name)
-        if children.any?
-          [ top.name, [ [ top.name + " (general)", top.id ] ] + children.map { |c| [ c.name, c.id ] } ]
-        else
-          [ top.name, [ [ top.name, top.id ] ] ]
-        end
+      pairs = current_user.categories.active.ordered.map do |c|
+        indent = "—" * c.path.to_s.count(".")
+        [ "#{indent} #{c.breadcrumb_names.join(' / ')}".strip, c.id ]
       end
-      grouped_options_for_select(groups, selected_id)
+      options_for_select(pairs, selected_id)
     end
   end
 end

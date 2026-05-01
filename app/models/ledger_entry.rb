@@ -53,6 +53,27 @@ class LedgerEntry < ApplicationRecord
   scope :debits,   -> { where(direction: "debit") }
   scope :in_range, ->(from, to) { where(booking_date: from..to) }
 
+  # Layer 1 — subtree containment via the view's `category_path` (ltree
+  # projected from categories.path). Pass a Category, ltree string, or
+  # array of either. Empty input returns `none` so a missing filter
+  # doesn't accidentally widen the scope.
+  scope :under_path, ->(path_or_paths) {
+    paths = Array(path_or_paths).map { |p| p.is_a?(Category) ? p.path : p.to_s }
+    return none if paths.empty?
+    where(paths.map { "category_path <@ ?" }.join(" OR "), *paths)
+  }
+
+  # Layer 2 — needs vs wants axis. Projected from categories.essential
+  # in the view, so analytics can `.essential` without re-joining.
+  scope :essential,     -> { where(essential: true) }
+  scope :discretionary, -> { where(essential: false) }
+
+  # Layer 2 — recurring (cyclical charge), independent of category. The
+  # detector populates this on transaction_enrichments; the view surfaces
+  # it on every ledger entry.
+  scope :recurring, -> { where(recurring: true) }
+  scope :one_off,   -> { where(recurring: false) }
+
   # Kind-partitioned scopes — the canonical entry points for analytics.
   # `Category#kind` partitions every category into expense/income/transfer/
   # savings/ignored, and analytics MUST always narrow on kind before

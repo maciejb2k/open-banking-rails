@@ -26,7 +26,7 @@
           class: "form-input w-40" %>
 
     <%= f.select :category_id,
-          [ [ "All categories", "" ] ] + current_user.categories.active.top_level.ordered.map { |c| [ c.name, c.id ] },
+          [ [ "All categories", "" ] ] + current_user.categories.active.roots.ordered.map { |c| [ c.name, c.id ] },
           { selected: params[:category_id] },
           class: "form-input w-48" %>
 
@@ -77,10 +77,7 @@
             </td>
             <td class="px-4 py-3 text-sm">
               <% if m.default_category %>
-                <%= hide_private_text(m.default_category.name, m.default_category) %>
-                <% if m.default_category.parent %>
-                  <span class="text-xs text-muted-foreground">(<%= hide_private_text(m.default_category.parent.name, m.default_category.parent) %>)</span>
-                <% end %>
+                <%= render "admin/shared/components/category_breadcrumb", category: m.default_category %>
               <% else %>
                 <span class="text-muted-foreground/60">—</span>
               <% end %>

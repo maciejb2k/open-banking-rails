@@ -37,7 +37,7 @@
               form: f, field: :model,
               label: "Model",
               options: Llm::Providers.fetch(@llm_setting.provider).fetch(:models).map { |m| [ m, m ] },
-              hint: "Provider's default model is used if you leave this empty.",
+              hint: "Default if blank. For OpenAI: <code>gpt-5-mini</code> is the sweet spot for merchant classification — modern structured output, ~$0.004 per 15-item batch. <code>gpt-5-nano</code> is the cheapest option (slight accuracy hit). Escalate to <code>gpt-5.4-mini</code> if you see misclassifications.".html_safe,
               html: {
                 data: { llm_provider_target: "model" }
               } %>

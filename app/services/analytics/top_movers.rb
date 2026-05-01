@@ -17,7 +17,7 @@ module Analytics
   #   * skip rows whose absolute change is below `min_change_cents` —
   #     same reasoning, but anchored on swing magnitude.
   class TopMovers
-    Row = Struct.new(:category, :current_cents, :prev_cents, :delta_cents, :delta_pct, keyword_init: true) do
+    Row = Struct.new(:path, :name, :slug, :current_cents, :prev_cents, :delta_cents, :delta_pct, keyword_init: true) do
       def current_amount = Money.new(current_cents, "PLN")
       def prev_amount    = Money.new(prev_cents, "PLN")
       def delta_amount   = Money.new(delta_cents.abs, "PLN")
@@ -35,7 +35,9 @@ module Analytics
         next if [ row.amount_cents, prev_cents ].max < min_amount_cents
 
         Row.new(
-          category:      row.category,
+          path:          row.path,
+          name:          row.name,
+          slug:          row.slug,
           current_cents: row.amount_cents,
           prev_cents:    prev_cents,
           delta_cents:   delta_cents,

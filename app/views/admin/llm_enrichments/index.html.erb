@@ -1,18 +1,20 @@
-<% trigger_button = capture do %>
-  <%= render "admin/shared/components/button",
-        label: "Generate proposals",
-        icon: "refresh_cw",
-        variant: @api_key_set ? :default : :outline,
-        href: @api_key_set ? nil : "#",
-        type: @api_key_set ? nil : :button,
-        data: { action: @api_key_set ? nil : "click->toast#show" } %>
-<% end %>
-
 <div class="space-y-6">
   <%= render "admin/shared/components/page_header",
         title: "AI Enrichment",
-        subtitle: "Identifies merchants for transactions that don't have one yet. Includes both fully unclassified rows and ones that fell back to a generic payment-method category. Progress streams live.",
-        actions: trigger_button %>
+        subtitle: "Identifies merchants for transactions that don't have one yet. Includes both fully unclassified rows and ones that fell back to a generic payment-method category. Progress streams live." %>
+
+  <% if current_user.categories.active.empty? %>
+    <%# Without a taxonomy the LLM has no path enum to classify against —
+        the prompt would carry an empty category list and proposals would
+        be unusable. Block the run and point the user to setup. %>
+    <%= render "admin/shared/components/empty_state",
+          title: "Taxonomy not set up",
+          description: "AI enrichment proposes a category path for each transaction — but with no categories defined, there's nothing to map to. Load the baseline first.",
+          action_label: "Load baseline taxonomy",
+          action_path: admin_onboarding_seed_taxonomy_path,
+          action_method: :post,
+          icon: "shopping_cart" %>
+  <% else %>
 
   <% unless @api_key_set %>
     <%= render "admin/shared/components/callout",
@@ -73,16 +75,32 @@
   <% end %>
 
   <%= render "admin/shared/components/card", title: "New run" do %>
+    <%
+      # Runner only processes groups not yet covered by ANY rule (enabled
+      # OR disabled). `@new_groups_count` is that filtered count;
+      # `@group_count` is the broader pool that includes pending-review
+      # proposals (covered-but-not-yet-approved). The form has to use
+      # NEW so the input value matches what'll actually be sent — using
+      # @group_count makes "Group limit" lie about the run size.
+      pending_proposed = @group_count - @new_groups_count
+      api_calls        = (@new_groups_count.to_f / Llm::MerchantSuggester::BATCH_SIZE).ceil
+      default_limit    = [ @new_groups_count, Llm::EnrichmentRunner::DEFAULT_LIMIT ].min
+    %>
     <p class="text-sm text-muted-foreground mb-4">
-      Groups are sent in batches of <strong><%= Llm::MerchantSuggester::BATCH_SIZE %></strong> —
-      <%= (@group_count.to_f / Llm::MerchantSuggester::BATCH_SIZE).ceil %> API <%= "call".pluralize((@group_count.to_f / Llm::MerchantSuggester::BATCH_SIZE).ceil) %>
-      for the current <%= @group_count %> groups.
+      <strong><%= @new_groups_count %></strong> new <%= "group".pluralize(@new_groups_count) %> ready to send —
+      <%= api_calls %> API <%= "call".pluralize(api_calls) %> at <strong><%= Llm::MerchantSuggester::BATCH_SIZE %></strong> per batch.
+      <% if pending_proposed.positive? %>
+        <span class="block mt-1">
+          Plus <strong><%= pending_proposed %></strong> <%= "group".pluralize(pending_proposed) %> already proposed —
+          <%= link_to "review them below", "#awaiting-approval", class: "underline" %> instead of re-sending to the LLM.
+        </span>
+      <% end %>
       Only the normalized <code>title</code> and <code>counterparty_name</code> are sent — no amounts, IBANs, or dates.
     </p>
     <%= form_with url: admin_llm_enrichments_path, method: :post, html: { class: "flex items-end gap-3" } do |f| %>
       <div class="w-32">
         <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Group limit</label>
-        <%= f.number_field :limit, value: [ @group_count, Llm::EnrichmentRunner::DEFAULT_LIMIT ].min,
+        <%= f.number_field :limit, value: default_limit,
               min: 1, max: 200, class: "form-input mt-1" %>
       </div>
       <%= render "admin/shared/components/button",
@@ -120,25 +138,27 @@
                 <% end %>
                 <% if m.default_category %>
                   <div class="text-xs text-muted-foreground mt-0.5">
-                    Category:
-                    <% cat_label = m.default_category.parent ? "#{m.default_category.parent.name} → #{m.default_category.name}" : m.default_category.name %>
-                    <%= hide_private_text(cat_label, m.default_category) %>
+                    Category: <%= render "admin/shared/components/category_breadcrumb", category: m.default_category %>
                   </div>
                 <% end %>
                 <% if m.notes.present? %>
                   <div class="text-xs italic text-muted-foreground mt-1 <%= sensitive_class unless m_hidden %>"><%= m_hidden ? "•••" : m.notes %></div>
                 <% end %>
               </div>
+              <%# Thread return_to through edit/update/delete/approve so the
+                  user lands back on the review queue (not on merchant#show)
+                  after each action. The form preserves it as a hidden field. %>
+              <% back_to = admin_llm_enrichments_path(anchor: "awaiting-approval") %>
               <div class="flex items-center gap-2 shrink-0">
                 <%= render "admin/shared/components/button",
-                      label: "Edit", href: edit_admin_merchant_path(m),
+                      label: "Edit", href: edit_admin_merchant_path(m, return_to: back_to),
                       variant: :outline, size: :sm, icon: "pencil" %>
                 <%= render "admin/shared/components/button",
-                      label: "Delete", href: admin_merchant_path(m), method: :delete,
+                      label: "Delete", href: admin_merchant_path(m, return_to: back_to), method: :delete,
                       data: { turbo_confirm: "Delete proposal #{hide_private_text(m.display, m.default_category_id)}?" },
                       variant: :destructive, size: :sm, icon: "trash_2" %>
                 <%= render "admin/shared/components/button",
-                      label: "Approve", href: approve_admin_merchant_path(m), method: :post,
+                      label: "Approve", href: approve_admin_merchant_path(m, return_to: back_to), method: :post,
                       variant: :default, size: :sm %>
               </div>
             </div>
@@ -199,4 +219,5 @@
     <% end %>
     <%= render "admin/shared/components/pagination", pagy: @pagy %>
   </div>
+  <% end %>
 </div>

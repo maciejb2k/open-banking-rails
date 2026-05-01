@@ -70,7 +70,7 @@
   <%= render "admin/shared/components/card", padding: false do %>
     <div class="border-b px-4 py-3">
       <h3 class="font-semibold">Transactions</h3>
-      <p class="text-xs text-muted-foreground">Showing up to <%= @transactions.size %> · sorted by date desc</p>
+      <p class="text-xs text-muted-foreground"><%= @count %> total · sorted by date desc</p>
     </div>
     <% if @transactions.empty? %>
       <%= render "admin/shared/components/empty_state",
@@ -103,6 +103,7 @@
           </tr>
         <% end %>
       <% end %>
+      <%= render "admin/shared/components/pagination", pagy: @pagy %>
     <% end %>
   <% end %>
 </div>

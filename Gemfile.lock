@@ -162,6 +162,8 @@ GEM
       rake (~> 13.3)
     googleapis-common-protos-types (1.22.0)
       google-protobuf (~> 4.26)
+    gutentag (3.0.1)
+      activerecord (>= 3.2.0)
     i18n (1.14.8)
       concurrent-ruby (~> 1.0)
     image_processing (1.14.0)
@@ -688,6 +690,7 @@ DEPENDENCIES
   dotenv-rails
   factory_bot_rails (~> 6.5)
   faraday (~> 2.9)
+  gutentag (~> 3.0)
   image_processing (~> 1.2)
   importmap-rails
   jwt (~> 2.8)

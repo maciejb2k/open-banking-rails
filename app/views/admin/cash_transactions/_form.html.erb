@@ -1,8 +1,9 @@
 <%# locals: () %>
-<%# Form for ManualTransaction. Categories are rendered as a grouped <select>
-    (parent → children) which the shared form/_select doesn't model — kept as
-    a one-off here. Currency on edit is locked (moving an entry between
-    currencies = moving between wallets, which is destructive). %>
+<%# Form for ManualTransaction. Categories are rendered as full ltree
+    breadcrumbs ("Lifestyle / Shopping / Electronics") so the leaf is
+    unambiguous even when the leaf name alone collides. Currency on edit
+    is locked (moving an entry between currencies = moving between
+    wallets, which is destructive). %>
 <%
   amount_value =
     if @cash_transaction.amount_cents.present?
@@ -81,16 +82,17 @@
   <div class="admin-section space-y-4">
     <h2 class="text-base font-semibold text-foreground">Classification</h2>
 
-    <%# Custom: grouped optgroups (parent → children) — form/_select takes
-        a flat options array. If a third grouped select appears, extract
-        form/_grouped_select. %>
+    <%# Path-aware select: every category as a full breadcrumb so the
+        leaf is unambiguous. Indented by depth so the order matches the
+        tree's natural traversal. %>
     <%= render "admin/shared/form/form_group",
           label: "Category",
           hint: "Without a category the entry lands in Uncategorized." do %>
       <%= f.select :category_id,
-            grouped_options_for_select(
-              @category_options.group_by { |c| c.parent&.name || "Top level" }.map { |group, cats|
-                [ group, cats.map { |c| [ c.name, c.id ] } ]
+            options_for_select(
+              @category_options.map { |c|
+                indent = "—" * c.path.to_s.count(".")
+                [ "#{indent} #{c.breadcrumb_names.join(" / ")}".strip, c.id ]
               },
               @cash_transaction.enrichment&.category_id
             ),

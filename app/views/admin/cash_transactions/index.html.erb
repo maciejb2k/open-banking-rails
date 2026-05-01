@@ -187,12 +187,9 @@
             </td>
             <td class="px-4 py-3 text-xs">
               <% if cat %>
-                <div><%= hide_private_text(cat.name, cat) %></div>
-                <% if cat.parent %>
-                  <div class="text-muted-foreground"><%= hide_private_text(cat.parent.name, cat) %></div>
-                <% end %>
+                <%= render "admin/shared/components/category_breadcrumb", category: cat %>
               <% else %>
-                <span class="text-muted-foreground/50">—</span>
+                <%= render "admin/shared/components/badge", text: "unclassified", variant: :warning %>
               <% end %>
             </td>
             <td class="px-4 py-3 text-xs">

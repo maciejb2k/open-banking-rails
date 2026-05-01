@@ -1,18 +1,17 @@
 <%# locals: (merchant:) %>
 <%= form_with model: merchant, url: merchant.persisted? ? admin_merchant_path(merchant) : admin_merchants_path, html: { class: "space-y-6" } do |f| %>
+  <%# `return_to` survives the form submit so the controller can redirect
+      back to whatever launched the edit (e.g. AI enrichment review queue)
+      instead of the default merchant show page. Sanitized server-side. %>
+  <%= hidden_field_tag :return_to, params[:return_to] if params[:return_to].present? %>
   <%= render "admin/shared/form/error_summary", object: merchant %>
 
   <div class="admin-section max-w-2xl space-y-5">
     <%= render "admin/shared/form/text_field",
           form: f, field: :name,
-          label: "Canonical name",
+          label: "Name",
           placeholder: "Biedronka",
           required: true %>
-
-    <%= render "admin/shared/form/text_field",
-          form: f, field: :display_name,
-          label: "Display name",
-          hint: "Leave blank to use the canonical name." %>
 
     <% if merchant.persisted? %>
       <%= render "admin/shared/form/text_field",
@@ -26,10 +25,9 @@
           form: f, field: :default_category_id,
           label: "Default category",
           placeholder: "Type to search categories…",
-          options: current_user.categories.active.includes(:parent).map { |c|
-            label = c.parent ? "#{c.parent.name} → #{c.name}" : c.name
-            { value: c.id, label: label }
-          }.sort_by { |o| o[:label].downcase } %>
+          options: current_user.categories.active.ordered.map { |c|
+            { value: c.id, label: c.breadcrumb_names.join(" / ") }
+          } %>
 
     <%= render "admin/shared/form/select",
           form: f, field: :kind,
@@ -49,7 +47,8 @@
   </div>
 
   <div class="flex items-center justify-end gap-3">
-    <%= render "admin/shared/components/button", label: "Cancel", href: merchant.persisted? ? admin_merchant_path(merchant) : admin_merchants_path, variant: :outline %>
+    <% cancel_path = params[:return_to].presence || (merchant.persisted? ? admin_merchant_path(merchant) : admin_merchants_path) %>
+    <%= render "admin/shared/components/button", label: "Cancel", href: cancel_path, variant: :outline %>
     <%= render "admin/shared/components/button", label: merchant.persisted? ? "Save changes" : "Create merchant", type: :submit %>
   </div>
 <% end %>

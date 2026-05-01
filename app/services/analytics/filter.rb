@@ -70,13 +70,36 @@ module Analytics
     # Base relation for the dashboard. Services chain `.spend` / `.income`
     # / `.group(...)` / `.sum` from here. Booked only — pending rows
     # double-count once they settle.
+    #
+    # `under_path` (Layer 1 path filter) narrows to a subtree when set —
+    # used by drill-down breadcrumb navigation.
     def scope
-      LedgerEntry.where(bank_account_id: account_ids).booked.in_range(period.from, period.to)
+      base = LedgerEntry.where(bank_account_id: account_ids).booked.in_range(period.from, period.to)
+      under_path.present? ? base.under_path(under_path) : base
     end
 
     def previous_scope
       prev = period.previous
-      LedgerEntry.where(bank_account_id: account_ids).booked.in_range(prev.from, prev.to)
+      base = LedgerEntry.where(bank_account_id: account_ids).booked.in_range(prev.from, prev.to)
+      under_path.present? ? base.under_path(under_path) : base
+    end
+
+    # Layer 1 — subtree filter. `?under_path=food.cooking` narrows every
+    # widget to that branch. Empty string and nil both mean "no filter".
+    def under_path
+      @under_path ||= @params[:under_path].to_s.presence
+    end
+
+    def root_path
+      under_path&.split(".")&.first
+    end
+
+    # Depth at which `SpendBreakdown.by_category` should aggregate. With no
+    # subtree filter we show top-level domains (1). When drilled into a
+    # subtree, we show one level deeper than the subtree root.
+    def aggregation_depth
+      return 1 if under_path.blank?
+      under_path.count(".") + 2
     end
 
     # Drill-down / chip links propagate the filter. We emit `accounts=none`
@@ -89,6 +112,7 @@ module Analytics
     def to_query_params
       params = { from: period.from.iso8601, to: period.to.iso8601 }
       params[:bucket] = bucket if bucket_explicit?
+      params[:under_path] = under_path if under_path.present?
       if none?
         params[:accounts] = "none"
       elsif explicit_account_ids.any?

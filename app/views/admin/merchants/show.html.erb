@@ -32,10 +32,9 @@
       <%= render "admin/shared/components/card", title: "Identity" do %>
         <%= render "admin/shared/components/definition_list", pairs: [
               { label: "Name", value: @merchant.name, sensitive: true },
-              { label: "Display name", value: @merchant.display_name.presence, sensitive: true },
               { label: "Slug", value: @merchant.slug, mono: true, sensitive: true },
               { label: "Kind", value: @merchant.kind&.humanize },
-              { label: "Default category", value: @merchant.default_category ? "#{@merchant.default_category.name}#{@merchant.default_category.parent ? " (#{@merchant.default_category.parent.name})" : ''}" : nil },
+              { label: "Default category", value: @merchant.default_category&.breadcrumb_names&.join(" / ") },
               { label: "Source", value: @merchant.source.humanize },
               { label: "Confidence (LLM)", value: @merchant.confidence ? "#{(@merchant.confidence * 100).round}%" : nil },
               { label: "Approved at", value: @merchant.approved_at&.to_s }
@@ -120,11 +119,21 @@
         </div>
       <% end %>
 
-      <%# Recent transactions %>
+      <%# Recent transactions — capped at 10 here. The full list (with
+          filters, search, sortable columns, pagination) lives on
+          /admin/bank_transactions filtered by merchant_id. %>
       <%= render "admin/shared/components/card", padding: false do %>
-        <div class="border-b px-4 py-3">
-          <h3 class="font-semibold">Recent transactions</h3>
-          <p class="text-xs text-muted-foreground"><%= @transaction_count %> total</p>
+        <div class="flex items-center justify-between border-b px-4 py-3">
+          <div>
+            <h3 class="font-semibold">Recent transactions</h3>
+            <p class="text-xs text-muted-foreground">Last <%= @recent_transactions.size %> of <%= @transaction_count %></p>
+          </div>
+          <% if @transaction_count > @recent_transactions.size %>
+            <%= link_to admin_bank_transactions_path(merchant_id: @merchant.id),
+                  class: "text-sm text-primary hover:underline" do %>
+              View all <%= @transaction_count %> →
+            <% end %>
+          <% end %>
         </div>
         <% if @recent_transactions.any? %>
           <ul class="divide-y">
