@@ -10,7 +10,7 @@ module Admin
         # default category is on the user's hidden list.
         if current_user.hides_category?(@merchant.default_category_id)
           redirect_to admin_analytics_root_path(@filter.to_query_params),
-                      alert: "Ten sprzedawca jest w ukrytej kategorii. Usuń ją z listy w preferencjach, żeby go otworzyć."
+                      alert: "This merchant is in a hidden category. Remove it from the hidden list in preferences to open it."
           return
         end
 

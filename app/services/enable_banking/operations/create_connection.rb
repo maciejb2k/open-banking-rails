@@ -81,7 +81,7 @@ module EnableBanking
           )
           ba.save!
 
-          # Refresh the per-account "Konto własne" merchant + iban rules so
+          # Refresh the per-account "Own account" merchant + iban rules so
           # transfers between own accounts get classified correctly on the
           # very first sync. Idempotent — safe to call on every save.
           Enrichment::OwnAccountMerchantSyncer.call(ba)

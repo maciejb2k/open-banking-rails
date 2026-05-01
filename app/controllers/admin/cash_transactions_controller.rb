@@ -63,7 +63,7 @@ module Admin
       # category would reveal what's hidden, so bounce.
       if current_user.hides_category?(@cash_transaction.effective_category)
         redirect_to admin_cash_transactions_path,
-                    alert: "Ta transakcja jest w ukrytej kategorii. Usuń ją z listy w preferencjach, żeby ją edytować."
+                    alert: "This transaction is in a hidden category. Remove it from the hidden list in preferences to edit it."
         return
       end
 

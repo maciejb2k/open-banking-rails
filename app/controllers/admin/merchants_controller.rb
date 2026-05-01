@@ -29,7 +29,7 @@ module Admin
       # the hidden list in /admin/settings/preferences to inspect.
       if current_user.hides_category?(@merchant.default_category_id)
         redirect_to admin_merchants_path,
-                    alert: "Ten sprzedawca jest w ukrytej kategorii. Usuń ją z listy w preferencjach, żeby go otworzyć."
+                    alert: "This merchant is in a hidden category. Remove it from the hidden list in preferences to open it."
         return
       end
 
@@ -44,11 +44,10 @@ module Admin
     end
 
     def edit
-      if current_user.hides_category?(@merchant.default_category_id)
-        redirect_to admin_merchants_path,
-                    alert: "Ten sprzedawca jest w ukrytej kategorii. Usuń ją z listy w preferencjach, żeby go edytować."
-        return
-      end
+      return unless current_user.hides_category?(@merchant.default_category_id)
+
+      redirect_to admin_merchants_path,
+                  alert: "This merchant is in a hidden category. Remove it from the hidden list in preferences to edit it."
     end
 
     def new

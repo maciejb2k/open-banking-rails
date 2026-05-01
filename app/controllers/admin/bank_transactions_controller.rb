@@ -33,7 +33,7 @@ module Admin
       # from the hidden list in /admin/settings/preferences to open it.
       if current_user.hides_category?(@transaction.effective_category)
         redirect_to admin_bank_transactions_path,
-                    alert: "Ta transakcja jest w ukrytej kategorii. Usuń ją z listy w preferencjach, żeby ją otworzyć."
+                    alert: "This transaction is in a hidden category. Remove it from the hidden list in preferences to open it."
         return
       end
 

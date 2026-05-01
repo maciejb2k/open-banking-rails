@@ -39,7 +39,7 @@ module Cash
     end
 
     def wallet_name
-      "Portfel gotówki (#{@currency})"
+      "Cash wallet (#{@currency})"
     end
   end
 end

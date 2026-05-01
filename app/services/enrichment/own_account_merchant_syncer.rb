@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Enrichment
-  # Per-BankAccount "Konto własne" merchant with iban-kind MerchantRules
+  # Per-BankAccount "Own account" merchant with iban-kind MerchantRules
   # covering every IBAN that account is known by (primary + alternates from
   # the bank — Revolut PL exposes a second LT IBAN for that same account).
   #
@@ -94,7 +94,7 @@ module Enrichment
                    @bank_account.tpp_credential&.name.presence ||
                    "Bank"
       last4 = @bank_account.iban.to_s[-4..].presence || "????"
-      "Konto własne (#{bank_label} ⋯#{last4})"
+      "Own account (#{bank_label} ⋯#{last4})"
     end
 
     # Reconcile against existing rules so re-runs don't churn rows. Rules

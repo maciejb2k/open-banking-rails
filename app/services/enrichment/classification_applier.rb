@@ -46,9 +46,9 @@ module Enrichment
 
     def call
       mode = @input.normalized_mode
-      return failure("Nieznany tryb propagacji: #{mode}") unless PROPAGATION_MODES.include?(mode)
-      return failure("Wybierz sprzedawcę") if @input.merchant.nil? && mode != :only_this
-      return failure("Wybierz wzorzec") if mode == :create_rule && @input.rule_pattern.blank?
+      return failure("Unknown propagation mode: #{mode}") unless PROPAGATION_MODES.include?(mode)
+      return failure("Pick a merchant") if @input.merchant.nil? && mode != :only_this
+      return failure("Pick a pattern") if mode == :create_rule && @input.rule_pattern.blank?
 
       ActiveRecord::Base.transaction do
         case mode
@@ -58,7 +58,7 @@ module Enrichment
         end
       end
 
-      success("Zastosowano: #{label_for_mode(mode)}")
+      success("Applied: #{label_for_mode(mode)}")
     rescue ActiveRecord::RecordInvalid => e
       failure(e.record.errors.full_messages.join(", "))
     end
@@ -117,7 +117,11 @@ module Enrichment
     end
 
     def label_for_mode(mode)
-      { only_this: "tylko tę transakcję", all_for_merchant: "wszystkie z tego sprzedawcy", create_rule: "nowa reguła + przebudowa" }.fetch(mode)
+      {
+        only_this:        "this transaction only",
+        all_for_merchant: "all transactions for this merchant",
+        create_rule:      "new rule + rebuild"
+      }.fetch(mode)
     end
 
     def success(msg) = Result.new(success: true, message: msg)
