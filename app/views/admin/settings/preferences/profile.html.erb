@@ -8,7 +8,7 @@
       <div class="admin-section space-y-4">
         <h2 class="text-base font-semibold text-foreground">Profile</h2>
         <p class="text-sm text-muted-foreground -mt-2">
-          Your display name. Email (<%= sensitive(current_user.email) %>) is fixed and can't be changed here.
+          Your display name and the email address tied to this account.
         </p>
 
         <%= render "admin/shared/form/text_field",
@@ -16,6 +16,19 @@
               label: "Name",
               placeholder: "Your full name",
               required: true %>
+
+        <%# Email is rendered readonly + sensitive (blur). Devise treats it
+            as a credential — changing it is a separate flow we don't expose
+            yet. The strong-params allowlist (profile_params) doesn't permit
+            :email, so even a forged submission can't update it. %>
+        <%= render "admin/shared/form/email_field",
+              form: f, field: :email,
+              label: "Email",
+              hint: "Contact support to change this — it's tied to your sign-in.",
+              html: {
+                readonly: true,
+                class: "#{sensitive_class} bg-muted/40 cursor-not-allowed text-muted-foreground"
+              } %>
       </div>
 
       <div class="flex justify-end">
