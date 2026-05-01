@@ -31,7 +31,7 @@ arrive and sync on their own. Merchants and categories are inferred, not typed.
 | 🕶️ **Privacy filter**      | One toggle blurs amounts, IBANs and names on the UI. Made for safe screen-shares and screenshots.           |
 | 📜 **Open source**         | MIT licensed. Fork it, modify it, deploy it yourself.                                                       |
 
-![Dashboard](docs/screenshots/hero.png)
+![Dashboard](docs/screenshots/transactions.png)
 
 ## Tech stack
 
