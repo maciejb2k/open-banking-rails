@@ -8,7 +8,9 @@ import { Controller } from "@hotwired/stimulus"
 // Original text is cached on the text node so we can restore on toggle-off.
 //
 // `.sensitive--strong` (JSON viewers / payloads) is skipped — CSS blur owns it.
-// Hover reveals the original unless `.sensitive--no-reveal` is set.
+// Hover reveal was removed deliberately — privacy mode should be all-or-nothing
+// when on, otherwise sensitive content leaks during a screen-share simply by
+// the cursor passing over it.
 
 const FORMATTERS = {
   default: (s) => {
@@ -23,8 +25,6 @@ export default class extends Controller {
   connect() {
     this.onMutations = this.onMutations.bind(this)
     this.onClassChange = this.onClassChange.bind(this)
-    this.onPointerOver = this.onPointerOver.bind(this)
-    this.onPointerOut  = this.onPointerOut.bind(this)
 
     this.bodyObserver = new MutationObserver(this.onMutations)
     this.bodyObserver.observe(document.body, { childList: true, subtree: true })
@@ -32,17 +32,12 @@ export default class extends Controller {
     this.htmlObserver = new MutationObserver(this.onClassChange)
     this.htmlObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
 
-    document.addEventListener("pointerover", this.onPointerOver)
-    document.addEventListener("pointerout",  this.onPointerOut)
-
     this.sync()
   }
 
   disconnect() {
     this.bodyObserver?.disconnect()
     this.htmlObserver?.disconnect()
-    document.removeEventListener("pointerover", this.onPointerOver)
-    document.removeEventListener("pointerout",  this.onPointerOut)
   }
 
   get isOn() {
@@ -67,20 +62,6 @@ export default class extends Controller {
     }
   }
 
-  onPointerOver(e) {
-    if (!this.isOn) return
-    const el = e.target.closest?.(".sensitive:not(.sensitive--strong):not(.sensitive--no-reveal)")
-    if (el) this.unmask(el, { hover: true })
-  }
-
-  onPointerOut(e) {
-    if (!this.isOn) return
-    const el = e.target.closest?.(".sensitive:not(.sensitive--strong):not(.sensitive--no-reveal)")
-    if (!el) return
-    if (e.relatedTarget && el.contains(e.relatedTarget)) return
-    if (el.dataset.maskHover === "1") this.mask(el, { hover: true })
-  }
-
   eachTarget(fn) {
     document.querySelectorAll(".sensitive:not(.sensitive--strong)").forEach(fn)
   }
@@ -89,7 +70,7 @@ export default class extends Controller {
     return el.classList?.contains("sensitive") && !el.classList.contains("sensitive--strong")
   }
 
-  mask(el, { hover = false } = {}) {
+  mask(el) {
     if (el.dataset.masked === "1") return
     const fmt = FORMATTERS[el.dataset.maskFormat] ?? FORMATTERS.default
     this.walkOwnText(el, (node) => {
@@ -98,16 +79,14 @@ export default class extends Controller {
       node.nodeValue = fmt(node.__realText)
     })
     el.dataset.masked = "1"
-    if (hover) delete el.dataset.maskHover
   }
 
-  unmask(el, { hover = false } = {}) {
+  unmask(el) {
     if (el.dataset.masked !== "1") return
     this.walkOwnText(el, (node) => {
       if (node.__realText != null) node.nodeValue = node.__realText
     })
     delete el.dataset.masked
-    if (hover) el.dataset.maskHover = "1"
   }
 
   // Walk text nodes whose closest .sensitive ancestor is `root` — avoids

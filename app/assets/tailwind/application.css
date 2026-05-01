@@ -114,15 +114,13 @@
     transition: filter .12s ease, color .12s ease, background-color .12s ease;
   }
   html.privacy-mode .sensitive:not(.sensitive--strong) {
-    cursor: help;
+    cursor: not-allowed;
     user-select: none;
   }
-  html.privacy-mode .sensitive--no-reveal {
-    cursor: not-allowed;
-  }
 
-  /* :blur — bullets only (controller handles text replacement). No filter,
-     no text-shadow — clean dotted text, hover reveals the original. */
+  /* :blur — bullets only (controller handles text replacement). Privacy
+     mode is intentionally all-or-nothing: no hover reveal, otherwise
+     screen-shares leak content the moment the cursor moves. */
 
   /* :strong — text-only blur via text-shadow. Layout (border/bg/padding)
      stays sharp; only the characters get smudged. JSON viewers / payloads. */
