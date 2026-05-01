@@ -674,8 +674,11 @@
         s: "amount_cents desc"
       })
       biggest_actions = capture do %>
-        <%= link_to "See all", all_transactions_url,
-              class: "text-sm text-muted-foreground hover:text-foreground transition-colors" %>
+        <%= render "admin/shared/components/button",
+              label: "See all",
+              href: all_transactions_url,
+              variant: :outline,
+              size: :sm %>
     <% end %>
     <%= render "admin/shared/components/card",
           title: "Biggest transactions",

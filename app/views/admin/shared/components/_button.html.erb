@@ -32,5 +32,5 @@
 <% elsif href %>
   <%= link_to inner, href, class: cls, data: data %>
 <% else %>
-  <%= button_tag inner, type: (type || "button"), class: cls, name: name, value: value %>
+  <%= button_tag inner, type: (type || "button"), class: cls, name: name, value: value, data: data %>
 <% end %>

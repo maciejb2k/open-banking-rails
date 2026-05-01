@@ -32,7 +32,7 @@
             <div class="rounded-lg bg-primary/10 p-2">
               <%= render "admin/shared/icons/banknote", classes: "h-5 w-5 text-primary" %>
             </div>
-            <span class="text-xs uppercase tracking-wider text-muted-foreground truncate">
+            <span class="text-xs uppercase tracking-wider text-muted-foreground truncate <%= sensitive_class %>">
               <%= wallet.display_name %>
             </span>
           </div>

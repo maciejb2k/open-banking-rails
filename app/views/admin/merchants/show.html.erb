@@ -129,10 +129,11 @@
             <p class="text-xs text-muted-foreground">Last <%= @recent_transactions.size %> of <%= @transaction_count %></p>
           </div>
           <% if @transaction_count > @recent_transactions.size %>
-            <%= link_to admin_bank_transactions_path(merchant_id: @merchant.id),
-                  class: "text-sm text-primary hover:underline" do %>
-              View all <%= @transaction_count %> →
-            <% end %>
+            <%= render "admin/shared/components/button",
+                  label: "View all #{@transaction_count}",
+                  href: admin_bank_transactions_path(merchant_id: @merchant.id),
+                  variant: :outline,
+                  size: :sm %>
           <% end %>
         </div>
         <% if @recent_transactions.any? %>

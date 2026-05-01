@@ -717,6 +717,25 @@
       </div>
 
       <div class="admin-section max-w-2xl space-y-5 mt-5">
+        <h3 class="font-medium">Category Picker</h3>
+        <p class="text-sm text-muted-foreground -mt-2">
+          Path-aware category select — depth-prefixed (<code class="bg-muted px-1 rounded text-xs">— —</code>)
+          and ordered by ltree path so the visual order matches the tree's
+          left-right traversal. Pass the <code class="bg-muted px-1 rounded text-xs">user:</code> whose
+          categories should be listed. Used by the manual cash transaction
+          form and the classify-transaction modal.
+        </p>
+        <% if current_user.categories.active.any? %>
+          <%= render "admin/shared/components/category_picker",
+                form: f, field: :category_id, user: current_user %>
+        <% else %>
+          <%= render "admin/shared/components/callout",
+                variant: :info,
+                message: "Seed a taxonomy to preview this component — run the bootstrap on the dashboard." %>
+        <% end %>
+      </div>
+
+      <div class="admin-section max-w-2xl space-y-5 mt-5">
         <h3 class="font-medium">Form Group (custom content)</h3>
         <p class="text-sm text-muted-foreground -mt-2">Use when no standard component fits — wraps any content in the standard label/hint/error shell.</p>
 
@@ -861,6 +880,41 @@
         { label: "Acme Bank" }
       ] %>
     </div>
+  </section>
+
+  <%# ── CATEGORY BREADCRUMB ── %>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold border-b pb-2">Category Breadcrumb</h2>
+    <p class="text-sm text-muted-foreground">
+      Path-aware label for a category — renders the full ltree path
+      ("Lifestyle / Shopping / Electronics") so leaf-only labels stay
+      unambiguous when the same name appears under multiple branches.
+      Pass <code class="bg-muted px-1 rounded text-xs">link: true</code> to
+      make the leaf clickable to its analytics drill-down.
+      Hidden categories render as <code class="bg-muted px-1 rounded text-xs">•••</code>
+      automatically. Used in the transactions table and analytics views.
+    </p>
+    <% sample_category = current_user.categories.active.where("nlevel(path) >= 3").first ||
+                         current_user.categories.active.where("nlevel(path) >= 2").first ||
+                         current_user.categories.active.first %>
+    <% if sample_category %>
+      <%= render "admin/shared/components/card", title: "Variants" do %>
+        <%= render "admin/shared/components/definition_list", pairs: [
+          { label: "Default (muted ancestors)",
+            value: render("admin/shared/components/category_breadcrumb", category: sample_category) },
+          { label: "Linked",
+            value: render("admin/shared/components/category_breadcrumb", category: sample_category, link: true) },
+          { label: "Plain (muted_ancestors: false)",
+            value: render("admin/shared/components/category_breadcrumb", category: sample_category, muted_ancestors: false) },
+          { label: "Custom separator",
+            value: render("admin/shared/components/category_breadcrumb", category: sample_category, separator: " › ") }
+        ] %>
+      <% end %>
+    <% else %>
+      <%= render "admin/shared/components/callout",
+            variant: :info,
+            message: "Seed a taxonomy to preview this component — run the bootstrap on the dashboard." %>
+    <% end %>
   </section>
 
   <%# ── COMMAND PALETTE ── %>

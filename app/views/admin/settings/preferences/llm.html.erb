@@ -118,12 +118,12 @@
         <% end %>
 
         <div class="flex justify-end">
-          <%= button_to admin_settings_preferences_test_llm_path,
+          <%= render "admin/shared/components/button",
+                label: "Test connection",
+                icon: "refresh_cw",
+                href: admin_settings_preferences_test_llm_path,
                 method: :post,
-                class: "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors h-10 px-4 py-2 text-sm border bg-card hover:bg-card-hover text-foreground" do %>
-            <%= render "admin/shared/icons/refresh_cw", classes: "h-4 w-4" %>
-            Test connection
-          <% end %>
+                variant: :outline %>
         </div>
       </div>
     <% end %>

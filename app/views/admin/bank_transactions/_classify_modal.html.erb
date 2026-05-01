@@ -90,11 +90,10 @@
     </div>
 
     <div class="flex justify-end gap-3 pt-2 border-t">
-      <button type="button"
-              onclick="document.getElementById('classify-modal').classList.add('hidden')"
-              class="rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-card-hover transition-colors">
-        Cancel
-      </button>
+      <%= render "admin/shared/components/button",
+            label: "Cancel",
+            variant: :outline,
+            data: { action: "click->modal#close" } %>
       <%= render "admin/shared/components/button", label: "Apply", type: :submit %>
     </div>
   <% end %>

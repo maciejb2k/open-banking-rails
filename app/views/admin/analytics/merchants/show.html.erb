@@ -81,31 +81,62 @@
             description: "No transactions at this merchant in the selected period.",
             icon: "search" %>
     <% else %>
-      <%= render "admin/shared/components/data_table",
-            columns: [
-              { label: "Date" },
-              { label: "Title" },
-              { label: "Account" },
-              { label: "Amount", align: :right }
-            ] do %>
+      <%# Full-row clickable list — same pattern as llm_enrichments/index
+          "What's left" rows. <tr> can't host an <a>, so we use <ul>/<li>. %>
+      <ul class="divide-y">
         <% @transactions.each do |tx| %>
-          <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
-            <td class="px-4 py-3 font-mono text-xs whitespace-nowrap"><%= tx.booking_date %></td>
-            <td class="px-4 py-3 max-w-xs">
-              <span class="<%= sensitive_class %>"><%= tx.title.presence || tx.counterparty_name.presence || "—" %></span>
-            </td>
-            <td class="px-4 py-3 text-xs text-muted-foreground <%= sensitive_class %>">
-              <%= tx.bank_account.display_name %>
-            </td>
-            <td class="px-4 py-3 text-right amount whitespace-nowrap">
-              <span class="<%= sensitive_class %>">
-                <%= tx.amount.format(no_cents_if_whole: false) %>
-              </span>
-              <span class="text-muted-foreground text-xs font-normal"><%= tx.currency %></span>
-            </td>
-          </tr>
+          <%# Dispatch by source_type to avoid N+1 from LedgerEntry#source_record. %>
+          <% detail_path = case tx.source_type
+                           when "BankTransaction"   then admin_bank_transaction_path(tx.source_id)
+                           when "ManualTransaction" then edit_admin_cash_transaction_path(tx.source_id)
+                           end %>
+          <% bc = tx.bank_account.current_bank_connection %>
+          <% bank_label = bc&.bank_name.presence || bc&.bank_slug %>
+          <% row_inner = capture do %>
+            <div class="flex items-center gap-4 px-4 py-3 <%= "hover:bg-muted/20 transition-colors" if detail_path %>">
+              <div class="font-mono text-xs text-muted-foreground whitespace-nowrap w-24 shrink-0">
+                <%= tx.booking_date %>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="text-sm truncate <%= sensitive_class %>">
+                  <%= tx.title.presence || tx.counterparty_name.presence || "—" %>
+                </div>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <% if bc %>
+                    <%= render "admin/shared/components/bank_logo",
+                          slug: bc.bank_slug, name: bc.bank_name, size: :sm %>
+                    <span class="text-xs text-muted-foreground truncate"><%= bank_label %></span>
+                    <span class="text-xs text-muted-foreground/50">·</span>
+                  <% end %>
+                  <span class="text-xs text-muted-foreground truncate <%= sensitive_class %>">
+                    <%= tx.bank_account.display_name %>
+                  </span>
+                  <% if tx.bank_account.iban.present? %>
+                    <span class="text-xs text-muted-foreground/50">·</span>
+                    <span class="text-xs font-mono text-muted-foreground/70 truncate <%= sensitive_class %>">
+                      <%= tx.bank_account.iban %>
+                    </span>
+                  <% end %>
+                </div>
+              </div>
+              <div class="amount text-sm whitespace-nowrap text-right shrink-0">
+                <span class="<%= sensitive_class %>"><%= tx.amount.format(no_cents_if_whole: false) %></span>
+                <span class="text-muted-foreground text-xs font-normal"><%= tx.currency %></span>
+              </div>
+              <% if detail_path %>
+                <%= render "admin/shared/icons/chevron_right", classes: "h-4 w-4 text-muted-foreground shrink-0" %>
+              <% end %>
+            </div>
+          <% end %>
+          <li>
+            <% if detail_path %>
+              <%= link_to detail_path, class: "block" do %><%= row_inner %><% end %>
+            <% else %>
+              <%= row_inner %>
+            <% end %>
+          </li>
         <% end %>
-      <% end %>
+      </ul>
       <%= render "admin/shared/components/pagination", pagy: @pagy %>
     <% end %>
   <% end %>

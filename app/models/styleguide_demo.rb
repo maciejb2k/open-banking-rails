@@ -8,4 +8,5 @@ class StyleguideDemo
 
   attribute :name, :string
   attribute :email, :string
+  attribute :category_id, :integer
 end
