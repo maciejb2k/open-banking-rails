@@ -22,9 +22,11 @@
       <div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold sensitive-avatar">
         <span><%= current_user.initials %></span>
       </div>
-      <div class="text-sm">
-        <p class="font-medium <%= sensitive_class %>"><%= current_user.display_name %></p>
-      </div>
+      <%= link_to admin_settings_preferences_profile_path,
+            class: "text-sm font-medium rounded-md px-2 py-1 -mx-1 hover:bg-sidebar-accent/40 transition-colors #{sensitive_class}",
+            title: "Profile settings" do %>
+        <%= current_user.display_name %>
+      <% end %>
     </div>
   </div>
 </header>
