@@ -1,26 +1,57 @@
 # frozen_string_literal: true
 
-# Hierarchical, soft-deletable category — Layer 1 of the three-layer category
-# model. Backed by PG `ltree` (`path` column) with a GiST index, so subtree
-# containment queries hit native operators:
+# == Schema Information
 #
-#   Category.under_path("food")               # food + every descendant
-#   Category.where("path ~ 'food.*{1}'")      # direct children only
-#   Category.where("nlevel(path) = 1")        # roots
+# Table name: categories
 #
-# Layers 2/3 ride alongside:
-#   * `essential` (here)             — needs vs wants
-#   * `recurring` (Enrichment)       — cyclical charges as a property
-#   * `gutentag tags` (Enrichment)   — free-form labels
+#  id          :bigint           not null, primary key
+#  archived_at :datetime
+#  color       :string
+#  essential   :boolean          default(FALSE), not null
+#  icon        :string
+#  kind        :string           default("expense"), not null
+#  name        :string           not null
+#  path        :ltree
+#  position    :integer          default(0), not null
+#  slug        :string           not null
+#  created_at  :datetime         not null
+#  updated_at  :datetime         not null
+#  user_id     :bigint           not null
 #
-# `slug` stays stable across renames — used by seeds, exports, the LLM
-# merchant suggester, and merchant_rules. Slug uniqueness is per user.
-# `path` is the canonical lookup ("food.cooking.supermarket"); slug is the
-# leaf-only segment.
+# Indexes
 #
-# `kind` (expense/income/transfer/savings/ignored) is the sign-convention
-# property analytics scopes partition on, orthogonal to path depth.
+#  index_categories_on_archived_at       (archived_at)
+#  index_categories_on_path              (path) USING gist
+#  index_categories_on_path_unique       (path) UNIQUE
+#  index_categories_on_user_id           (user_id)
+#  index_categories_on_user_id_and_slug  (user_id,slug) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (user_id => users.id)
+#
 class Category < ApplicationRecord
+  # Hierarchical, soft-deletable category — Layer 1 of the three-layer category
+  # model. Backed by PG `ltree` (`path` column) with a GiST index, so subtree
+  # containment queries hit native operators:
+  #
+  #   Category.under_path("food")               # food + every descendant
+  #   Category.where("path ~ 'food.*{1}'")      # direct children only
+  #   Category.where("nlevel(path) = 1")        # roots
+  #
+  # Layers 2/3 ride alongside:
+  #   * `essential` (here)             — needs vs wants
+  #   * `recurring` (Enrichment)       — cyclical charges as a property
+  #   * `gutentag tags` (Enrichment)   — free-form labels
+  #
+  # `slug` stays stable across renames — used by seeds, exports, the LLM
+  # merchant suggester, and merchant_rules. Slug uniqueness is per user.
+  # `path` is the canonical lookup ("food.cooking.supermarket"); slug is the
+  # leaf-only segment.
+  #
+  # `kind` (expense/income/transfer/savings/ignored) is the sign-convention
+  # property analytics scopes partition on, orthogonal to path depth.
+
   KINDS = %w[expense income transfer savings ignored].freeze
   SEPARATOR = "."
 

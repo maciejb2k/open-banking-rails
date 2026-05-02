@@ -1,12 +1,35 @@
 # frozen_string_literal: true
 
-# Per-user LLM credentials + model choice. Replaces the previous global
-# ENV-based config (OPENAI_API_KEY / GEMINI_API_KEY / LLM_MODEL) — every user
-# brings their own key, AI features fail loudly if not configured.
+# == Schema Information
 #
-# Lookup of supported providers/models lives in Llm::Providers::REGISTRY,
-# so adding a vendor doesn't require touching this file.
+# Table name: llm_settings
+#
+#  id              :bigint           not null, primary key
+#  api_key         :text             not null
+#  last_test_error :text
+#  last_tested_at  :datetime
+#  model           :string
+#  provider        :string           not null
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#  user_id         :bigint           not null
+#
+# Indexes
+#
+#  index_llm_settings_on_user_id  (user_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (user_id => users.id)
+#
 class LlmSetting < ApplicationRecord
+  # Per-user LLM credentials + model choice. Replaces the previous global
+  # ENV-based config (OPENAI_API_KEY / GEMINI_API_KEY / LLM_MODEL) — every user
+  # brings their own key, AI features fail loudly if not configured.
+  #
+  # Lookup of supported providers/models lives in Llm::Providers::REGISTRY,
+  # so adding a vendor doesn't require touching this file.
+
   belongs_to :user
 
   encrypts :api_key

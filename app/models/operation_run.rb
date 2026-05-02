@@ -1,17 +1,50 @@
 # frozen_string_literal: true
 
-# Runtime trace of an EnableBanking::Operations::* (or any future
-# long-running domain operation). One row per run — manual, scheduled,
-# or system-triggered.
+# == Schema Information
 #
-# Generic by design: `kind` discriminates, `params`/`summary` are
-# kind-specific jsonb. The contract for each kind lives in code
-# (the operation/job that owns that kind), not the schema.
+# Table name: operation_runs
 #
-# Designed to absorb the scattered `last_synced_at` / `last_error`
-# fields on BankConnection/BankAccount over time — those become a
-# denormalized cache; this is the source of truth for history.
+#  id                   :bigint           not null, primary key
+#  error                :text
+#  finished_at          :datetime
+#  kind                 :string           not null
+#  params               :jsonb            not null
+#  started_at           :datetime
+#  status               :string           default("queued"), not null
+#  subject_type         :string
+#  summary              :jsonb            not null
+#  trigger              :string           default("manual"), not null
+#  created_at           :datetime         not null
+#  updated_at           :datetime         not null
+#  subject_id           :bigint
+#  triggered_by_user_id :bigint           not null
+#
+# Indexes
+#
+#  index_operation_runs_on_created_at            (created_at)
+#  index_operation_runs_on_kind                  (kind)
+#  index_operation_runs_on_kind_and_status       (kind,status)
+#  index_operation_runs_on_status                (status)
+#  index_operation_runs_on_subject               (subject_type,subject_id)
+#  index_operation_runs_on_triggered_by_user_id  (triggered_by_user_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (triggered_by_user_id => users.id)
+#
 class OperationRun < ApplicationRecord
+  # Runtime trace of an EnableBanking::Operations::* (or any future
+  # long-running domain operation). One row per run — manual, scheduled,
+  # or system-triggered.
+  #
+  # Generic by design: `kind` discriminates, `params`/`summary` are
+  # kind-specific jsonb. The contract for each kind lives in code
+  # (the operation/job that owns that kind), not the schema.
+  #
+  # Designed to absorb the scattered `last_synced_at` / `last_error`
+  # fields on BankConnection/BankAccount over time — those become a
+  # denormalized cache; this is the source of truth for history.
+
   KINDS = %w[
     transaction_sync
     balance_refresh

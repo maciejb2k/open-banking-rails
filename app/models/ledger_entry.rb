@@ -1,27 +1,55 @@
 # frozen_string_literal: true
 
-# Read-only unified ledger for analytics. Backed by the `ledger_entries`
-# Postgres view (db/views/ledger_entries_v01.sql) which UNIONs
-# BankTransaction + ManualTransaction and pre-resolves enrichment +
-# effective category in SQL.
+# == Schema Information
 #
-# This model is the *read-side* of the ledger — analytics queries should
-# always go through here, not through the source tables, so they never
-# duplicate the union/enrichment-resolution boilerplate. Writes happen on
-# the source models (BankTransaction, ManualTransaction) which include
-# LedgerEntryConcern.
+# Table name: ledger_entries
 #
-# To extend the view (new ledger source, new analytics column), see the
-# header comment in db/views/ledger_entries_v01.sql and the "Analytics
-# data access" section in AGENTS.md.
+#  amount_cents          :bigint
+#  booking_date          :date
+#  category_path         :ltree
+#  counterparty_kind     :string
+#  counterparty_name     :string
+#  currency              :string(3)
+#  direction             :string
+#  enrichment_source     :string
+#  essential             :boolean
+#  payment_method        :string
+#  recurrence_interval   :string
+#  recurring             :boolean
+#  signed_amount_cents   :bigint
+#  source_type           :text
+#  status                :string
+#  title                 :text
+#  transaction_date      :date
+#  bank_account_id       :bigint
+#  effective_category_id :bigint
+#  enrichment_id         :bigint
+#  merchant_id           :bigint
+#  source_id             :bigint
 #
-# Performance note: the view is non-materialized (always fresh, no
-# maintenance). For the personal-app scale (≤ 10⁵ rows) Postgres uses the
-# underlying indexes — `(bank_account_id, booking_date)` and
-# `(enrichable_type, enrichable_id)` — through the view. If aggregations
-# ever get slow, the upgrade path is `change_view :ledger_entries,
-# materialized: true` + a refresh cron; nothing else changes.
 class LedgerEntry < ApplicationRecord
+  # Read-only unified ledger for analytics. Backed by the `ledger_entries`
+  # Postgres view (db/views/ledger_entries_v01.sql) which UNIONs
+  # BankTransaction + ManualTransaction and pre-resolves enrichment +
+  # effective category in SQL.
+  #
+  # This model is the *read-side* of the ledger — analytics queries should
+  # always go through here, not through the source tables, so they never
+  # duplicate the union/enrichment-resolution boilerplate. Writes happen on
+  # the source models (BankTransaction, ManualTransaction) which include
+  # LedgerEntryConcern.
+  #
+  # To extend the view (new ledger source, new analytics column), see the
+  # header comment in db/views/ledger_entries_v01.sql and the "Analytics
+  # data access" section in AGENTS.md.
+  #
+  # Performance note: the view is non-materialized (always fresh, no
+  # maintenance). For the personal-app scale (≤ 10⁵ rows) Postgres uses the
+  # underlying indexes — `(bank_account_id, booking_date)` and
+  # `(enrichable_type, enrichable_id)` — through the view. If aggregations
+  # ever get slow, the upgrade path is `change_view :ledger_entries,
+  # materialized: true` + a refresh cron; nothing else changes.
+
   self.primary_key = nil
 
   # The view has no PK; Rails 8 needs an order column for `.first`/`.last`
