@@ -13,3 +13,9 @@ Format: Title / Context / Alternatives / Decision / Consequences.
 | [0006](0006-cash-tracking-opt-in.md) | Cash tracking is opt-in |
 | [0007](0007-chart-library.md) | Chart library: Chart.js via importmap |
 | [0008](0008-ai-insight-architecture.md) | AI insight: facts-only narration |
+| [0009](0009-operation-run-tracker.md) | `OperationRun` as the generic long-op tracker |
+| [0010](0010-three-layer-category-model.md) | Three-layer category model (ltree + kind + facets) |
+| [0011](0011-first-run-setup.md) | Single-user-shaped multi-tenant + first-run UI |
+| [0012](0012-per-user-llm-credentials.md) | Per-user LLM credentials + provider registry |
+| [0013](0013-enable-banking-adapter-shape.md) | Enable Banking adapter shape (Client/Api/Operations/Result) |
+| [0014](0014-self-hosted-deployment.md) | Self-hosted deployment shape (compose + ENV-only + bootstrap) |

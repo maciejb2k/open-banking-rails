@@ -13,13 +13,24 @@ hand-written UNION boilerplate per chart.
 - **MATERIALIZED VIEW** — cached, requires REFRESH cron + lock window.
 
 ## Decision
-Plain VIEW, managed by `scenic` (`db/views/ledger_entries_v01.sql`).
+Plain VIEW, managed by `scenic` (`db/views/ledger_entries_v0*.sql`).
 Pre-resolves enrichment + `effective_category_id` + `signed_amount_cents`
 in SQL. Read-only `LedgerEntry` model is the single analytics entry
 point.
 
+## Version history
+- **v01** — baseline projection: source identity, amount + sign, status,
+  payment_method, dates, title/counterparty_name, enrichment join.
+- **v02** — three-layer category facets surfaced from join: `category_path`
+  (ltree, for `<@` subtree filters), `essential` (Layer 2 needs/wants),
+  `recurring` + `recurrence_interval` (Layer 2 cyclical).
+- **v03** — `counterparty_kind` (self/external/unknown) projected from both
+  branches; lets analytics filter own-account moves without re-deriving
+  identity from IBAN + holder name on every query.
+
 ## Consequences
-- Schema changes to source tables require a scenic v02 bump.
+- Schema changes to source tables require a new scenic version (`rails
+  generate scenic:view ledger_entries` → v0N+1).
 - Source-table cols not relevant to analytics (raw_payload, note,
   external_id, etc.) stay off the view; reach via `source_record` if
   ever needed.

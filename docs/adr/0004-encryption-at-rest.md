@@ -1,9 +1,9 @@
 # 0004 — Selective ActiveRecord encryption
 
 ## Context
-PSD2 secrets, API session IDs, raw bank payloads, and balances are
-sensitive. They must be encrypted at rest, search/equality lookups
-on them are not needed.
+PSD2 secrets, API session IDs, raw bank payloads, balances, and per-user
+LLM API keys are sensitive. They must be encrypted at rest, search/equality
+lookups on them are not needed.
 
 ## Alternatives
 - **Disk / Postgres TDE only** — protects against disk theft, not against
@@ -17,8 +17,10 @@ Selective AR-encryption (non-deterministic) on:
 `tpp_credentials.private_key_pem`, `tpp_credentials.application_id`,
 `bank_connections.session_id`, `bank_connections.psu_id_hash`,
 `bank_connections.raw_session_payload`, `bank_accounts.raw_balances`,
-`bank_transactions.raw_payload`. PaperTrail skips them. Ransack
-allowlists exclude them. Logs filter common secret patterns.
+`bank_transactions.raw_payload`, `llm_settings.api_key`. PaperTrail
+skips them. Ransack allowlists exclude them. Logs filter common
+secret patterns. Adding a new encrypted field = `encrypts :col` on the
+model + entry here.
 
 ## Consequences
 - Equality search on encrypted fields is impossible — fine, we don't

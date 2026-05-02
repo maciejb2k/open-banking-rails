@@ -46,8 +46,11 @@ their free tier covers personal use. GoCardless used to offer a similar
 free tier but dropped it for personal projects, which is why Enable
 Banking is the current choice.
 
-The app talks to the provider through an adapter, so
-swapping in a different one later is a small change, not a rewrite.
+The app talks to the provider through an adapter, so swapping in a different one later is a small change, not a rewrite.
+
+### Read-only by design
+
+AISP is the read-only PSD2 role. It covers account info and transaction history, nothing else. Initiating payments is a separate role (PISP) with a separate license, a separate consent flow, and credentials this app does not hold and never asks for. Even if the API keys leaked, the worst case is someone reading your transactions. Moving money is structurally impossible here.
 
 ## Tech stack
 
@@ -121,24 +124,12 @@ flowchart LR
     Apply --> DB[("Ledger entry")]
 ```
 
-## Styleguide & Component Library
-
-No `ActiveAdmin`, no `Avo`. The admin panel is hand-rolled on Tailwind
-and shipped fast with Claude Code, following project rules
-(`AGENTS.md`) that pin the LLM to design tokens, sensitive-data
-wrapping and reusable partials. The output is a small component library
-and a fully responsive admin built on top of it.
-
-Browse `/admin/styleguide` for every component and its variants.
-
-![Styleguide](docs/screenshots/styleguide.png)
-
 ## Self-hosting
 
 Requires Docker 24+ with the Compose plugin. ~2 GB RAM, ~5 GB disk.
 
 ```bash
-mkdir my-finance && cd my-finance
+mkdir open-banking-rails && cd open-banking-rails
 curl -fsSL https://raw.githubusercontent.com/maciejb2k/open-banking-rails/main/docker-compose.prod.yml -O
 docker compose -f docker-compose.prod.yml up -d
 ```
@@ -192,6 +183,35 @@ Password reset without SMTP:
 docker compose -f docker-compose.prod.yml exec app \
     bin/rails runner "User.first.send_reset_password_instructions"
 ```
+
+## Configuring App
+
+Once the container is up and you've created the admin account, this is the post-install walkthrough that takes you from a blank app to a working dashboard.
+
+> **Heads up: you'll go through a bank consent flow twice.** Once on Enable Banking to whitelist the account, then again in this app to actually read it. The two screens look identical and people lose hours conflating them. The first consent is a throwaway whitelist step; only the second one grants transaction access.
+
+1. Register on [Enable Banking](https://enablebanking.com/) and enable MFA.
+2. Create a new **API Application** in Enable Banking. Treat it like an OAuth app. It's the gateway this app uses to talk to your bank.
+3. **Whitelist your accounts (consent #1, 1 day).** In the Enable Banking UI in the created Application, link each account through their bank flow. The page looks exactly like a real consent screen, but on the free tier this step only registers the account on Enable Banking's whitelist. It does not grant read access. The 1-day expiry is irrelevant; once an account is whitelisted it stays usable. (The free plan has no API for adding accounts, which is why this manual round-trip exists.)
+4. In this app, open **TPP Credentials**, mirror the values from the Enable Banking Application, and test the connection.
+5. **Authorize transaction reads (consent #2, 90–180 days).** Go to **Bank Connections → Add bank** and run the bank flow again. This one goes through the Enable Banking API and grants *read-only* access to transactions for 90–180 days, depending on the bank. This is the consent that matters and the one you'll renew when it expires. No payments, read-only by design. Use **Refresh from API** on the connection's show page to confirm everything is wired.
+6. Bank Accounts appear automatically once the connection syncs.
+7. Open **Sync Transactions** and pull history. Most banks cap this at the last 90 days from the day you connect.
+8. In **Preferences**, paste an LLM API key (~$5 of OpenAI credit goes a long way) and test the connection.
+9. Open **AI Enrichments** and walk through the queue until categories match how you think.
+10. Open the dashboard and you're done.
+
+## Styleguide & Component Library
+
+No `ActiveAdmin`, no `Avo`. The admin panel is hand-rolled on Tailwind
+and shipped fast with Claude Code, following project rules
+(`AGENTS.md`) that pin the LLM to design tokens, sensitive-data
+wrapping and reusable partials. The output is a small component library
+and a fully responsive admin built on top of it.
+
+Browse `/admin/styleguide` for every component and its variants.
+
+![Styleguide](docs/screenshots/styleguide.png)
 
 ## Screenshots
 
