@@ -41,9 +41,10 @@ reach for a personal project.
 
 [Enable Banking](https://enablebanking.com/docs/api/reference/)
 is a licensed provider that sits in the middle: they offer one API for
-many European banks, and their free tier covers personal use. GoCardless used to offer a similar free tier but
-dropped it for personal projects, which is why Enable Banking is the
-current choice.
+[most European banks](https://enablebanking.com/open-banking-apis), and
+their free tier covers personal use. GoCardless used to offer a similar
+free tier but dropped it for personal projects, which is why Enable
+Banking is the current choice.
 
 The app talks to the provider through an adapter, so
 swapping in a different one later is a small change, not a rewrite.
