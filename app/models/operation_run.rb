@@ -52,6 +52,8 @@ class OperationRun < ApplicationRecord
     account_details_refresh
     llm_enrichment
     llm_connection_test
+    data_export
+    data_import
   ].freeze
 
   STATUSES = %w[queued running succeeded partial failed].freeze

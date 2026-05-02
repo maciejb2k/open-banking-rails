@@ -109,6 +109,14 @@ Rails.application.routes.draw do
         get   "llm",      to: "preferences#llm",             as: :llm
         patch "llm",      to: "preferences#update_llm"
         post  "llm/test", to: "preferences#test_llm",        as: :test_llm
+
+        # Export/import of user-owned domain data. Lives next to Preferences
+        # in the side nav (registry in Admin::BaseHelper#preferences_sections)
+        # but its own controller — file upload + bundle cipher don't fit the
+        # field-grouped form pattern of PreferencesController.
+        get   "data_exchange",        to: "data_exchange#show",   as: :data_exchange
+        post  "data_exchange/export", to: "data_exchange#export", as: :data_exchange_export
+        post  "data_exchange/import", to: "data_exchange#import", as: :data_exchange_import
       end
 
       resources :tpp_credentials do

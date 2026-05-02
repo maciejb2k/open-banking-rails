@@ -24,7 +24,10 @@ module Admin
           desc: "Cash tracking, hidden categories." },
         { id: :llm,     label: "LLM",     icon: "sparkles",
           path: admin_settings_preferences_llm_path,
-          desc: "AI provider, API key, connection test." }
+          desc: "AI provider, API key, connection test." },
+        { id: :data_exchange, label: "Data exchange", icon: "package",
+          path: admin_settings_preferences_data_exchange_path,
+          desc: "Export and import bundles between instances." }
       ]
     end
 

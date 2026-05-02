@@ -1,0 +1,132 @@
+<%= render layout: "admin/settings/preferences/layout", locals: { current: :data_exchange } do %>
+  <div class="space-y-6">
+    <%# ── Export ────────────────────────────────────────────────────── %>
+    <%= form_with url: admin_settings_preferences_data_exchange_export_path,
+                  method: :post,
+                  class: "space-y-6", local: true do %>
+      <div class="admin-section space-y-4">
+        <h2 class="text-base font-semibold text-foreground">Export</h2>
+        <p class="text-sm text-muted-foreground -mt-2">
+          Bundle your data into a passphrase-encrypted file you can re-import
+          on another instance. Bundle holds plaintext secrets — encryption
+          on the wire comes from the passphrase, not from this server's keys.
+        </p>
+
+        <% if @available_resources.any? { |_, n| n.positive? } %>
+          <div>
+            <label class="block text-sm font-medium text-foreground mb-2">Will be exported</label>
+            <ul class="space-y-1 text-sm">
+              <% @available_resources.each do |key, count| %>
+                <li class="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
+                  <span class="text-foreground"><%= key.to_s.humanize %></span>
+                  <span class="text-muted-foreground tabular-nums"><%= count %> record<%= "s" unless count == 1 %></span>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% else %>
+          <%= render "admin/shared/components/callout",
+                variant: :info,
+                message: "Nothing to export yet — add a TPP credential or bank connection first." %>
+        <% end %>
+
+        <%# Custom: model-less password input. The shared _password_field
+            partial wraps form.password_field (object-bound) plus a Stimulus
+            show/hide toggle and form_group. Extract a _password_input
+            (model-less variant with the same toggle) when a third stateless
+            password field appears in the codebase — until then, two inline
+            uses cost less than the new partial. %>
+        <div>
+          <label for="export_passphrase" class="block text-sm font-medium text-foreground mb-1.5">Passphrase</label>
+          <%= password_field_tag :passphrase, nil,
+                id: "export_passphrase",
+                required: true,
+                autocomplete: "new-password",
+                placeholder: "••••••••",
+                class: "form-input" %>
+          <p class="mt-1 text-xs text-muted-foreground">You'll need this exact passphrase on the destination to import.</p>
+        </div>
+      </div>
+
+      <div class="flex justify-end">
+        <%= render "admin/shared/components/button",
+              label: "Download bundle",
+              icon: "download",
+              type: :submit %>
+      </div>
+    <% end %>
+
+    <%# ── Import ────────────────────────────────────────────────────── %>
+    <%= form_with url: admin_settings_preferences_data_exchange_import_path,
+                  method: :post,
+                  multipart: true,
+                  class: "space-y-6", local: true do %>
+      <div class="admin-section space-y-4">
+        <h2 class="text-base font-semibold text-foreground">Import</h2>
+        <p class="text-sm text-muted-foreground -mt-2">
+          Upload a bundle exported from another instance. Records match by
+          natural key per resource (e.g. TPP credentials by name + provider).
+          Imports run in a single transaction — partial failure rolls back the whole bundle.
+        </p>
+
+        <%# Custom: model-less file input. _file_upload is the canonical
+            Stimulus drag-and-drop partial but binds to a form object. A
+            one-shot bundle upload doesn't justify a model wrapper here.
+            Extract _file_input (drag-drop, model-less) when a second
+            stateless upload appears. The file: Tailwind utilities below
+            keep the native input visually consistent with form-input. %>
+        <div>
+          <label for="import_bundle" class="block text-sm font-medium text-foreground mb-1.5">Bundle file</label>
+          <%= file_field_tag :bundle,
+                accept: ".obrbundle,application/octet-stream",
+                id: "import_bundle",
+                required: true,
+                class: "block w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20 file:cursor-pointer" %>
+          <p class="mt-1 text-xs text-muted-foreground">Bundles use the <code>.obrbundle</code> extension and are encrypted at rest.</p>
+        </div>
+
+        <%# Custom: see the export-form passphrase comment above — same
+            "model-less password input" reason. Two uses on this page,
+            still under the 3+ extraction bar. %>
+        <div>
+          <label for="import_passphrase" class="block text-sm font-medium text-foreground mb-1.5">Passphrase</label>
+          <%= password_field_tag :passphrase, nil,
+                id: "import_passphrase",
+                required: true,
+                autocomplete: "off",
+                placeholder: "••••••••",
+                class: "form-input" %>
+        </div>
+
+        <%# Custom: model-less radio group. _radio_group binds to form/field
+            on a model object; this strategy choice isn't persisted, just
+            posted with the import. Three options inline, each iteration
+            mirrors _radio_group's <label>+radio+<span> shape — extract
+            _radio_input when a second stateless radio set appears. %>
+        <div>
+          <label class="block text-sm font-medium text-foreground mb-2">If a record already exists on this instance</label>
+          <div class="space-y-2">
+            <% [
+              [ "skip_existing",      "Skip — keep the destination record unchanged. (Default, safest.)" ],
+              [ "overwrite_existing", "Overwrite — apply the bundle's attributes to the existing record." ],
+              [ "fail_on_conflict",   "Fail — abort the entire import on the first conflict." ]
+            ].each do |value, label| %>
+              <label class="flex items-start gap-2 cursor-pointer">
+                <%= radio_button_tag :strategy, value, value == "skip_existing",
+                      class: "mt-0.5 border-input h-4 w-4 text-primary focus:ring-primary/20" %>
+                <span class="text-sm text-foreground"><%= label %></span>
+              </label>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end">
+        <%= render "admin/shared/components/button",
+              label: "Import bundle",
+              icon: "upload",
+              type: :submit %>
+      </div>
+    <% end %>
+  </div>
+<% end %>
