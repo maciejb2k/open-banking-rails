@@ -8,7 +8,7 @@
           title: "No bank accounts yet",
           description: "Bank accounts are populated automatically when you authorize a bank connection.",
           action_label: "Manage connections",
-          action_path: admin_settings_bank_connections_path,
+          action_path: admin_bank_connections_path,
           icon: "dollar_sign" %>
   <% else %>
     <div class="admin-section p-0 overflow-hidden">
@@ -25,7 +25,7 @@
         <% @collection.each do |account| %>
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
             <td class="px-4 py-3">
-              <%= link_to admin_settings_bank_account_path(account),
+              <%= link_to admin_bank_account_path(account),
                     class: "font-mono text-xs text-foreground hover:text-primary #{sensitive_class}" do %>
                 <%= account.iban || account.uid %>
               <% end %>
@@ -44,7 +44,7 @@
                   <%= render "admin/shared/components/bank_logo",
                         slug: bc.bank_slug, name: bc.bank_name, size: :sm %>
                   <%= link_to bc.bank_name.presence || bc.bank_slug,
-                        admin_settings_bank_connection_path(bc),
+                        admin_bank_connection_path(bc),
                         class: "text-sm text-primary hover:underline" %>
                 </div>
               <% else %>
@@ -58,7 +58,7 @@
             </td>
             <td class="px-4 py-3">
               <%= render "admin/shared/components/dropdown_menu", items: [
-                { label: "View", icon: "eye", href: admin_settings_bank_account_path(account) }
+                { label: "View", icon: "eye", href: admin_bank_account_path(account) }
               ] %>
             </td>
           </tr>

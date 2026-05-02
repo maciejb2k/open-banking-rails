@@ -56,7 +56,7 @@
           hint: "(mBank: derived from BBAN by prepending 'PL')", sensitive: true },
         { label: "Bank account",
           value: link_to(@transaction.bank_account.display_name,
-                         admin_settings_bank_account_path(@transaction.bank_account),
+                         admin_bank_account_path(@transaction.bank_account),
                          class: "text-primary hover:underline"),
           sensitive: true },
         { label: "Account IBAN", value: @transaction.bank_account.iban, mono: true, wrap: true, sensitive: true },
@@ -64,7 +64,7 @@
           value: (
             if (bc = @transaction.bank_account.current_bank_connection)
               link_to(bc.bank_name.presence || bc.bank_slug,
-                      admin_settings_bank_connection_path(bc),
+                      admin_bank_connection_path(bc),
                       class: "text-primary hover:underline")
             end
           ) },

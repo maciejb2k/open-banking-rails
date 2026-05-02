@@ -1,7 +1,7 @@
 <% new_button = capture do %>
   <%= render "admin/shared/components/button",
         label: "New credential",
-        href: new_admin_settings_tpp_credential_path,
+        href: new_admin_tpp_credential_path,
         icon: "plus" %>
 <% end %>
 
@@ -16,7 +16,7 @@
           title: "No credentials yet",
           description: "Add a TPP credential to start connecting banks. You'll need a private key, application ID, and certificate from your provider's Control Panel.",
           action_label: "Add credential",
-          action_path: new_admin_settings_tpp_credential_path,
+          action_path: new_admin_tpp_credential_path,
           icon: "file_text" %>
   <% else %>
     <div class="admin-section p-0 overflow-hidden">
@@ -32,7 +32,7 @@
         <% @collection.each do |c| %>
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
             <td class="px-4 py-3">
-              <%= link_to c.name, admin_settings_tpp_credential_path(c), class: "font-medium text-foreground hover:text-primary" %>
+              <%= link_to c.name, admin_tpp_credential_path(c), class: "font-medium text-foreground hover:text-primary" %>
               <% if c.primary? %>
                 <%= render "admin/shared/components/badge", text: "primary", variant: :info %>
               <% end %>
@@ -56,8 +56,8 @@
             </td>
             <td class="px-4 py-3">
               <%= render "admin/shared/components/dropdown_menu", items: [
-                { label: "View", icon: "eye", href: admin_settings_tpp_credential_path(c) },
-                { label: "Edit", icon: "pencil", href: edit_admin_settings_tpp_credential_path(c) }
+                { label: "View", icon: "eye", href: admin_tpp_credential_path(c) },
+                { label: "Edit", icon: "pencil", href: edit_admin_tpp_credential_path(c) }
               ] %>
             </td>
           </tr>

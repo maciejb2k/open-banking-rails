@@ -1,7 +1,7 @@
 <% add_button = capture do %>
   <%= render "admin/shared/components/button",
         label: "Add bank",
-        href: new_admin_settings_bank_connection_path,
+        href: new_admin_bank_connection_path,
         icon: "plus" %>
 <% end %>
 
@@ -16,7 +16,7 @@
           title: "No bank connections yet",
           description: "Click below to authorize a bank — you'll log in on the bank's site and approve the consent.",
           action_label: "Add bank",
-          action_path: new_admin_settings_bank_connection_path,
+          action_path: new_admin_bank_connection_path,
           icon: "package" %>
   <% else %>
     <div class="admin-section p-0 overflow-hidden">
@@ -36,7 +36,7 @@
                 <%= render "admin/shared/components/bank_logo",
                       slug: bc.bank_slug, name: bc.bank_name, size: :md %>
                 <div>
-                  <%= link_to (bc.bank_name.presence || bc.bank_slug), admin_settings_bank_connection_path(bc),
+                  <%= link_to (bc.bank_name.presence || bc.bank_slug), admin_bank_connection_path(bc),
                         class: "font-medium text-foreground hover:text-primary" %>
                   <span class="text-xs text-muted-foreground ml-1"><%= bc.bank_country %></span>
                 </div>
@@ -63,8 +63,8 @@
             </td>
             <td class="px-4 py-3">
               <%= render "admin/shared/components/dropdown_menu", items: [
-                { label: "View", icon: "eye", href: admin_settings_bank_connection_path(bc) },
-                { label: "Edit", icon: "pencil", href: edit_admin_settings_bank_connection_path(bc) }
+                { label: "View", icon: "eye", href: admin_bank_connection_path(bc) },
+                { label: "Edit", icon: "pencil", href: edit_admin_bank_connection_path(bc) }
               ] %>
             </td>
           </tr>

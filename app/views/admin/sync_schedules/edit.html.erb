@@ -5,7 +5,7 @@
         media: render("admin/shared/components/bank_logo",
           slug: @connection.bank_slug, name: @connection.bank_name, size: :lg) %>
 
-  <%= render "admin/settings/sync_schedules/form", connection: @connection, schedule: @schedule %>
+  <%= render "admin/sync_schedules/form", connection: @connection, schedule: @schedule %>
 
-  <%= render "admin/settings/sync_schedules/range_preview", connection: @connection %>
+  <%= render "admin/sync_schedules/range_preview", connection: @connection %>
 </div>

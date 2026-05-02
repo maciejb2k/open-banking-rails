@@ -3,7 +3,7 @@
         title: "Edit connection",
         subtitle: @connection.bank_name.presence || @connection.bank_slug %>
 
-  <%= form_with model: @connection, url: admin_settings_bank_connection_path(@connection), method: :patch, local: true, class: "space-y-6" do |f| %>
+  <%= form_with model: @connection, url: admin_bank_connection_path(@connection), method: :patch, local: true, class: "space-y-6" do |f| %>
     <%= render "admin/shared/form/error_summary", object: @connection %>
 
     <div class="admin-section space-y-4">
@@ -34,7 +34,7 @@
     <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-end gap-2 sm:gap-3">
       <%= render "admin/shared/components/button",
             label: "Cancel",
-            href: admin_settings_bank_connection_path(@connection),
+            href: admin_bank_connection_path(@connection),
             variant: :outline %>
       <%= render "admin/shared/components/button",
             label: "Save changes",

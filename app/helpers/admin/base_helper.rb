@@ -61,12 +61,13 @@ module Admin
           # the cert/keys we present, the consents we hold, and the accounts
           # those consents unlock. Distinct from "Settings" because the audit
           # surface and personal preferences have nothing to do with provider
-          # plumbing — and grouping them obscured both.
-          title: "Bank integration",
+          # plumbing — and grouping them obscured both. Group is purely UI;
+          # the resources live at top level like the rest.
+          title: "Bank Integrations",
           items: [
-            { name: "TPP Credentials",  path: admin_settings_tpp_credentials_path,  icon: "file_text" },
-            { name: "Bank Connections", path: admin_settings_bank_connections_path, icon: "package" },
-            { name: "Bank Accounts",    path: admin_settings_bank_accounts_path,    icon: "dollar_sign" }
+            { name: "TPP Credentials",  path: admin_tpp_credentials_path,  icon: "file_text" },
+            { name: "Bank Connections", path: admin_bank_connections_path, icon: "package" },
+            { name: "Bank Accounts",    path: admin_bank_accounts_path,    icon: "dollar_sign" }
           ]
         },
         {

@@ -25,12 +25,12 @@
   <div class="flex flex-wrap items-center gap-2">
     <%= render "admin/shared/components/button",
           label: "Refresh details",
-          href: refresh_details_admin_settings_bank_account_path(@account),
+          href: refresh_details_admin_bank_account_path(@account),
           method: :post,
           variant: :outline %>
     <%= render "admin/shared/components/button",
           label: "Refresh balances",
-          href: refresh_balances_admin_settings_bank_account_path(@account),
+          href: refresh_balances_admin_bank_account_path(@account),
           method: :post %>
   </div>
 
@@ -65,12 +65,12 @@
         { label: "BIC", value: @account.bic, mono: true, sensitive: true },
         { label: "Bank", value: @account.account_servicer&.dig("name") },
         { label: "Credential",
-          value: link_to(@account.tpp_credential.name, admin_settings_tpp_credential_path(@account.tpp_credential), class: "text-primary hover:underline") },
+          value: link_to(@account.tpp_credential.name, admin_tpp_credential_path(@account.tpp_credential), class: "text-primary hover:underline") },
         { label: "Active connection",
           value: (
             if @account.current_bank_connection
               link_to(@account.current_bank_connection.bank_name.presence || @account.current_bank_connection.bank_slug,
-                      admin_settings_bank_connection_path(@account.current_bank_connection),
+                      admin_bank_connection_path(@account.current_bank_connection),
                       class: "text-primary hover:underline")
             end
           ) },

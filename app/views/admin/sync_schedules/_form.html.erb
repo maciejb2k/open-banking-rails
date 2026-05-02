@@ -1,6 +1,6 @@
 <%# locals: (connection:, schedule:) %>
 <%= form_with model: schedule,
-              url: admin_settings_bank_connection_sync_schedule_path(connection),
+              url: admin_bank_connection_sync_schedule_path(connection),
               method: :patch,
               scope: :sync_schedule,
               class: "space-y-6",

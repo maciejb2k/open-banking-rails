@@ -59,7 +59,7 @@
   <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-end gap-2 sm:gap-3">
     <%= render "admin/shared/components/button",
           label: "Cancel",
-          href: (@credential.persisted? ? admin_settings_tpp_credential_path(@credential) : admin_settings_tpp_credentials_path),
+          href: (@credential.persisted? ? admin_tpp_credential_path(@credential) : admin_tpp_credentials_path),
           variant: :outline %>
     <%= render "admin/shared/components/button",
           label: (@credential.persisted? ? "Save changes" : "Create credential"),

@@ -21,16 +21,16 @@
   <% left_actions = capture do %>
     <%= render "admin/shared/components/button",
           label: "Refresh from API",
-          href: refresh_admin_settings_bank_connection_path(@connection),
+          href: refresh_admin_bank_connection_path(@connection),
           method: :post,
           variant: :outline %>
     <%= render "admin/shared/components/button",
           label: "Reauth (re-link with bank)",
-          href: reauth_admin_settings_bank_connection_path(@connection),
+          href: reauth_admin_bank_connection_path(@connection),
           method: :post %>
     <%= render "admin/shared/components/button",
           label: "Close connection",
-          href: admin_settings_bank_connection_path(@connection),
+          href: admin_bank_connection_path(@connection),
           method: :delete,
           variant: :destructive,
           data: { turbo_confirm: "Mark this connection as closed?" } %>
@@ -39,7 +39,7 @@
   <% right_actions = capture do %>
     <%= render "admin/shared/components/button",
           label: "Edit",
-          href: edit_admin_settings_bank_connection_path(@connection),
+          href: edit_admin_bank_connection_path(@connection),
           variant: :outline %>
   <% end %>
 
@@ -80,7 +80,7 @@
       <ul class="space-y-2">
         <% @connection.current_bank_accounts.each do |account| %>
           <li>
-            <%= link_to admin_settings_bank_account_path(account), class: "flex items-center justify-between rounded-lg border bg-card p-3 hover:bg-card-hover transition-colors" do %>
+            <%= link_to admin_bank_account_path(account), class: "flex items-center justify-between rounded-lg border bg-card p-3 hover:bg-card-hover transition-colors" do %>
               <div>
                 <p class="font-mono text-xs text-foreground <%= sensitive_class %>"><%= account.iban || account.uid %></p>
                 <p class="text-xs text-muted-foreground"><span class="<%= sensitive_class %>"><%= account.display_name %></span> · <%= account.currency %></p>

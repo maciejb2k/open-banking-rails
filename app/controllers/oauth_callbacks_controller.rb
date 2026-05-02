@@ -28,7 +28,7 @@ class OauthCallbacksController < ApplicationController
       state: state
     )
 
-    redirect_to admin_settings_bank_connection_path(bc),
+    redirect_to admin_bank_connection_path(bc),
                 notice: "Bank connected — #{bc.bank_name}, #{bc.current_bank_accounts.count} account(s)."
   rescue EnableBanking::Operations::CreateConnection::Failed => e
     reject(e.message)
@@ -37,6 +37,6 @@ class OauthCallbacksController < ApplicationController
   private
 
   def reject(reason)
-    redirect_to admin_settings_bank_connections_path, alert: reason
+    redirect_to admin_bank_connections_path, alert: reason
   end
 end

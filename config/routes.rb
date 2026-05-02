@@ -88,8 +88,34 @@ Rails.application.routes.draw do
     # OperationRun model is shared, but the UI is concern-specific.
     resources :transaction_syncs, only: [ :index, :show, :new, :create ]
 
+    # AISP-provider plumbing (credentials, consents, accounts) lives at the
+    # top level alongside merchants/categories/etc. The "Bank Integrations"
+    # sidebar group is purely UI — same flat URL convention as every other
+    # admin section.
+    resources :tpp_credentials do
+      member do
+        post :test_connection
+        post :make_primary
+      end
+    end
+
+    resources :bank_connections, only: [ :index, :show, :new, :create, :edit, :update, :destroy ] do
+      member do
+        post :refresh
+        post :reauth
+      end
+      resource :sync_schedule, only: %i[edit update], controller: "sync_schedules"
+    end
+
+    resources :bank_accounts, only: [ :index, :show ] do
+      member do
+        post :refresh_details
+        post :refresh_balances
+      end
+    end
+
     namespace :settings do
-      get "/", to: redirect("/admin/settings/tpp_credentials"), as: :root
+      get "/", to: redirect("/admin/settings/preferences"), as: :root
 
       # Bare /preferences lands on the first section.
       get "preferences", to: redirect("/admin/settings/preferences/profile"),
@@ -117,28 +143,6 @@ Rails.application.routes.draw do
         get   "data_exchange",        to: "data_exchange#show",   as: :data_exchange
         post  "data_exchange/export", to: "data_exchange#export", as: :data_exchange_export
         post  "data_exchange/import", to: "data_exchange#import", as: :data_exchange_import
-      end
-
-      resources :tpp_credentials do
-        member do
-          post :test_connection
-          post :make_primary
-        end
-      end
-
-      resources :bank_connections, only: [ :index, :show, :new, :create, :edit, :update, :destroy ] do
-        member do
-          post :refresh
-          post :reauth
-        end
-        resource :sync_schedule, only: %i[edit update], controller: "sync_schedules"
-      end
-
-      resources :bank_accounts, only: [ :index, :show ] do
-        member do
-          post :refresh_details
-          post :refresh_balances
-        end
       end
     end
   end

@@ -28,23 +28,23 @@
   <div class="flex flex-wrap items-center gap-2">
     <%= render "admin/shared/components/button",
           label: "Test connection",
-          href: test_connection_admin_settings_tpp_credential_path(@credential),
+          href: test_connection_admin_tpp_credential_path(@credential),
           method: :post %>
     <% unless @credential.primary? %>
       <%= render "admin/shared/components/button",
             label: "Make primary",
-            href: make_primary_admin_settings_tpp_credential_path(@credential),
+            href: make_primary_admin_tpp_credential_path(@credential),
             method: :post,
             variant: :outline %>
     <% end %>
     <%= render "admin/shared/components/button",
           label: "Edit",
-          href: edit_admin_settings_tpp_credential_path(@credential),
+          href: edit_admin_tpp_credential_path(@credential),
           variant: :outline %>
     <% unless @credential.bank_connections.exists? %>
       <%= render "admin/shared/components/button",
             label: "Delete",
-            href: admin_settings_tpp_credential_path(@credential),
+            href: admin_tpp_credential_path(@credential),
             method: :delete,
             variant: :destructive,
             data: { turbo_confirm: "Permanently delete this credential?" } %>
@@ -120,7 +120,7 @@
       <ul class="space-y-2">
         <% @credential.bank_connections.each do |bc| %>
           <li>
-            <%= link_to admin_settings_bank_connection_path(bc), class: "flex items-center justify-between rounded-lg border bg-card p-3 hover:bg-card-hover transition-colors" do %>
+            <%= link_to admin_bank_connection_path(bc), class: "flex items-center justify-between rounded-lg border bg-card p-3 hover:bg-card-hover transition-colors" do %>
               <div>
                 <p class="font-medium text-foreground"><%= bc.bank_name.presence || bc.bank_slug %></p>
                 <p class="text-xs text-muted-foreground">
