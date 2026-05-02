@@ -86,3 +86,70 @@ upgrade via `APP_TAG=v0.2.0` in their `.env` plus `docker compose pull
 Pushes to `main` do NOT publish — only tags do. Use `workflow_dispatch`
 on the Release workflow for emergency rebuilds without cutting a new
 version.
+
+## Rolling out a new version on prod
+
+Wait until the `Release` workflow finishes — `docker pull` will fail or
+get a stale tag otherwise.
+
+```bash
+gh run list --workflow=release.yml --limit 3
+```
+
+### 1. Update the compose file (only if it changed)
+
+`docker compose pull` only refreshes images, not the compose file
+itself. Check whether anything in the rollout-relevant files changed
+between the deployed tag and the new one:
+
+```bash
+git diff v0.1.0..v0.2.0 -- docker-compose.prod.yml bin/docker-entrypoint bin/docker-migrate Dockerfile
+```
+
+If the diff is empty, skip this step. Otherwise, on the prod host pull
+the compose file from the **same tag** as the image (don't mix `main`
+with a tagged image — services and ENV may drift):
+
+```bash
+cp docker-compose.prod.yml docker-compose.prod.yml.bak
+curl -fsSL https://raw.githubusercontent.com/maciejb2k/open-banking-rails/v0.2.0/docker-compose.prod.yml \
+  -o docker-compose.prod.yml
+diff docker-compose.prod.yml.bak docker-compose.prod.yml   # sanity check
+```
+
+### 2. Pin the version and roll
+
+```bash
+sed -i 's/^APP_TAG=.*/APP_TAG=v0.2.0/' .env || echo "APP_TAG=v0.2.0" >> .env
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+```
+
+`migrate` runs first (pre-migration `pg_dump` → `db:prepare`); `app` and
+`worker` only start after `migrate` exits 0. Brief downtime during
+container recreate — not zero-downtime.
+
+### 3. Verify
+
+```bash
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs --tail=100 app worker
+curl -fsS http://localhost:3000/up
+```
+
+`app` should reach `healthy` within ~30s (`start_period` on the
+healthcheck).
+
+### Rollback
+
+```bash
+sed -i 's/^APP_TAG=.*/APP_TAG=v0.1.0/' .env
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Schema migrations don't auto-revert. For additive changes (new column,
+new table) the old image tolerates the newer schema. For destructive
+changes (`remove_column`, incompatible rename), restore from
+`./backups/pre-migration-<ts>.sql.gz` via the `restore` profile (see
+README).
