@@ -50,6 +50,7 @@ class BankConnection < ApplicationRecord
                                    foreign_key: :current_bank_connection_id,
                                    dependent: :nullify,
                                    inverse_of: :current_bank_connection
+  has_one :sync_schedule, dependent: :destroy
 
   encrypts :session_id, :psu_id_hash, :raw_session_payload
 

@@ -1,0 +1,64 @@
+<%# locals: (schedule_rows:) %>
+<%# One li per active BankConnection. schedule may be nil — connection has
+    no SyncSchedule yet; the link goes to edit which lazy-creates on save. %>
+<%= render "admin/shared/components/card", padding: false do %>
+  <div class="border-b px-4 py-3">
+    <h3 class="font-semibold">Auto-sync schedules</h3>
+    <p class="text-xs text-muted-foreground">
+      Per-connection cadence (daily / every 2 days / weekly). Dispatcher checks every minute and fires at the
+      preferred hour. Missed runs aren't replayed — the next slot pulls everything since the last success.
+    </p>
+  </div>
+
+  <% if schedule_rows.empty? %>
+    <%= render "admin/shared/components/empty_state",
+          title: "No authorized connections",
+          description: "Add one in Settings → Bank connections to enable auto-sync.",
+          icon: "shield" %>
+  <% else %>
+    <ul class="divide-y">
+      <% schedule_rows.each do |connection, schedule| %>
+        <li class="flex items-center gap-4 px-4 py-3 hover:bg-muted/20 transition-colors">
+          <%= render "admin/shared/components/bank_logo",
+                slug: connection.bank_slug, name: connection.bank_name, size: :md %>
+
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-foreground">
+              <%= connection.bank_name.presence || connection.bank_slug %>
+            </p>
+            <p class="text-xs text-muted-foreground mt-0.5">
+              <% if schedule&.enabled? %>
+                <%= schedule.cadence.humanize %> · <%= "%02d:00" % schedule.preferred_hour %>
+                <% if schedule.paused? %>
+                  · resumes <%= l(schedule.paused_until, format: :short) %>
+                <% elsif schedule.next_run_at %>
+                  · next <%= l(schedule.next_run_at, format: :short) %>
+                <% end %>
+              <% else %>
+                Auto-sync off
+              <% end %>
+            </p>
+          </div>
+
+          <div class="shrink-0">
+            <% if schedule&.paused? %>
+              <%= render "admin/shared/components/badge", text: "Paused", variant: :warning %>
+            <% elsif schedule&.enabled? %>
+              <%= render "admin/shared/components/badge", text: "On", variant: :success %>
+            <% else %>
+              <%= render "admin/shared/components/badge", text: "Off", variant: :muted %>
+            <% end %>
+          </div>
+
+          <div class="shrink-0">
+            <%= render "admin/shared/components/button",
+                  label: (schedule&.persisted? ? "Edit" : "Set up"),
+                  href: edit_admin_settings_bank_connection_sync_schedule_path(connection),
+                  variant: :outline,
+                  size: :sm %>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+<% end %>

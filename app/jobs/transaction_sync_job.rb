@@ -9,11 +9,23 @@
 # and the run-tracking record. Synchronous callers (rake, console)
 # can use the operations directly without ever touching this job.
 #
-# Future cron (2x/day): a tiny scheduler creates an
-# OperationRun(trigger: "scheduled", subject: user) per active user
-# and enqueues this job.
+# Triggered by:
+#   - Manual: Admin::TransactionSyncsController#create
+#   - Scheduled: AutoSync::Dispatcher (every minute via sidekiq-cron)
+# After finalization, scheduled runs feed AutoSync::CircuitBreaker
+# which gates further dispatches when failures pile up.
 class TransactionSyncJob < ApplicationJob
   queue_as :default
+
+  # Default Sidekiq retry of 25 (~21 days) is overkill for transaction sync —
+  # per-account `Failed` is already caught inside the operation and recorded
+  # as a failed outcome, so anything that escapes to `perform` is either a
+  # bug or genuine infrastructure trouble. 3 retries cap the worst-case
+  # spam to the bank API; the AutoSync::CircuitBreaker handles longer-term
+  # suppression by pausing the schedule after 3 consecutive failed runs.
+  # dead: false skips the Dead Set on exhaustion (the run is already marked
+  # failed through our rescue + finalizer, no second alert needed).
+  sidekiq_options retry: 3, dead: false
 
   KIND = "transaction_sync"
 
@@ -40,9 +52,21 @@ class TransactionSyncJob < ApplicationJob
   rescue StandardError => e
     run&.fail!(error: "#{e.class.name}: #{e.message}", summary: summary)
     raise
+  ensure
+    observe_circuit_breaker(run)
   end
 
   private
+
+  # Updates the SyncSchedule's failure counter / pause window for scheduled
+  # runs. Wrapped so a CircuitBreaker bug can't mask the original exception
+  # propagating from `perform`.
+  def observe_circuit_breaker(run)
+    return unless run&.terminal? && run.trigger == "scheduled"
+    AutoSync::CircuitBreaker.observe(run: run)
+  rescue StandardError => e
+    Rails.logger.error("[TransactionSyncJob] CircuitBreaker failed for run=#{run&.id}: #{e.class}: #{e.message}")
+  end
 
   # Scopes the enricher to whichever account(s) this run touched, so a
   # per-account run doesn't scan the whole table. Failures here are logged

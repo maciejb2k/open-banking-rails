@@ -13,6 +13,11 @@ module Admin
     def index
       scope = OperationRun.where(kind: KIND, triggered_by_user_id: current_user.id)
       @pagy, @collection = paginated(scope, default_sort: "created_at desc", includes: :subject)
+
+      # Auto-sync schedules surface here (not under bank_connections#show) so
+      # the user can see and manage all schedules from a single page alongside
+      # manual sync history.
+      @schedule_rows = current_user_connections.map { |c| [c, c.sync_schedule] }
     end
 
     def show
@@ -61,7 +66,7 @@ module Admin
     end
 
     def current_user_connections
-      BankConnection.for_user(current_user).active.order(:bank_name)
+      BankConnection.for_user(current_user).active.includes(:sync_schedule).order(:bank_name)
     end
   end
 end

@@ -1,0 +1,11 @@
+<div class="space-y-6">
+  <%= render "admin/shared/components/page_header",
+        title: "Auto-sync settings",
+        subtitle: "#{(@connection.bank_name.presence || @connection.bank_slug)} — runs in the background on the cadence you pick.",
+        media: render("admin/shared/components/bank_logo",
+          slug: @connection.bank_slug, name: @connection.bank_name, size: :lg) %>
+
+  <%= render "admin/settings/sync_schedules/form", connection: @connection, schedule: @schedule %>
+
+  <%= render "admin/settings/sync_schedules/range_preview", connection: @connection %>
+</div>

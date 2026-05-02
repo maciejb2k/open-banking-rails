@@ -1,6 +1,6 @@
 <% sync_button = capture do %>
   <%= render "admin/shared/components/button",
-        label: "Sync now",
+        label: "Sync Manually",
         href: new_admin_transaction_sync_path,
         icon: "plus" %>
 <% end %>
@@ -11,6 +11,8 @@
         subtitle: "Pull transactions from your authorized banks. Each row is a single sync run — manual or scheduled. Live progress streams to the run page.",
         actions: sync_button %>
 
+  <%= render "admin/transaction_syncs/auto_sync_panel", schedule_rows: @schedule_rows %>
+
   <% active_filter_count = [
        params.dig(:q, :status_eq).present?,
        params.dig(:q, :trigger_eq).present?,
@@ -18,66 +20,74 @@
        params.dig(:q, :created_at_lteq).present?
      ].count(true) %>
 
-  <%= search_form_for @q, url: admin_transaction_syncs_path, html: { data: { turbo: false } } do |f| %>
-    <%= f.hidden_field :s, value: params.dig(:q, :s) %>
+  <%# History card: header carries the filter trigger + Apply so the controls
+      visually belong to the runs table they affect. The form wraps everything
+      so submit picks up both header inputs and the slide-out filter_panel. %>
+  <%= render "admin/shared/components/card", padding: false do %>
+    <%= search_form_for @q, url: admin_transaction_syncs_path, html: { data: { turbo: false } } do |f| %>
+      <%= f.hidden_field :s, value: params.dig(:q, :s) %>
 
-    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-      <%= render "admin/shared/components/filter_trigger", active_count: active_filter_count %>
-
-      <%= render "admin/shared/components/button", label: "Apply", type: :submit %>
-    </div>
-
-    <% if active_filter_count > 0 %>
-      <div class="flex flex-wrap items-center gap-2 mt-3">
-        <% if (val = params.dig(:q, :status_eq)).present? %>
-          <%= render "admin/shared/components/filter_chip",
-                label: "Status: #{val.humanize}",
-                remove_path: admin_transaction_syncs_path(q: params[:q].to_unsafe_h.except("status_eq")) %>
-        <% end %>
-        <% if (val = params.dig(:q, :trigger_eq)).present? %>
-          <%= render "admin/shared/components/filter_chip",
-                label: "Trigger: #{val.humanize}",
-                remove_path: admin_transaction_syncs_path(q: params[:q].to_unsafe_h.except("trigger_eq")) %>
-        <% end %>
-        <%= link_to "Clear all", admin_transaction_syncs_path,
-              class: "text-xs text-muted-foreground hover:text-foreground transition-colors" %>
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b px-4 py-3">
+        <div>
+          <h3 class="font-semibold">History</h3>
+          <p class="text-xs text-muted-foreground">All sync runs — manual triggers and scheduled dispatches.</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <%= render "admin/shared/components/filter_trigger", active_count: active_filter_count %>
+          <%= render "admin/shared/components/button", label: "Apply", type: :submit %>
+        </div>
       </div>
+
+      <% if active_filter_count > 0 %>
+        <div class="flex flex-wrap items-center gap-2 border-b px-4 py-2">
+          <% if (val = params.dig(:q, :status_eq)).present? %>
+            <%= render "admin/shared/components/filter_chip",
+                  label: "Status: #{val.humanize}",
+                  remove_path: admin_transaction_syncs_path(q: params[:q].to_unsafe_h.except("status_eq")) %>
+          <% end %>
+          <% if (val = params.dig(:q, :trigger_eq)).present? %>
+            <%= render "admin/shared/components/filter_chip",
+                  label: "Trigger: #{val.humanize}",
+                  remove_path: admin_transaction_syncs_path(q: params[:q].to_unsafe_h.except("trigger_eq")) %>
+          <% end %>
+          <%= link_to "Clear all", admin_transaction_syncs_path,
+                class: "text-xs text-muted-foreground hover:text-foreground transition-colors" %>
+        </div>
+      <% end %>
+
+      <%= render "admin/shared/components/filter_panel",
+            clear_url: admin_transaction_syncs_path,
+            active_count: active_filter_count do %>
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
+          <%= f.select :status_eq,
+                [["All", ""]] + OperationRun::STATUSES.map { |s| [s.humanize, s] },
+                { selected: params.dig(:q, :status_eq) },
+                class: "form-input" %>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Trigger</label>
+          <%= f.select :trigger_eq,
+                [["All", ""]] + OperationRun::TRIGGERS.map { |t| [t.humanize, t] },
+                { selected: params.dig(:q, :trigger_eq) },
+                class: "form-input" %>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Created — from</label>
+          <%= f.date_field :created_at_gteq, value: params.dig(:q, :created_at_gteq),
+                class: "form-input" %>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Created — to</label>
+          <%= f.date_field :created_at_lteq, value: params.dig(:q, :created_at_lteq),
+                class: "form-input" %>
+        </div>
+      <% end %>
     <% end %>
 
-    <%= render "admin/shared/components/filter_panel",
-          clear_url: admin_transaction_syncs_path,
-          active_count: active_filter_count do %>
-      <div class="space-y-1.5">
-        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
-        <%= f.select :status_eq,
-              [["All", ""]] + OperationRun::STATUSES.map { |s| [s.humanize, s] },
-              { selected: params.dig(:q, :status_eq) },
-              class: "form-input" %>
-      </div>
-
-      <div class="space-y-1.5">
-        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Trigger</label>
-        <%= f.select :trigger_eq,
-              [["All", ""]] + OperationRun::TRIGGERS.map { |t| [t.humanize, t] },
-              { selected: params.dig(:q, :trigger_eq) },
-              class: "form-input" %>
-      </div>
-
-      <div class="space-y-1.5">
-        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Created — from</label>
-        <%= f.date_field :created_at_gteq, value: params.dig(:q, :created_at_gteq),
-              class: "form-input" %>
-      </div>
-
-      <div class="space-y-1.5">
-        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Created — to</label>
-        <%= f.date_field :created_at_lteq, value: params.dig(:q, :created_at_lteq),
-              class: "form-input" %>
-      </div>
-    <% end %>
-  <% end %>
-
-  <div class="admin-section p-0 overflow-hidden">
     <%= render "admin/shared/components/data_table",
           columns: [
             { label: "ID", sortable: "id" },
@@ -137,5 +147,5 @@
     <% end %>
 
     <%= render "admin/shared/components/pagination", pagy: @pagy %>
-  </div>
+  <% end %>
 </div>

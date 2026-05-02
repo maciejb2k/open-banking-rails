@@ -30,6 +30,7 @@ gem "gutentag", "~> 3.0"
 gem "scenic", "~> 1.8"
 
 gem "sidekiq", "~> 7.0"
+gem "sidekiq-cron", "~> 2.0"
 gem "connection_pool", "~> 2.4"
 
 gem "ruby_llm", "~> 1.10"
@@ -59,4 +60,5 @@ end
 group :development do
   gem "web-console"
   gem "annotaterb"
+  gem "bullet"
 end

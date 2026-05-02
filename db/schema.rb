@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_01_153007) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_170613) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "ltree"
   enable_extension "pg_catalog.plpgsql"
@@ -242,6 +242,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_153007) do
     t.datetime "finished_at"
     t.string "kind", null: false
     t.jsonb "params", default: {}, null: false
+    t.datetime "scheduled_for"
     t.datetime "started_at"
     t.string "status", default: "queued", null: false
     t.bigint "subject_id"
@@ -254,8 +255,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_153007) do
     t.index ["kind", "status"], name: "index_operation_runs_on_kind_and_status"
     t.index ["kind"], name: "index_operation_runs_on_kind"
     t.index ["status"], name: "index_operation_runs_on_status"
+    t.index ["subject_type", "subject_id", "kind", "scheduled_for"], name: "index_operation_runs_scheduled_for_idempotency", unique: true, where: "(scheduled_for IS NOT NULL)"
     t.index ["subject_type", "subject_id"], name: "index_operation_runs_on_subject"
     t.index ["triggered_by_user_id"], name: "index_operation_runs_on_triggered_by_user_id"
+  end
+
+  create_table "sync_schedules", force: :cascade do |t|
+    t.bigint "bank_connection_id", null: false
+    t.string "cadence", default: "daily", null: false
+    t.integer "consecutive_failures", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.boolean "enabled", default: false, null: false
+    t.datetime "last_dispatched_at"
+    t.datetime "next_run_at"
+    t.datetime "paused_until"
+    t.integer "preferred_hour", default: 8, null: false
+    t.datetime "updated_at", null: false
+    t.index ["bank_connection_id"], name: "index_sync_schedules_on_bank_connection_id", unique: true
+    t.index ["enabled", "next_run_at"], name: "index_sync_schedules_due", where: "(enabled = true)"
   end
 
   create_table "tpp_credentials", force: :cascade do |t|
@@ -359,6 +376,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_153007) do
   add_foreign_key "merchants", "users"
   add_foreign_key "merchants", "users", column: "approved_by_id"
   add_foreign_key "operation_runs", "users", column: "triggered_by_user_id"
+  add_foreign_key "sync_schedules", "bank_connections"
   add_foreign_key "tpp_credentials", "users"
   add_foreign_key "transaction_enrichments", "categories"
   add_foreign_key "transaction_enrichments", "merchant_rules"

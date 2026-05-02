@@ -131,6 +131,7 @@ Rails.application.routes.draw do
           post :refresh
           post :reauth
         end
+        resource :sync_schedule, only: %i[edit update], controller: "sync_schedules"
       end
 
       resources :bank_accounts, only: [ :index, :show ] do
