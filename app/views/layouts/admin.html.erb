@@ -19,14 +19,12 @@
     <div class="flex h-screen overflow-hidden bg-background"
          data-controller="sidebar">
 
-      <%# Mobile overlay %>
       <div data-sidebar-target="overlay"
            class="fixed inset-0 z-40 bg-foreground/50 lg:hidden hidden"
            data-action="click->sidebar#closeMobile"></div>
 
       <%= render "admin/shared/sidebar" %>
 
-      <%# Main content %>
       <div class="flex flex-1 flex-col overflow-hidden min-w-0">
         <%= render "admin/shared/topbar" %>
         <%# `scrollbar-gutter: stable` reserves the scrollbar track even when

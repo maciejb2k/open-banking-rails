@@ -33,6 +33,21 @@ arrive and sync on their own. Merchants and categories are inferred, not typed.
 
 ![Dashboard](docs/screenshots/transactions.png)
 
+## Why Enable Banking
+
+You can't just plug into a bank's API on your own. PSD2 requires you to
+be a licensed AISP, and getting that license is expensive and out of
+reach for a personal project. 
+
+[Enable Banking](https://enablebanking.com/docs/api/reference/)
+is a licensed provider that sits in the middle: they offer one API for
+many European banks, and their free tier covers personal use. GoCardless used to offer a similar free tier but
+dropped it for personal projects, which is why Enable Banking is the
+current choice.
+
+The app talks to the provider through an adapter, so
+swapping in a different one later is a small change, not a rewrite.
+
 ## Tech stack
 
 | Layer            | Choice                                                        |

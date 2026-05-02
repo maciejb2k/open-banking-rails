@@ -1,5 +1,4 @@
 <header class="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-card px-3 sm:px-4 lg:px-6">
-  <%# Mobile menu button %>
   <button data-action="click->sidebar#openMobile"
           class="lg:hidden shrink-0 -ml-1 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
           aria-label="Open navigation">
@@ -11,7 +10,6 @@
     <%= render "admin/shared/breadcrumbs", items: breadcrumb_items %>
   </nav>
 
-  <%# Right side %>
   <div class="ml-auto flex items-center gap-2 shrink-0">
     <%# Privacy mode toggle — hides sensitive data on screen-share %>
     <%= preference_toggle_button "privacy_mode",
@@ -20,7 +18,6 @@
           icon_on: "eye_off",
           title: "Toggle privacy mode — hides sensitive data on screen-share" %>
 
-    <%# User %>
     <div class="hidden sm:flex items-center gap-2 ml-2 pl-2 border-l">
       <div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold sensitive-avatar">
         <span><%= current_user.initials %></span>

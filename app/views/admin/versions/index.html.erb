@@ -11,12 +11,10 @@
   <%= search_form_for @q, url: admin_versions_path, html: {data: {turbo: false}} do |f| %>
     <%= f.hidden_field :s, value: params.dig(:q, :s) %>
 
-    <%# Filters trigger %>
     <div class="flex items-center gap-3">
       <%= render "admin/shared/components/filter_trigger", active_count: active_filter_count %>
     </div>
 
-    <%# Active filter chips %>
     <% if active_filter_count > 0 %>
       <div class="flex flex-wrap items-center gap-2 mt-3">
         <% if params.dig(:q, :event_eq).present? %>
@@ -34,7 +32,6 @@
       </div>
     <% end %>
 
-    <%# Slide-out filter panel %>
     <%= render "admin/shared/components/filter_panel",
           clear_url: admin_versions_path,
           active_count: active_filter_count do %>
@@ -55,7 +52,6 @@
     <% end %>
   <% end %>
 
-  <%# Table %>
   <div class="admin-section p-0 overflow-hidden">
     <%= render "admin/shared/components/data_table",
           columns: [

@@ -1,12 +1,10 @@
 <% nav_sections = admin_nav_sections %>
 
-<%# Desktop sidebar %>
 <aside data-sidebar-target="desktop"
        class="group hidden lg:flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 w-64">
   <%= render "admin/shared/sidebar_content", nav_sections: nav_sections %>
 </aside>
 
-<%# Mobile sidebar %>
 <aside data-sidebar-target="mobile"
        class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar shadow-xl transition-transform duration-300 lg:hidden -translate-x-full">
   <%= render "admin/shared/sidebar_content", nav_sections: nav_sections %>

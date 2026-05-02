@@ -11,7 +11,6 @@
         back_path: admin_versions_path,
         browser_title: "Version ##{@version.id}" %>
 
-  <%# Metadata %>
   <div class="admin-section max-w-2xl space-y-4">
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div>
@@ -37,7 +36,6 @@
     </div>
   </div>
 
-  <%# create / update: changeset (object_changes) %>
   <% changeset = @version.changeset %>
   <% if changeset.present? %>
     <div class="admin-section max-w-2xl space-y-3">
@@ -85,7 +83,6 @@
     </div>
   <% end %>
 
-  <%# update: previous object snapshot %>
   <% if @version.event == "update" && @version.object.present? %>
     <% prev_obj = @version.object.is_a?(String) ? YAML.unsafe_load(@version.object) : @version.object %>
     <div class="admin-section max-w-2xl space-y-3">
@@ -94,7 +91,6 @@
     </div>
   <% end %>
 
-  <%# destroy: deleted object snapshot %>
   <% if @version.event == "destroy" && @version.object.present? %>
     <% deleted_obj = @version.object.is_a?(String) ? YAML.unsafe_load(@version.object) : @version.object %>
     <div class="admin-section max-w-2xl space-y-3">

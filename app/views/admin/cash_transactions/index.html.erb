@@ -16,7 +16,6 @@
         subtitle: "Off-bank entries you typed in by hand. Same enrichment pipeline as bank rows.",
         actions: new_buttons %>
 
-  <%# ── Wallet summary ── %>
   <% if @user_wallets.any? %>
     <%# Custom: wallet card with conditional negative-balance hint. Not a
         stat_card (no change/trend metric); not a generic card (the warning
@@ -64,7 +63,6 @@
     <% end %>
   <% end %>
 
-  <%# ── Filters ── %>
   <% active_filter_count = [
        params[:wallet_id].present?,
        params[:direction].present?,
@@ -139,7 +137,6 @@
     <% end %>
   <% end %>
 
-  <%# ── Table ── %>
   <div class="admin-section p-0 overflow-hidden">
     <%= render "admin/shared/components/data_table",
           columns: [

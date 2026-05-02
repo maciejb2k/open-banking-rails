@@ -12,7 +12,6 @@
         subtitle: "All transactions pulled from Enable Banking, normalized across PKO / Revolut / mBank quirks.",
         actions: sync_button %>
 
-  <%# ── Filters ── %>
   <% active_filter_count = [
        params.dig(:q, :bank_account_id_eq).present?,
        params.dig(:q, :direction_eq).present?,
@@ -126,7 +125,6 @@
       </div>
     <% end %>
 
-    <%# Slide-out filter panel %>
     <%= render "admin/shared/components/filter_panel",
           clear_url: admin_bank_transactions_path,
           active_count: active_filter_count do %>
@@ -242,7 +240,6 @@
     <% end %>
   <% end %>
 
-  <%# ── Table ── %>
   <div class="admin-section p-0 overflow-hidden">
     <%= render "admin/shared/components/data_table",
           columns: [

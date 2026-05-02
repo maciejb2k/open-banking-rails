@@ -28,7 +28,6 @@
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <div class="lg:col-span-2 space-y-4">
-      <%# Identity %>
       <%= render "admin/shared/components/card", title: "Identity" do %>
         <%= render "admin/shared/components/definition_list", pairs: [
               { label: "Name", value: @merchant.name, sensitive: true },
@@ -41,7 +40,6 @@
             ] %>
       <% end %>
 
-      <%# Rules %>
       <%= render "admin/shared/components/card", padding: false do %>
         <div class="flex items-center justify-between border-b px-4 py-3">
           <div>

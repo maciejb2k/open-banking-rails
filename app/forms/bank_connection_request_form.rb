@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-# Form-only object backing the "Add bank" UI. Carries user input through
-# the new/create cycle so shared form/* components (which expect form.object)
-# work uniformly. Not an AR model — never persisted.
 class BankConnectionRequestForm
   include ActiveModel::Model
   include ActiveModel::Attributes
