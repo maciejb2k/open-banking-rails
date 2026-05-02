@@ -98,19 +98,19 @@
         <%# Inline form to add a new rule %>
         <div class="border-t px-4 py-3 bg-muted/10">
           <%= form_with model: @new_rule, url: admin_merchant_merchant_rules_path(@merchant), html: { class: "flex flex-wrap items-end gap-2" } do |f| %>
-            <div class="flex-1 min-w-[140px]">
+            <div class="w-full sm:flex-1 sm:min-w-[140px]">
               <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Field</label>
               <%= f.select :field, MerchantRule::FIELDS.map { |x| [ x, x ] }, {}, class: "form-input mt-1" %>
             </div>
-            <div class="w-32">
+            <div class="flex-1 sm:flex-none sm:w-32">
               <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Kind</label>
               <%= f.select :kind, MerchantRule::KINDS.map { |x| [ x, x ] }, {}, class: "form-input mt-1" %>
             </div>
-            <div class="flex-1 min-w-[200px]">
+            <div class="w-full sm:flex-1 sm:min-w-[200px]">
               <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pattern</label>
               <%= f.text_field :pattern, placeholder: "BIEDRONKA, ^kaufland.*, ...", class: "form-input mt-1" %>
             </div>
-            <div class="w-24">
+            <div class="flex-1 sm:flex-none sm:w-24">
               <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Priority</label>
               <%= f.number_field :priority, value: 100, class: "form-input mt-1" %>
             </div>

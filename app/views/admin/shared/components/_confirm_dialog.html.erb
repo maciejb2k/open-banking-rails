@@ -1,13 +1,13 @@
 <%# locals: (id:, title:, message:, confirm_label: "Confirm", variant: :destructive) %>
 <div id="<%= id %>"
      data-controller="modal"
-     class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+     class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
   <div class="fixed inset-0 bg-foreground/50" data-action="click->modal#close"></div>
-  <div class="relative w-full max-w-sm rounded-xl border bg-card shadow-2xl">
-    <div class="p-6">
-      <h2 class="text-lg font-semibold text-foreground mb-2"><%= title %></h2>
+  <div class="relative w-full max-w-sm rounded-t-xl sm:rounded-xl border bg-card shadow-2xl">
+    <div class="p-5 sm:p-6">
+      <h2 class="text-base sm:text-lg font-semibold text-foreground mb-2"><%= title %></h2>
       <p class="text-sm text-muted-foreground"><%= message %></p>
-      <div class="mt-6 flex items-center justify-end gap-3">
+      <div class="mt-5 sm:mt-6 flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-end gap-2 sm:gap-3">
         <button data-action="click->modal#close"
                 class="rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-card-hover transition-colors">
           Cancel

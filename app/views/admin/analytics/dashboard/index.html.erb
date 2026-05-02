@@ -252,10 +252,20 @@
   category_labels_present = category_labels.any?
 %>
 
-<div class="space-y-6">
+<%# `data-controller="filter-panel"` is hoisted to the dashboard wrapper
+    so the Filters trigger can live in the page_header actions slot
+    (per styleguide: page-level actions belong on the right of the
+    header). The filter_strip below skips its own controller wrapper to
+    avoid nesting. %>
+<div class="space-y-6" data-controller="filter-panel">
+  <% filter_panel_active_count = @filter.all_accounts? ? 0 : @filter.account_ids.size %>
+  <% page_actions = capture do %>
+    <%= render "admin/shared/components/filter_trigger", active_count: filter_panel_active_count %>
+  <% end %>
   <%= render "admin/shared/components/page_header",
         title: "Analytics",
-        subtitle: "Where your money goes — one filter, every view." %>
+        subtitle: "Where your money goes — one filter, every view.",
+        actions: page_actions %>
 
   <% if @drill_category %>
     <%# Active subtree narrow — surface it so the user can back out. The
@@ -272,7 +282,9 @@
     </div>
   <% end %>
 
-  <%= render "admin/analytics/shared/filter_strip", filter: @filter, user_accounts: user_accounts %>
+  <%= render "admin/analytics/shared/filter_strip",
+        filter: @filter, user_accounts: user_accounts,
+        wrap_controller: false, with_trigger: false %>
 
   <%# ── Unmatched-debits banner ──
       Persistent CTA when the current view has uncategorised debits
@@ -576,16 +588,17 @@
                 icon: "package" %>
         <% else %>
           <%# Custom: donut + center "Total X PLN". No equivalent shared
-              component. Trigger extraction once a 2nd donut appears. %>
-          <div class="relative" style="height: 260px">
+              component. Trigger extraction once a 2nd donut appears.
+              The chart_controller swaps the right-side legend to bottom
+              on <sm; the center label widens to inset-0 to track. %>
+          <div class="relative h-[260px] sm:h-[260px]">
             <div data-controller="chart"
                  data-chart-config-value="<%= donut_config.to_json %>"
                  data-chart-urls-value="<%= acct_urls.to_json %>"
                  class="absolute inset-0">
               <canvas></canvas>
             </div>
-            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
-                 style="left: 0; right: 50%">
+            <div class="absolute inset-0 sm:right-1/2 flex flex-col items-center justify-center pointer-events-none">
               <p class="text-xs text-muted-foreground">Total</p>
               <p class="text-lg font-bold text-foreground <%= sensitive_class %>">
                 <%= acct_total.format(no_cents_if_whole: true) %>

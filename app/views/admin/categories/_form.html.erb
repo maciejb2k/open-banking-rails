@@ -67,7 +67,7 @@
           hint: "Lower = higher on the list within its level." %>
   </div>
 
-  <div class="flex items-center justify-end gap-3">
+  <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-end gap-2 sm:gap-3">
     <%= render "admin/shared/components/button", label: "Cancel", href: admin_categories_path, variant: :outline %>
     <%= render "admin/shared/components/button", label: category.persisted? ? "Save changes" : "Create category", type: :submit %>
   </div>

@@ -6,13 +6,17 @@
 <%#             omit    → plain header %>
 <%#   align:    :right → right-aligns the header (set tdcell alignment in row) %>
 <%#   width:    e.g. "w-12" — extra th class %>
-<div class="overflow-x-auto">
-  <table class="w-full text-sm">
+<%# `min-w-[640px]` keeps multi-column tables from collapsing into unreadable
+    slivers on phones — the scrollbar appears instead, which is the
+    expected mobile pattern. Card layouts at the row level are tracked
+    separately if/when they become worth the maintenance. %>
+<div class="overflow-x-auto -mx-px">
+  <table class="w-full min-w-[640px] text-sm">
     <thead>
       <tr class="border-b bg-muted/30">
         <% columns.each do |col| %>
           <% align_cls = col[:align] == :right ? "text-right" : "text-left" %>
-          <th class="px-4 py-3 <%= align_cls %> font-medium text-muted-foreground <%= col[:width] %>">
+          <th class="px-3 sm:px-4 py-2.5 sm:py-3 <%= align_cls %> font-medium text-muted-foreground whitespace-nowrap <%= col[:width] %>">
             <% if col[:sortable].is_a?(String) || col[:sortable].is_a?(Symbol) %>
               <%= sort_link col[:label], col[:sortable] %>
             <% elsif col[:sortable] %>

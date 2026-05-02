@@ -701,7 +701,7 @@
         <p class="text-sm text-muted-foreground -mt-2">
           Association picker — searches records via AJAX endpoint, stores ID in hidden field.
           Requires a <code class="bg-muted px-1 rounded text-xs">search</code> collection action returning <code class="bg-muted px-1 rounded text-xs">[{id:, label:}]</code>.
-            See docs for full usage. Wpisz cokolwiek — używa lokalnych danych zamiast endpointu.
+            See docs for full usage. Type anything — the demo uses inline mock data instead of the live endpoint.
         </p>
         <%= render "admin/shared/form/ajax_select",
               form: f, field: :name,
@@ -774,11 +774,11 @@
       Cancel as <code class="bg-muted px-1 rounded text-xs">variant: :outline, href: ...</code>, primary submit as <code class="bg-muted px-1 rounded text-xs">type: :submit</code>.
       Add secondary destructive actions (e.g. Delete) on the left of Cancel using <code class="bg-muted px-1 rounded text-xs">variant: :outline_destructive</code>.
     </p>
-    <div class="flex items-center justify-end gap-3">
+    <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-end gap-2 sm:gap-3">
       <%= render "admin/shared/components/button", label: "Cancel", href: "#", variant: :outline %>
       <%= render "admin/shared/components/button", label: "Save Changes", type: :submit %>
     </div>
-    <div class="flex items-center justify-end gap-3">
+    <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-end gap-2 sm:gap-3">
       <%= render "admin/shared/components/button", label: "Delete", href: "#", method: :delete, variant: :outline_destructive,
             data: { turbo_confirm: "Are you sure?" } %>
       <%= render "admin/shared/components/button", label: "Cancel", href: "#", variant: :outline %>

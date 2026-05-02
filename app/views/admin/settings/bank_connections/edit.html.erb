@@ -31,7 +31,7 @@
             options: BankConnection::STATUSES.map { |s| [ s.humanize, s ] } %>
     </div>
 
-    <div class="flex items-center justify-end gap-3">
+    <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-end gap-2 sm:gap-3">
       <%= render "admin/shared/components/button",
             label: "Cancel",
             href: admin_settings_bank_connection_path(@connection),

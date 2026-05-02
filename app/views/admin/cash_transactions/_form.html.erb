@@ -129,7 +129,7 @@
 
   <%= f.hidden_field :payment_method, value: @cash_transaction.payment_method.presence || "cash" %>
 
-  <div class="flex items-center justify-between gap-3">
+  <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
     <% if @cash_transaction.persisted? %>
       <%= render "admin/shared/components/button",
             label: "Delete",
@@ -139,10 +139,10 @@
             variant: :outline_destructive,
             data: { turbo_confirm: "Delete this transaction?" } %>
     <% else %>
-      <span></span>
+      <span class="hidden sm:block"></span>
     <% end %>
 
-    <div class="flex items-center gap-3">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
       <%= render "admin/shared/components/button",
             label: "Cancel",
             href: admin_cash_transactions_path,

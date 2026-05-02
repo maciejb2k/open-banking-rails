@@ -12,8 +12,8 @@
         actions: page_actions %>
 
   <%# Filter bar — simpler than a panel since few options %>
-  <%= form_with url: admin_merchants_path, method: :get, html: { data: { turbo: false }, class: "flex flex-wrap items-center gap-3" } do |f| %>
-    <div class="relative flex-1 max-w-md">
+  <%= form_with url: admin_merchants_path, method: :get, html: { data: { turbo: false }, class: "flex flex-wrap items-center gap-2 sm:gap-3" } do |f| %>
+    <div class="relative w-full sm:w-auto sm:flex-1 sm:max-w-md">
       <%= render "admin/shared/icons/search", classes: "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" %>
       <%= f.search_field :q, value: params[:q],
             placeholder: "Search by name…",
@@ -23,12 +23,12 @@
     <%= f.select :source,
           [ [ "All sources", "" ] ] + Merchant::SOURCES.map { |s| [ s.humanize, s ] },
           { selected: params[:source] },
-          class: "form-input w-40" %>
+          class: "form-input w-full sm:w-40" %>
 
     <%= f.select :category_id,
           [ [ "All categories", "" ] ] + current_user.categories.active.roots.ordered.map { |c| [ c.name, c.id ] },
           { selected: params[:category_id] },
-          class: "form-input w-48" %>
+          class: "form-input w-full sm:w-48" %>
 
     <label class="flex items-center gap-2 text-sm">
       <%= f.check_box :show_archived, { checked: params[:show_archived] == "1" }, "1", "0" %>

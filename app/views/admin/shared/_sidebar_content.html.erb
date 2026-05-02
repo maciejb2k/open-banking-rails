@@ -46,10 +46,12 @@
       <div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold shrink-0 sensitive-avatar">
         <span><%= current_user.initials %></span>
       </div>
-      <div class="flex-1 min-w-0 sidebar-label">
+      <%= link_to admin_settings_preferences_profile_path,
+            class: "flex-1 min-w-0 sidebar-label rounded-md hover:bg-sidebar-accent/40 -mx-1 px-1 py-0.5 transition-colors",
+            title: "Profile settings" do %>
         <p class="text-sm font-medium text-sidebar-foreground truncate <%= sensitive_class %>"><%= current_user.display_name %></p>
         <p class="text-xs text-sidebar-muted truncate <%= sensitive_class %>"><%= current_user.email %></p>
-      </div>
+      <% end %>
       <%= button_to destroy_user_session_path,
             method: :delete,
             form: { class: "sidebar-label" },

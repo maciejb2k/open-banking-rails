@@ -1,7 +1,12 @@
-<%# locals: (filter:, user_accounts:) %>
+<%# locals: (filter:, user_accounts:, wrap_controller: true, with_trigger: true) %>
 <%# Filter bar shared by every analytics page. Section-based layout
     (Period / Accounts) so additional chip groups (categories, tags …)
-    can drop in as new sections later without redesigning the strip. %>
+    can drop in as new sections later without redesigning the strip.
+    `wrap_controller`: when false, the partial assumes a parent
+    `data-controller="filter-panel"` wrapper exists and skips its own.
+    `with_trigger`: when false, the Filters trigger button is not
+    rendered inside the strip — useful when the caller wants to surface
+    it elsewhere (e.g. inside the page_header actions slot). %>
 
 <%
   day_presets = [
@@ -113,7 +118,7 @@
     but render different shapes. If a 3rd toggle-chip surfaces (e.g.
     category multiselect), extract `_toggle_chip` partial taking
     `active:`, `href:`, body block. %>
-<div data-controller="filter-panel" class="space-y-3">
+<%= tag.div(class: "space-y-3", **(wrap_controller ? { data: { controller: "filter-panel" } } : {})) do %>
   <%= form_with url: url_for(only_path: true), method: :get, html: { data: { turbo: false } } do |f| %>
 
     <%# ── Months section ─────────────────────────────────────────────── %>
@@ -124,18 +129,20 @@
         explicit granularity chip below sticks until the next period
         change. %>
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-20 shrink-0">Months</span>
+      <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-full sm:w-20 shrink-0">Months</span>
       <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
         <% month_presets.each do |preset| %>
           <% href = url_for(filter.to_query_params.except(:bucket).merge(from: preset[:from].iso8601, to: preset[:to].iso8601)) %>
-          <% cls = "rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors #{preset[:active] ? active_chip_cls : inactive_chip_cls}" %>
+          <% cls = "rounded-full px-3 sm:px-3.5 py-1.5 text-xs font-medium transition-colors #{preset[:active] ? active_chip_cls : inactive_chip_cls}" %>
           <%= link_to preset[:label], href, class: cls %>
         <% end %>
       </div>
-      <span class="text-xs text-muted-foreground tabular-nums shrink-0">
+      <span class="text-xs text-muted-foreground tabular-nums shrink-0 order-last sm:order-none w-full sm:w-auto">
         <%= filter.period.from.strftime("%-d %b") %> → <%= filter.period.to.strftime("%-d %b %Y") %>
       </span>
-      <%= render "admin/shared/components/filter_trigger", active_count: active_count %>
+      <% if with_trigger %>
+        <%= render "admin/shared/components/filter_trigger", active_count: active_count %>
+      <% end %>
     </div>
 
     <%# ── Days section ───────────────────────────────────────────────── %>
@@ -144,8 +151,8 @@
         immediately-preceding window of the same length (Period#previous);
         a month-aligned window compares to the same slice of the previous
         calendar month (Filter#previous_range). %>
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-border/40">
-      <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-20 shrink-0">Days</span>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1.5 mt-1.5 border-t border-border/40">
+      <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-full sm:w-20 shrink-0">Days</span>
       <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
         <% day_presets.each do |preset| %>
           <% to = Date.current %>
@@ -162,8 +169,8 @@
     <%# Day / Week / Month bucket switch for time-series widgets. Bucket
         param is omitted from the URL when it equals the smart default —
         clean URLs in default state, explicit override sticks. %>
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-border/40">
-      <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-20 shrink-0">Granularity</span>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1.5 mt-1.5 border-t border-border/40">
+      <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-full sm:w-20 shrink-0">Granularity</span>
       <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
         <% [[:day, "Day"], [:week, "Week"], [:month, "Month"]].each do |key, label| %>
           <% is_active = filter.bucket == key %>
@@ -181,8 +188,8 @@
     <%# Reporting currency for every aggregate on the page. Hidden for
         single-currency users (the chip group would be a noise of one). %>
     <% if filter.available_currencies.size > 1 %>
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-border/40">
-        <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-20 shrink-0">Currency</span>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1.5 mt-1.5 border-t border-border/40">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-full sm:w-20 shrink-0">Currency</span>
         <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
           <% filter.available_currencies.each do |iso| %>
             <% is_active = filter.currency == iso %>
@@ -195,8 +202,8 @@
     <% end %>
 
     <%# ── Accounts section ───────────────────────────────────────────── %>
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-border/40">
-      <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-20 shrink-0">Accounts</span>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1.5 mt-1.5 border-t border-border/40">
+      <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-full sm:w-20 shrink-0">Accounts</span>
       <div class="flex flex-wrap items-center gap-2 flex-1 min-w-0">
         <% account_chip_links.each do |link| %>
           <% acc        = link[:account] %>
@@ -219,7 +226,7 @@
                 <span class="text-muted-foreground font-normal ml-1">· <%= currency %></span>
               <% end %>
               <% if bc %>
-                <span class="font-normal ml-1 <%= sync_age_class(bc.last_synced_at) %>">· <%= sync_age_label(bc.last_synced_at) %></span>
+                <span class="font-normal ml-1 text-muted-foreground">· <%= sync_age_label(bc.last_synced_at) %></span>
               <% end %>
             </span>
           <% end %>
@@ -276,4 +283,4 @@
       </div>
     <% end %>
   <% end %>
-</div>
+<% end %>

@@ -159,6 +159,7 @@ export default class extends Controller {
 
     const config = this.configValue
     installFormatters(config)
+    this.applyResponsiveLegend(config)
 
     if (this.hasUrlsValue && this.urlsValue.length) {
       const urls = this.urlsValue
@@ -175,6 +176,18 @@ export default class extends Controller {
     }
 
     this.chart = new Chart(canvas, config)
+  }
+
+  // On phones (< 640px) a "right"-positioned legend eats half the canvas
+  // and shrinks the chart into a sliver. Move it below the canvas instead;
+  // restores horizontal real-estate for the donut/bar to actually render.
+  applyResponsiveLegend(config) {
+    const legend = config.options && config.options.plugins && config.options.plugins.legend
+    if (!legend) return
+    if (window.matchMedia("(max-width: 639px)").matches && legend.position === "right") {
+      legend.position = "bottom"
+      legend.align = "center"
+    }
   }
 
   disconnect() {

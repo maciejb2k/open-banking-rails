@@ -97,8 +97,8 @@
       <% end %>
       Only the normalized <code>title</code> and <code>counterparty_name</code> are sent — no amounts, IBANs, or dates.
     </p>
-    <%= form_with url: admin_llm_enrichments_path, method: :post, html: { class: "flex items-end gap-3" } do |f| %>
-      <div class="w-32">
+    <%= form_with url: admin_llm_enrichments_path, method: :post, html: { class: "flex flex-wrap items-end gap-3" } do |f| %>
+      <div class="w-full sm:w-32">
         <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Group limit</label>
         <%= f.number_field :limit, value: default_limit,
               min: 1, max: 200, class: "form-input mt-1" %>
@@ -124,7 +124,7 @@
           <% rule = m.merchant_rules.find { |r| r.source == "llm" } || m.merchant_rules.first %>
           <% m_hidden = hide_private?(m.default_category_id) %>
           <li class="px-4 py-3 hover:bg-muted/20 transition-colors">
-            <div class="flex items-start justify-between gap-4">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2">
                   <span class="font-medium <%= sensitive_class unless m_hidden %>"><%= hide_private_text(m.display, m.default_category_id) %></span>
@@ -149,7 +149,7 @@
                   user lands back on the review queue (not on merchant#show)
                   after each action. The form preserves it as a hidden field. %>
               <% back_to = admin_llm_enrichments_path(anchor: "awaiting-approval") %>
-              <div class="flex items-center gap-2 shrink-0">
+              <div class="flex flex-wrap items-center gap-2 sm:shrink-0">
                 <%= render "admin/shared/components/button",
                       label: "Edit", href: edit_admin_merchant_path(m, return_to: back_to),
                       variant: :outline, size: :sm, icon: "pencil" %>

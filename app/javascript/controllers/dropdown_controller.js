@@ -34,9 +34,27 @@ export default class extends Controller {
   reposition() {
     const trigger = this.element.querySelector("button")
     const rect = trigger.getBoundingClientRect()
+    const menuW = this._menu.offsetWidth
+    const menuH = this._menu.offsetHeight
+    const margin = 8
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+
+    // Default: bottom-end (right edge aligned to trigger right). Clamp into
+    // the viewport with an 8px margin so the menu never bleeds off-screen
+    // on narrow phones.
+    let left = rect.right - menuW
+    let top = rect.bottom + 4
+    if (left < margin) left = margin
+    if (left + menuW > vw - margin) left = vw - menuW - margin
+    // Flip above the trigger when there isn't enough room below.
+    if (top + menuH > vh - margin && rect.top - menuH - 4 > margin) {
+      top = rect.top - menuH - 4
+    }
+
     this._menu.style.position = "fixed"
-    this._menu.style.top = `${rect.bottom + 4}px`
-    this._menu.style.left = `${rect.right - this._menu.offsetWidth}px`
+    this._menu.style.top = `${top}px`
+    this._menu.style.left = `${left}px`
     this._menu.style.right = "auto"
   }
 

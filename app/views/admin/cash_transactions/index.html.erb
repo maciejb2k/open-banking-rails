@@ -74,7 +74,7 @@
 
   <%= form_with url: admin_cash_transactions_path, method: :get, scope: nil,
                 local: true, html: { data: { turbo: false } } do %>
-    <div class="flex items-center gap-3">
+    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
       <%= render "admin/shared/components/filter_trigger", active_count: active_filter_count %>
       <%= render "admin/shared/components/button", label: "Apply", type: :submit %>
     </div>

@@ -71,7 +71,7 @@
         <div class="flex-1">
           <div class="text-sm font-medium">Create a new rule for this pattern</div>
           <div class="text-xs text-muted-foreground mb-2">A user-source rule will match every existing and future transaction matching this pattern.</div>
-          <div class="grid grid-cols-3 gap-2 hidden" data-propagation-target="ruleFields">
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 hidden" data-propagation-target="ruleFields">
             <select name="enrichment[rule_field]" class="form-input col-span-1 text-sm">
               <% MerchantRule::FIELDS.each do |fld| %>
                 <option value="<%= fld %>" <%= 'selected' if fld == "title" %>><%= fld %></option>
@@ -83,13 +83,13 @@
               <% end %>
             </select>
             <input type="text" name="enrichment[rule_pattern]" placeholder="<%= default_pattern %>" value="<%= default_pattern %>"
-                   class="form-input col-span-1 text-sm font-mono">
+                   class="form-input col-span-2 sm:col-span-1 text-sm font-mono">
           </div>
         </div>
       </label>
     </div>
 
-    <div class="flex justify-end gap-3 pt-2 border-t">
+    <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-2 border-t">
       <%= render "admin/shared/components/button",
             label: "Cancel",
             variant: :outline,

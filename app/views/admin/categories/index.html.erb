@@ -37,11 +37,13 @@
           <%
             depth = c.path.to_s.count(".")
             row_classes = depth.zero? ? "bg-muted/10" : ""
-            indent_px   = 16 + depth * 24
+            # Tighter step (16px) so deeply-nested trees stay readable on
+            # narrow viewports without horizontal scrolling.
+            indent_px = 12 + depth * 16
             label_class = depth.zero? ? "font-semibold text-foreground" : "text-sm text-foreground/90"
           %>
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors <%= row_classes %>">
-            <td class="py-2.5 pr-4 <%= label_class %>" style="padding-left: <%= indent_px %>px;">
+            <td class="py-2.5 pr-3 sm:pr-4 <%= label_class %>" style="padding-left: <%= indent_px %>px;">
               <% if depth.positive? %>
                 <span class="text-muted-foreground/60 mr-2">└</span>
               <% end %>

@@ -38,9 +38,10 @@
     <%= hidden_field_tag :enrichment_source,  params[:enrichment_source],  id: "ef_enrichment_source" %>
     <%= hidden_field_tag :enrichment_state,   params[:enrichment_state],   id: "ef_enrichment_state" %>
 
-    <%# Search bar + filter trigger %>
-    <div class="flex items-center gap-3">
-      <div class="relative flex-1 max-w-md">
+    <%# Search bar + filter trigger — full-width search on mobile so the
+        placeholder isn't truncated; trigger + apply wrap below if needed. %>
+    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+      <div class="relative w-full sm:w-auto sm:flex-1 sm:max-w-md">
         <%= render "admin/shared/icons/search", classes: "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" %>
         <%= f.search_field :title_or_counterparty_name_or_enrichment_merchant_name_cont,
               placeholder: "Search title, counterparty or merchant…",
@@ -180,12 +181,12 @@
       </div>
 
       <div class="space-y-1.5">
-        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Sprzedawca</label>
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Merchant</label>
         <%# Plain HTML select bound to the hidden field outside @q via JS.
             Updates the mirror field on change so Apply submits both. %>
         <select onchange="document.getElementById('ef_merchant_id').value = this.value"
                 class="form-input">
-          <option value="">Wszyscy sprzedawcy</option>
+          <option value="">All merchants</option>
           <% current_user.merchants.active.order(:name).each do |m| %>
             <option value="<%= m.id %>" <%= 'selected' if params[:merchant_id].to_s == m.id.to_s %>><%= m.display %></option>
           <% end %>
