@@ -148,7 +148,8 @@ That's your only admin account; no second sign-up.
 
 Secrets (`SECRET_KEY_BASE`, AR encryption keys) auto-generate on first
 boot and live in a Docker volume. `down`/`up` keeps everything; `down -v`
-**wipes your data**.
+**wipes your data**. The `app_secrets` volume is also required to
+decrypt your backups — back it up alongside `./backups/`.
 
 ### Upgrade
 
@@ -163,7 +164,7 @@ Pre-migration `pg_dump` runs automatically. Pin a specific image with
 ### Backups
 
 Daily `pg_dump` to `./backups/` with 7 daily / 4 weekly / 6 monthly
-retention. Bind mount — `rsync` it off-site yourself.
+retention.
 
 ### Restore
 

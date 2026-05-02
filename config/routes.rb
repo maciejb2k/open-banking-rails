@@ -9,7 +9,9 @@ Rails.application.routes.draw do
       passwords: "admin/passwords"
     }
 
-  mount Sidekiq::Web => "/sidekiq"
+  authenticate :user do
+    mount Sidekiq::Web => "/sidekiq"
+  end
 
   # First-run setup. Empty-instance redirect is enforced in
   # ApplicationController; this route is the destination.
