@@ -1,22 +1,18 @@
 import { Controller } from "@hotwired/stimulus"
 
+// Collapsed state lives on <html> as `.sidebar-collapsed`. The class is
+// applied before first paint by an inline script in the layout <head>, and
+// the visual rules are a `sidebar-collapsed:` Tailwind variant — so a
+// refresh paints in the correct state instead of animating from
+// expanded → collapsed.
 export default class extends Controller {
-  static targets = ["desktop", "mobile", "overlay", "collapseIconExpanded", "collapseIconCollapsed"]
-
-  connect() {
-    const collapsed = localStorage.getItem("sidebar-collapsed") === "true"
-    if (collapsed) this.applyCollapsed()
-  }
+  static targets = ["mobile", "overlay"]
 
   toggleCollapse() {
-    const isCollapsed = this.desktopTarget.classList.contains("w-16")
-    if (isCollapsed) {
-      this.applyExpanded()
-      localStorage.setItem("sidebar-collapsed", "false")
-    } else {
-      this.applyCollapsed()
-      localStorage.setItem("sidebar-collapsed", "true")
-    }
+    const root = document.documentElement
+    const collapsed = !root.classList.contains("sidebar-collapsed")
+    root.classList.toggle("sidebar-collapsed", collapsed)
+    localStorage.setItem("sidebar-collapsed", String(collapsed))
   }
 
   openMobile() {
@@ -29,21 +25,5 @@ export default class extends Controller {
     this.mobileTarget.classList.remove("translate-x-0")
     this.mobileTarget.classList.add("-translate-x-full")
     this.overlayTarget.classList.add("hidden")
-  }
-
-  applyCollapsed() {
-    this.desktopTarget.classList.remove("w-64")
-    this.desktopTarget.classList.add("w-16")
-    this.desktopTarget.querySelectorAll(".sidebar-label").forEach(el => el.classList.add("hidden"))
-    if (this.hasCollapseIconExpandedTarget) this.collapseIconExpandedTarget.classList.add("hidden")
-    if (this.hasCollapseIconCollapsedTarget) this.collapseIconCollapsedTarget.classList.remove("hidden")
-  }
-
-  applyExpanded() {
-    this.desktopTarget.classList.remove("w-16")
-    this.desktopTarget.classList.add("w-64")
-    this.desktopTarget.querySelectorAll(".sidebar-label").forEach(el => el.classList.remove("hidden"))
-    if (this.hasCollapseIconExpandedTarget) this.collapseIconExpandedTarget.classList.remove("hidden")
-    if (this.hasCollapseIconCollapsedTarget) this.collapseIconCollapsedTarget.classList.add("hidden")
   }
 }

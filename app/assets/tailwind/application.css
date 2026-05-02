@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Sidebar collapsed state — see app/views/layouts/admin.html.erb (inline
+   <head> script) and controllers/sidebar_controller.js. The class on <html>
+   is applied before first paint so the sidebar renders in the correct width
+   on refresh, instead of animating from expanded → collapsed. */
+@custom-variant sidebar-collapsed (&:where(html.sidebar-collapsed *, html.sidebar-collapsed &));
+
 @theme {
   --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
 
@@ -154,6 +160,12 @@
   html.privacy-mode .sensitive--redact * {
     color: transparent !important;
     text-decoration: none !important;
+  }
+
+  /* Sidebar labels collapse with the rail. Centralized here so we don't
+     have to sprinkle `sidebar-collapsed:hidden` on every label span. */
+  html.sidebar-collapsed .sidebar-label {
+    display: none;
   }
 
   /* Active-state highlight for any preference-toggle button */

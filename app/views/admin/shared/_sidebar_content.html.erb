@@ -1,6 +1,6 @@
 <%# locals: (nav_sections:) %>
 <div class="flex h-full flex-col">
-  <div class="flex h-16 items-center border-b border-sidebar-border px-4 group-[.w-16]:px-1.5 group-[.w-16]:justify-center">
+  <div class="flex h-16 items-center border-b border-sidebar-border px-4 sidebar-collapsed:px-1.5 sidebar-collapsed:justify-center">
     <div class="flex items-center gap-3">
       <div class="h-9 w-9 rounded-lg bg-success text-success-foreground flex items-center justify-center shrink-0">
         <%= render "admin/shared/icons/logo_mark", classes: "h-5 w-5" %>
@@ -28,10 +28,10 @@
   <div class="hidden lg:block border-t border-sidebar-border p-3">
     <button data-action="click->sidebar#toggleCollapse"
             class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/50 transition-colors">
-      <span data-sidebar-target="collapseIconExpanded">
+      <span class="sidebar-collapsed:hidden">
         <%= render "admin/shared/icons/panel_left_close", classes: "h-4 w-4" %>
       </span>
-      <span data-sidebar-target="collapseIconCollapsed" class="hidden">
+      <span class="hidden sidebar-collapsed:inline">
         <%= render "admin/shared/icons/panel_left", classes: "h-4 w-4" %>
       </span>
       <span class="sidebar-label">Collapse</span>
@@ -39,7 +39,7 @@
   </div>
 
   <div class="border-t border-sidebar-border p-3">
-    <div class="flex items-center gap-3 rounded-lg px-3 py-2 group-[.w-16]:px-0 group-[.w-16]:justify-center">
+    <div class="flex items-center gap-3 rounded-lg px-3 py-2 sidebar-collapsed:px-0 sidebar-collapsed:justify-center">
       <div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold shrink-0 sensitive-avatar">
         <span><%= current_user.initials %></span>
       </div>

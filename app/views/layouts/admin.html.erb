@@ -6,6 +6,15 @@
     <title><%= content_for(:title).presence || "Open Banking Admin" %></title>
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <%# Hydrate the sidebar-collapsed state before first paint so a refresh
+        with a collapsed sidebar doesn't animate from expanded → collapsed. %>
+    <script>
+      (function () {
+        if (localStorage.getItem("sidebar-collapsed") === "true") {
+          document.documentElement.classList.add("sidebar-collapsed");
+        }
+      })();
+    </script>
     <link rel="icon" href="/icon.svg?v=3" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">

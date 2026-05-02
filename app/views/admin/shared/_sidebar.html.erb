@@ -1,7 +1,6 @@
 <% nav_sections = admin_nav_sections %>
 
-<aside data-sidebar-target="desktop"
-       class="group hidden lg:flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 w-64">
+<aside class="hidden lg:flex flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-300 w-64 sidebar-collapsed:w-16">
   <%= render "admin/shared/sidebar_content", nav_sections: nav_sections %>
 </aside>
 
