@@ -11,6 +11,11 @@ Rails.application.routes.draw do
 
   mount Sidekiq::Web => "/sidekiq"
 
+  # First-run setup. Empty-instance redirect is enforced in
+  # ApplicationController; this route is the destination.
+  get  "/setup", to: "setup#new",    as: :setup
+  post "/setup", to: "setup#create"
+
   get "up" => "rails/health#show", as: :rails_health_check
 
   # OAuth-like callback from bank after PSU authorizes.

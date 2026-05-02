@@ -1,0 +1,163 @@
+name: obr-prod
+
+x-app-image: &app-image
+  image: ghcr.io/maciejb2k/open-banking-rails:${APP_TAG:-latest}
+  pull_policy: missing
+  build:
+    context: .
+
+x-app-env: &app-env
+  RAILS_ENV: production
+  DATABASE_URL: postgres://${POSTGRES_USER:-obr}:${POSTGRES_PASSWORD:-obr}@db:5432/${POSTGRES_DB:-obr_production}
+  REDIS_URL: redis://redis:6379/0
+  APP_HOST: ${APP_HOST:-localhost:3000}
+  APP_PROTOCOL: ${APP_PROTOCOL:-http}
+  APP_HOSTS: ${APP_HOSTS:-}
+  FORCE_SSL: ${FORCE_SSL:-false}
+  RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-info}
+  RAILS_MAX_THREADS: ${RAILS_MAX_THREADS:-5}
+  WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+  SMTP_ADDRESS: ${SMTP_ADDRESS:-}
+  SMTP_PORT: ${SMTP_PORT:-}
+  SMTP_DOMAIN: ${SMTP_DOMAIN:-}
+  SMTP_USERNAME: ${SMTP_USERNAME:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_AUTHENTICATION: ${SMTP_AUTHENTICATION:-}
+  SMTP_STARTTLS: ${SMTP_STARTTLS:-}
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-obr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-obr}
+      POSTGRES_DB:       ${POSTGRES_DB:-obr_production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-obr} -d ${POSTGRES_DB:-obr_production}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    <<: *app-image
+    restart: "no"
+    command: ["./bin/docker-migrate"]
+    environment:
+      <<: *app-env
+    volumes:
+      - app_secrets:/rails/secrets
+      - ./backups:/rails/backups
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  app:
+    <<: *app-image
+    restart: unless-stopped
+    command: ["./bin/rails", "server", "-b", "0.0.0.0"]
+    environment:
+      <<: *app-env
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - app_secrets:/rails/secrets
+      - rails_storage:/rails/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  worker:
+    <<: *app-image
+    restart: unless-stopped
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+    environment:
+      <<: *app-env
+    volumes:
+      - app_secrets:/rails/secrets
+      - rails_storage:/rails/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  db-backup:
+    image: prodrigestivill/postgres-backup-local:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST:     db
+      POSTGRES_DB:       ${POSTGRES_DB:-obr_production}
+      POSTGRES_USER:     ${POSTGRES_USER:-obr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-obr}
+      SCHEDULE:          ${BACKUP_SCHEDULE:-@daily}
+      BACKUP_KEEP_DAYS:   ${BACKUP_KEEP_DAYS:-7}
+      BACKUP_KEEP_WEEKS:  ${BACKUP_KEEP_WEEKS:-4}
+      BACKUP_KEEP_MONTHS: ${BACKUP_KEEP_MONTHS:-6}
+      POSTGRES_EXTRA_OPTS: "--clean --if-exists --no-owner --no-privileges"
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
+  restore:
+    image: postgres:17-alpine
+    profiles: ["restore"]
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-obr}
+    volumes:
+      - ./backups:/backups
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        target="$${1:-}"
+        if [ -z "$$target" ]; then
+          target=$$(find /backups -name '*.sql.gz' -type f | xargs -r ls -t 2>/dev/null | head -n1)
+        fi
+        if [ -z "$$target" ] || [ ! -f "$$target" ]; then
+          echo "[restore] no dump found — pass an explicit path or place one under ./backups/" >&2
+          exit 1
+        fi
+        echo "[restore] using $$target"
+        gunzip -c "$$target" | psql -h db -U "$${POSTGRES_USER:-obr}" -d "$${POSTGRES_DB:-obr_production}"
+        echo "[restore] done"
+      - --
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  rails_storage:
+  app_secrets:

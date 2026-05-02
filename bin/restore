@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Developer convenience wrapper around the prod-compose `restore` profile.
+# Self-hosters can run the underlying compose command directly:
+#   docker compose -f docker-compose.prod.yml --profile restore run --rm restore [path]
+#
+# This script just adds two safety rails: stops app/worker before the
+# restore (otherwise psql might race against open connections) and
+# re-starts them after.
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+COMPOSE_FILE="docker-compose.prod.yml"
+target="${1:-}"
+
+if [ ! -f "$COMPOSE_FILE" ]; then
+  echo "[restore] $COMPOSE_FILE missing — are you in the repo root?" >&2
+  exit 1
+fi
+
+echo "[restore] stopping app + worker to release db connections"
+docker compose -f "$COMPOSE_FILE" stop app worker || true
+
+echo "[restore] running restore profile (target=${target:-<auto-pick latest>})"
+if [ -n "$target" ]; then
+  docker compose -f "$COMPOSE_FILE" --profile restore run --rm restore "$target"
+else
+  docker compose -f "$COMPOSE_FILE" --profile restore run --rm restore
+fi
+
+echo "[restore] starting app + worker"
+docker compose -f "$COMPOSE_FILE" up -d app worker
+
+echo "[restore] done."

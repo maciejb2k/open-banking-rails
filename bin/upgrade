@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Developer convenience wrapper for upgrading the production compose stack.
+# Self-hosters using the published GHCR image just run two commands by hand
+# (`docker compose -f docker-compose.prod.yml pull && up -d`) — this script
+# is for the contributor flow where the image is built locally instead.
+#
+# Pre-migration backup is automatic in the `migrate` service; if migrations
+# fail the previous app/worker containers stay alive (depends_on:
+# service_completed_successfully).
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+COMPOSE_FILE="docker-compose.prod.yml"
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "[upgrade] docker not found in PATH" >&2
+  exit 1
+fi
+
+if [ ! -f "$COMPOSE_FILE" ]; then
+  echo "[upgrade] $COMPOSE_FILE missing — are you in the repo root?" >&2
+  exit 1
+fi
+
+mode="${1:-pull}"
+case "$mode" in
+  pull|build)
+    ;;
+  *)
+    echo "usage: $0 [pull|build]" >&2
+    echo "  pull   pull the published GHCR image (default)" >&2
+    echo "  build  rebuild the image from the local checkout" >&2
+    exit 2
+    ;;
+esac
+
+if [ "$mode" = "build" ]; then
+  echo "[upgrade] building image from local checkout"
+  docker compose -f "$COMPOSE_FILE" build
+else
+  echo "[upgrade] pulling latest image"
+  docker compose -f "$COMPOSE_FILE" pull
+fi
+
+echo "[upgrade] applying — migrations run in the migrate service before app/worker start"
+docker compose -f "$COMPOSE_FILE" up -d
+
+echo "[upgrade] done. Container status:"
+docker compose -f "$COMPOSE_FILE" ps

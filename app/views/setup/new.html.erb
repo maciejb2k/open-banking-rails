@@ -1,0 +1,46 @@
+<% content_for :title, "Create your account" %>
+
+<div class="mb-6">
+  <h1 class="text-xl font-semibold text-foreground">Create your admin account</h1>
+  <p class="mt-1 text-sm text-muted-foreground">
+    First-run setup. The credentials you enter here are the only way into this
+    instance — there's no second sign-up.
+  </p>
+</div>
+
+<%= render "admin/shared/form/error_summary", object: @user %>
+
+<%= form_with model: @user, url: setup_path, method: :post, html: { class: "space-y-5 mt-4" } do |f| %>
+  <%= render "admin/shared/form/text_field",
+        form: f, field: :name,
+        label: "Your name",
+        placeholder: "Maria",
+        required: true,
+        html: { autofocus: true, autocomplete: "name" } %>
+
+  <%= render "admin/shared/form/email_field",
+        form: f, field: :email,
+        label: "Email address",
+        placeholder: "you@example.com",
+        required: true,
+        html: { autocomplete: "email" } %>
+
+  <%= render "admin/shared/form/password_field",
+        form: f, field: :password,
+        label: "Password",
+        hint: "At least 6 characters.",
+        required: true,
+        html: { autocomplete: "new-password" } %>
+
+  <%= render "admin/shared/form/password_field",
+        form: f, field: :password_confirmation,
+        label: "Confirm password",
+        required: true,
+        html: { autocomplete: "new-password" } %>
+
+  <%= render "admin/shared/components/button",
+        label: "Create account & sign in",
+        type: :submit,
+        size: :lg,
+        block: true %>
+<% end %>

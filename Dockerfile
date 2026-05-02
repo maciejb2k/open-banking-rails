@@ -54,6 +54,11 @@ RUN bundle exec bootsnap precompile -j 1 app/ lib/
 # Precompiling assets for production without requiring secret RAILS_MASTER_KEY
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
+# Mount points for the prod compose volumes (app_secrets, ./backups, rails_storage).
+# Creating them here means the COPY --chown below propagates rails ownership,
+# and Docker uses the same uid/gid when initializing an empty named volume.
+RUN mkdir -p /rails/secrets /rails/backups /rails/storage
+
 
 
 

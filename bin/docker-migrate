@@ -1,0 +1,39 @@
+#!/bin/bash
+# One-shot migration runner for the prod compose `migrate` service.
+#
+# Order: pre-migration backup → db:prepare. The backup is a safety net
+# for the upgrade path: if a migration corrupts data the dump is
+# already on disk before the schema changes. On first boot there is
+# nothing to dump (the database doesn't exist yet) — that case is
+# tolerated.
+#
+# This script assumes the docker-entrypoint has already run, so secrets
+# are exported and DATABASE_URL is set.
+
+set -e
+
+BACKUPS_DIR="${BACKUPS_DIR:-/rails/backups}"
+mkdir -p "$BACKUPS_DIR"
+
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "[migrate] DATABASE_URL not set; aborting" >&2
+  exit 1
+fi
+
+ts=$(date -u +%Y%m%dT%H%M%SZ)
+out="$BACKUPS_DIR/pre-migration-$ts.sql.gz"
+
+echo "[migrate] attempting pre-migration backup → $out"
+if pg_dump --clean --if-exists --no-owner --no-privileges "$DATABASE_URL" 2>/tmp/pg_dump.err | gzip > "$out"; then
+  size=$(stat -c '%s' "$out" 2>/dev/null || echo 0)
+  echo "[migrate] backup ok ($size bytes)"
+else
+  rc=$?
+  echo "[migrate] pre-migration backup skipped (likely first boot, db not yet provisioned)"
+  echo "[migrate] pg_dump stderr:" >&2
+  cat /tmp/pg_dump.err >&2 || true
+  rm -f "$out"
+fi
+
+echo "[migrate] running db:prepare"
+exec ./bin/rails db:prepare

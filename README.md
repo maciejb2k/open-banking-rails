@@ -133,6 +133,65 @@ Browse `/admin/styleguide` for every component and its variants.
 
 ![Styleguide](docs/screenshots/styleguide.png)
 
+## Self-hosting
+
+Requires Docker 24+ with the Compose plugin. ~2 GB RAM, ~5 GB disk.
+
+```bash
+mkdir my-finance && cd my-finance
+curl -fsSL https://raw.githubusercontent.com/maciejb2k/open-banking-rails/main/docker-compose.prod.yml -O
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Open <http://localhost:3000> → first-run page asks for email + password.
+That's your only admin account; no second sign-up.
+
+Secrets (`SECRET_KEY_BASE`, AR encryption keys) auto-generate on first
+boot and live in a Docker volume. `down`/`up` keeps everything; `down -v`
+**wipes your data**.
+
+### Upgrade
+
+```bash
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Pre-migration `pg_dump` runs automatically. Pin a specific image with
+`APP_TAG=v1.2.3` in `.env`.
+
+### Backups
+
+Daily `pg_dump` to `./backups/` with 7 daily / 4 weekly / 6 monthly
+retention. Bind mount — `rsync` it off-site yourself.
+
+### Restore
+
+```bash
+docker compose -f docker-compose.prod.yml stop app worker
+docker compose -f docker-compose.prod.yml --profile restore run --rm restore
+docker compose -f docker-compose.prod.yml up -d app worker
+```
+
+Optionally pass a specific dump path after `restore`. Without an arg, it
+picks the newest `.sql.gz` under `./backups/`.
+
+### Email (optional)
+
+```
+SMTP_ADDRESS=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=...
+SMTP_PASSWORD=...
+```
+
+Password reset without SMTP:
+
+```bash
+docker compose -f docker-compose.prod.yml exec app \
+    bin/rails runner "User.first.send_reset_password_instructions"
+```
+
 ## Screenshots
 
 ![Login](docs/screenshots/login.png)

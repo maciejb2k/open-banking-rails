@@ -25,10 +25,10 @@ Rails.application.configure do
   config.active_storage.service = :local
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
-  config.assume_ssl = true
-
-  # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  config.force_ssl = true
+  # Self-hosters running on localhost / inside Docker without TLS termination
+  # need to set FORCE_SSL=false (and APP_PROTOCOL=http) to disable the redirect loop.
+  config.assume_ssl = ENV.fetch("FORCE_SSL", "true") == "true"
+  config.force_ssl  = ENV.fetch("FORCE_SSL", "true") == "true"
 
   # Skip http-to-https redirect for the default health check endpoint.
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
@@ -56,17 +56,31 @@ Rails.application.configure do
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
   # config.action_mailer.raise_delivery_errors = false
 
-  # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "example.com" }
+  # Host used by links in mailer templates. APP_HOST is the public hostname
+  # (without scheme), e.g. "finance.example.com" or "localhost:3000".
+  app_host = ENV.fetch("APP_HOST", "localhost:3000")
+  app_host_value, app_host_port = app_host.split(":", 2)
+  config.action_mailer.default_url_options = {
+    host: app_host_value,
+    port: app_host_port&.to_i,
+    protocol: ENV.fetch("APP_PROTOCOL", "https")
+  }.compact
 
-  # Specify outgoing SMTP server. Remember to add smtp/* credentials via bin/rails credentials:edit.
-  # config.action_mailer.smtp_settings = {
-  #   user_name: Rails.application.credentials.dig(:smtp, :user_name),
-  #   password: Rails.application.credentials.dig(:smtp, :password),
-  #   address: "smtp.example.com",
-  #   port: 587,
-  #   authentication: :plain
-  # }
+  # Outgoing SMTP. All optional — if SMTP_ADDRESS is unset, mailers fall back
+  # to delivery_method :smtp with localhost defaults (which will fail loudly).
+  # Self-hosters who don't care about email can ignore; password reset has a
+  # rake-task escape hatch.
+  if ENV["SMTP_ADDRESS"].present?
+    config.action_mailer.smtp_settings = {
+      address:        ENV.fetch("SMTP_ADDRESS"),
+      port:           ENV.fetch("SMTP_PORT", 587).to_i,
+      domain:         ENV["SMTP_DOMAIN"],
+      user_name:      ENV["SMTP_USERNAME"],
+      password:       ENV["SMTP_PASSWORD"],
+      authentication: ENV.fetch("SMTP_AUTHENTICATION", "plain").to_sym,
+      enable_starttls_auto: ENV.fetch("SMTP_STARTTLS", "true") == "true"
+    }.compact
+  end
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).
@@ -78,12 +92,13 @@ Rails.application.configure do
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
 
-  # Enable DNS rebinding protection and other `Host` header attacks.
-  # config.hosts = [
-  #   "example.com",     # Allow requests from example.com
-  #   /.*\.example\.com/ # Allow requests from subdomains like `www.example.com`
-  # ]
-  #
+  # DNS rebinding protection. APP_HOST is the canonical entry — self-hosters
+  # behind a reverse proxy add their domain. Multiple hosts via comma-separated
+  # APP_HOSTS (e.g. "finance.example.com,finance.example.org"). Empty list
+  # disables the check (default for first-boot before APP_HOST is configured).
+  app_hosts = ENV.fetch("APP_HOSTS", ENV.fetch("APP_HOST", "")).split(",").map(&:strip).reject(&:empty?)
+  config.hosts = app_hosts if app_hosts.any?
+
   # Skip DNS rebinding protection for the default health check endpoint.
-  # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 end

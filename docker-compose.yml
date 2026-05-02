@@ -1,3 +1,14 @@
+# Development compose. Hosts the data services Rails needs while the app
+# itself runs on the host (`bin/dev` / `Procfile.dev`). The full
+# observability stack (OTel collector, Prometheus, Loki, Tempo, Grafana,
+# Alertmanager) is opt-in via the `observability` profile so a normal
+# `docker compose up` stays light.
+#
+#   docker compose up -d                       # db + redis only
+#   docker compose --profile observability up -d   # everything
+
+name: obr-dev
+
 services:
   db:
     image: postgres:17-alpine
@@ -26,6 +37,7 @@ services:
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.148.0
+    profiles: ["observability"]
     volumes:
       - ./docker/otel/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
     ports:
@@ -42,6 +54,7 @@ services:
 
   prometheus:
     image: prom/prometheus:v3.10.0
+    profiles: ["observability"]
     command:
       - "--config.file=/etc/prometheus/prometheus.yaml"
       - "--storage.tsdb.path=/prometheus"
@@ -59,6 +72,7 @@ services:
 
   alertmanager:
     image: prom/alertmanager:v0.31.1
+    profiles: ["observability"]
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yaml"
       - "--storage.path=/alertmanager"
@@ -70,6 +84,7 @@ services:
 
   tempo:
     image: grafana/tempo:2.10.3
+    profiles: ["observability"]
     command:
       - "-config.file=/etc/tempo/tempo.yaml"
     volumes:
@@ -80,6 +95,7 @@ services:
 
   loki:
     image: grafana/loki:3.6.7
+    profiles: ["observability"]
     command:
       - "-config.file=/etc/loki/loki-config.yaml"
     volumes:
@@ -90,6 +106,7 @@ services:
 
   grafana:
     image: grafana/grafana:12.4.1
+    profiles: ["observability"]
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
