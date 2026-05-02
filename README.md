@@ -57,8 +57,9 @@ AISP is the read-only PSD2 role. It covers account info and transaction history,
 | Layer            | Choice                                                        |
 | ---------------- | ------------------------------------------------------------- |
 | Web              | Rails 8.1, Hotwire (Turbo + Stimulus), Tailwind, Propshaft, Importmap |
-| Database         | PostgreSQL 17, `scenic` for versioned views, `paper_trail` for audit |
-| Background jobs  | Sidekiq + Redis 7                                             |
+| Realtime         | Turbo Streams over Action Cable (Redis-backed) for live sync + LLM enrichment progress |
+| Database         | PostgreSQL 17, `ltree` + GiST for hierarchical categories, `scenic` for versioned views, `paper_trail` for audit |
+| Background jobs  | Sidekiq + Redis 7, `sidekiq-cron` for per-connection auto-sync |
 | Auth             | Devise                                                        |
 | Open Banking     | [Enable Banking](https://enablebanking.com/) (PSD2 AISP)      |
 | LLM              | [`ruby_llm`](https://github.com/crmne/ruby_llm) (OpenAI `gpt-5-mini` default) |
@@ -219,9 +220,14 @@ Browse `/admin/styleguide` for every component and its variants.
 
 ![AI Enrichements](docs/screenshots/ai_enrichements.png)
 
+![Sync](docs/screenshots/sync.png)
+
 ![Matching Engine](docs/screenshots/matching_engine.png)
 
 ![Preferences](docs/screenshots/preferences.png)
+
+![Import/Export](docs/screenshots/importer.png)
+
 
 ## License
 

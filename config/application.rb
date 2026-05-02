@@ -20,7 +20,7 @@ Bundler.require(*Rails.groups)
 
 module OpenBankingRails
   ADMIN_EDITION = "Alpha"
-  ADMIN_VERSION = "0.2.0"
+  ADMIN_VERSION = "0.4.0"
 
   class Application < Rails::Application
     config.load_defaults 8.1
