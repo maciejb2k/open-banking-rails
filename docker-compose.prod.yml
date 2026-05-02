@@ -1,5 +1,11 @@
 name: obr-prod
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 x-app-image: &app-image
   image: ghcr.io/maciejb2k/open-banking-rails:${APP_TAG:-latest}
   pull_policy: missing
@@ -29,6 +35,7 @@ services:
   db:
     image: postgres:17-alpine
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_USER:     ${POSTGRES_USER:-obr}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-obr}
@@ -44,6 +51,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    logging: *default-logging
     volumes:
       - redis_data:/data
     healthcheck:
@@ -55,6 +63,7 @@ services:
   migrate:
     <<: *app-image
     restart: "no"
+    logging: *default-logging
     command: ["./bin/docker-migrate"]
     environment:
       <<: *app-env
@@ -70,6 +79,7 @@ services:
   app:
     <<: *app-image
     restart: unless-stopped
+    logging: *default-logging
     command: ["./bin/rails", "server", "-b", "0.0.0.0"]
     environment:
       <<: *app-env
@@ -95,6 +105,7 @@ services:
   worker:
     <<: *app-image
     restart: unless-stopped
+    logging: *default-logging
     command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
     environment:
       <<: *app-env
@@ -112,6 +123,7 @@ services:
   db-backup:
     image: prodrigestivill/postgres-backup-local:17
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_HOST:     db
       POSTGRES_DB:       ${POSTGRES_DB:-obr_production}
@@ -131,6 +143,7 @@ services:
   restore:
     image: postgres:17-alpine
     profiles: ["restore"]
+    logging: *default-logging
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD:-obr}
     volumes:
