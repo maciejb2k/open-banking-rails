@@ -52,3 +52,37 @@ env, even though Sidekiq doesn't read cookies.
 `ar_encryption_*` files makes every encrypted column unreadable. Key
 rotation for AR Encryption requires Rails' multi-key support and is a
 separate procedure (not yet documented here — add when needed).
+
+## Releasing a new version
+
+The git tag is the single source of truth for the version — there's no
+`CHANGELOG.md`, no `VERSION` file, no `version.rb`. Pushing a `vX.Y.Z`
+tag triggers `.github/workflows/release.yml`, which builds a multi-arch
+image and publishes it to GHCR as `vX.Y.Z`, `vX.Y`, and `latest`.
+
+Steps:
+
+```bash
+# 1. clean main, synced with origin, all release commits merged
+git checkout main
+git pull --ff-only
+git status   # must be clean
+
+# 2. annotated tag (matches v0.1.0 — do not use lightweight tags)
+git tag -a v0.2.0 -m "v0.2.0"
+
+# 3. push the tag — this is what fires the Release workflow
+git push origin v0.2.0
+
+# 4. create the GitHub Release with auto-generated notes
+gh release create v0.2.0 --generate-notes
+```
+
+Verify in GitHub → Actions that the `Release` run succeeds and that the
+expected tags appear under `ghcr.io/<owner>/open-banking-rails`. Users
+upgrade via `APP_TAG=v0.2.0` in their `.env` plus `docker compose pull
+&& up -d`.
+
+Pushes to `main` do NOT publish — only tags do. Use `workflow_dispatch`
+on the Release workflow for emergency rebuilds without cutting a new
+version.
