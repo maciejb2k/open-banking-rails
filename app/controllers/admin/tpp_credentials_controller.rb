@@ -41,7 +41,7 @@ module Admin
     def destroy
       if @credential.bank_connections.exists?
         redirect_to admin_tpp_credential_path(@credential),
-                    alert: "Cannot delete — credential has bank connections. Remove them first."
+                    alert: "Cannot delete - credential has bank connections. Remove them first."
       else
         @credential.destroy
         redirect_to admin_tpp_credentials_path, notice: "Credential deleted."

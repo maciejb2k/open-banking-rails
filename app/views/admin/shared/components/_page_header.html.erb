@@ -1,6 +1,5 @@
 <%# locals: (title:, subtitle: nil, actions: nil, browser_title: nil, back_path: nil, media: nil) %>
-<%# Browser <title> defaults to page H1; override via browser_title: when they should differ.
-    media: pre-rendered slot (e.g. bank_logo, avatar, icon tile) shown left of the title. %>
+<%# browser_title: overrides the <title> tag (defaults to H1). media: pre-rendered slot left of the title. %>
 <% content_for :title, "#{browser_title || title} · Open Banking" %>
 <div class="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
   <div class="flex items-start sm:items-center min-w-0 <%= media ? "gap-3 sm:gap-4" : "gap-3" %>">

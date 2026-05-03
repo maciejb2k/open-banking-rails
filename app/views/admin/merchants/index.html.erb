@@ -11,7 +11,6 @@
         subtitle: "Stores and payment recipients. Rules link transactions to merchants; merchants supply a default category.",
         actions: page_actions %>
 
-  <%# Filter bar — simpler than a panel since few options %>
   <%= form_with url: admin_merchants_path, method: :get, html: { data: { turbo: false }, class: "flex flex-wrap items-center gap-2 sm:gap-3" } do |f| %>
     <div class="relative w-full sm:w-auto sm:flex-1 sm:max-w-md">
       <%= render "admin/shared/icons/search", classes: "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" %>
@@ -79,7 +78,7 @@
               <% if m.default_category %>
                 <%= render "admin/shared/components/category_breadcrumb", category: m.default_category %>
               <% else %>
-                <span class="text-muted-foreground/60">—</span>
+                <span class="text-muted-foreground/60">-</span>
               <% end %>
             </td>
             <td class="px-4 py-3 text-sm text-muted-foreground"><%= m.merchant_rules.size %></td>

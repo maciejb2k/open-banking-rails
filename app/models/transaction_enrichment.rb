@@ -38,30 +38,9 @@
 #  fk_rails_...  (merchant_rule_id => merchant_rules.id)
 #
 class TransactionEnrichment < ApplicationRecord
-  # Per-transaction derived metadata: which merchant, which category, where the
-  # decision came from. Polymorphic `enrichable` so the same row shape covers
-  # BankTransaction (synced) and ManualTransaction (cash, future).
-  #
-  # `source` values:
-  #   unmatched       — no rule fired and no payment_method fallback
-  #   system_rule     — seeded rule matched
-  #   user_rule       — user-created rule matched
-  #   llm_rule        — LLM-proposed rule (enabled, auto-applied above threshold)
-  #   llm_pending     — LLM proposed, below threshold, awaiting approval
-  #   manual          — user explicitly set merchant/category on this single tx
-  #   system_fallback — no rule matched but payment_method has a generic category
-  #                     (e.g. blik_atm → "Wypłaty z bankomatu")
-  #
-  # Rebuild rules: TransactionEnricher only touches rows where
-  # source != 'manual' AND category_overridden = false.
-  #
-  # Layer 2/3 fields (orthogonal to merchant + category):
-  #   * `recurring` (bool) + `recurrence_interval` (weekly/monthly/yearly)
-  #     — populated by Recurrence::Detector. Treated as a property of the
-  #     transaction, not a category — Spotify's enrichment lands in
-  #     `lifestyle.entertainment.streaming` AND has `recurring: true`.
-  #   * `tags` via gutentag — free-form labels for cross-cuts ("vacation 2026",
-  #     "renovation"). Independent of category.
+  # Polymorphic `enrichable` covers BankTransaction + ManualTransaction.
+  # TransactionEnricher rebuilds touch only rows where source != 'manual' AND
+  # category_overridden = false.
 
   Gutentag::ActiveRecord.call self
 
@@ -82,16 +61,10 @@ class TransactionEnrichment < ApplicationRecord
   scope :pending,     -> { where(source: "llm_pending") }
   scope :recurring,   -> { where(recurring: true) }
   scope :one_off,     -> { where(recurring: false) }
-  # Anything without a merchant — covers `unmatched` AND `system_fallback`
-  # (the latter has a generic payment-method category but no concrete seller).
-  # This is the right scope for "what can the LLM still help with" — both
-  # cases lack merchant_id and may have signal in title / counterparty_name.
+  # Covers both `unmatched` and `system_fallback` - the right scope for
+  # "what can the LLM still help with".
   scope :merchantless, -> { where(merchant_id: nil) }
 
-  # Cross-ownership user scope for the polymorphic enrichable. Mirrors
-  # LedgerEntry#for_user — scoping has to walk both source tables. Pluck
-  # materializes IDs in Ruby, which is fine at the personal-app scale
-  # (≤ 10⁵ tx); if it ever gets hot, push it down into a UNION subquery.
   scope :for_user, ->(user) {
     where(
       "(enrichable_type = 'BankTransaction' AND enrichable_id IN (?)) OR " \
@@ -101,9 +74,6 @@ class TransactionEnrichment < ApplicationRecord
     )
   }
 
-  # Effective category for this enrichment — explicit override or merchant's
-  # default. Mirrors LedgerEntry#effective_category for cases where the caller
-  # has the enrichment but not the parent transaction.
   def effective_category
     category || merchant&.default_category
   end

@@ -1,15 +1,10 @@
-<%# locals: (form:, field: :category_id, label: "Category", user:, selected: nil, allow_blank: true, blank_label: "—") %>
-<%# Path-aware category select. Renders categories as full breadcrumbs
-    ("Lifestyle / Shopping / Electronics") so the user picks the leaf
-    unambiguously even when the leaf name alone is ambiguous (e.g.
-    "Card" exists under both noise.unmatched and noise.authorizations).
-    Categories are ordered by ltree path so the visual order matches the
-    tree's natural left-right traversal. %>
+<%# locals: (form:, field: :category_id, label: "Category", user:, selected: nil, allow_blank: true, blank_label: "-") %>
+<%# Full breadcrumb labels disambiguate leaves that repeat across branches; ltree-path order matches tree traversal. %>
 <%
   categories = user.categories.active.ordered
   options = categories.map do |c|
     next if defined?(current_user) && current_user && current_user.hides_category?(c)
-    indent = "—" * (c.path.to_s.count(".")) # depth-based prefix
+    indent = "-" * (c.path.to_s.count(".")) # depth-based prefix
     label  = "#{indent} #{c.breadcrumb_names.join(' / ')}".strip
     [ label, c.id ]
   end.compact

@@ -1,11 +1,9 @@
 # frozen_string_literal: true
 
 module Cash
-  # Find-or-create a cash wallet for (user, currency). One wallet per pair —
-  # different currencies produce separate wallets so balances stay in their
-  # native unit (no implicit FX). The uid scheme is stable and namespaced
-  # ("cash_<user_id>_<currency>") so it never collides with bank UIDs from
-  # Enable Banking.
+  # One wallet per (user, currency) - balances stay native (no implicit FX).
+  # uid is namespaced "cash_<user_id>_<currency>" so it never collides with
+  # bank UIDs from Enable Banking.
   class WalletResolver
     def self.call(user:, currency: "PLN")
       new(user: user, currency: currency).call

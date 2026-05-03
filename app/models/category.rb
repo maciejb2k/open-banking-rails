@@ -31,26 +31,10 @@
 #  fk_rails_...  (user_id => users.id)
 #
 class Category < ApplicationRecord
-  # Hierarchical, soft-deletable category — Layer 1 of the three-layer category
-  # model. Backed by PG `ltree` (`path` column) with a GiST index, so subtree
-  # containment queries hit native operators:
-  #
-  #   Category.under_path("food")               # food + every descendant
-  #   Category.where("path ~ 'food.*{1}'")      # direct children only
-  #   Category.where("nlevel(path) = 1")        # roots
-  #
-  # Layers 2/3 ride alongside:
-  #   * `essential` (here)             — needs vs wants
-  #   * `recurring` (Enrichment)       — cyclical charges as a property
-  #   * `gutentag tags` (Enrichment)   — free-form labels
-  #
-  # `slug` stays stable across renames — used by seeds, exports, the LLM
-  # merchant suggester, and merchant_rules. Slug uniqueness is per user.
-  # `path` is the canonical lookup ("food.cooking.supermarket"); slug is the
-  # leaf-only segment.
-  #
-  # `kind` (expense/income/transfer/savings/ignored) is the sign-convention
-  # property analytics scopes partition on, orthogonal to path depth.
+  # Hierarchical, soft-deletable. Backed by PG `ltree` with a GiST index.
+  # `slug` is the leaf-only segment (stable across renames, per-user unique);
+  # `path` is the canonical lookup ("food.cooking.supermarket"). `kind` is
+  # the sign-convention property analytics scopes partition on.
 
   KINDS = %w[expense income transfer savings ignored].freeze
   SEPARATOR = "."
@@ -74,8 +58,7 @@ class Category < ApplicationRecord
   scope :essential, -> { where(essential: true) }
   scope :roots,     -> { where("nlevel(path) = 1") }
 
-  # Subtree containment via ltree `<@`. Pass a Category, a path string
-  # ("food.cooking"), or an array of either.
+  # Accepts a Category, a path string, or an array of either.
   scope :under_path, ->(path_or_paths) {
     paths = Array(path_or_paths).map { |p| p.is_a?(Category) ? p.path : p.to_s }
     return none if paths.empty?
@@ -89,45 +72,35 @@ class Category < ApplicationRecord
     update!(archived_at: Time.current) unless archived?
   end
 
-  # Self + descendants — returns an AR relation.
   def self_and_descendants
     self.class.where("path <@ ?", path)
   end
 
-  # Just descendants (excludes self).
   def descendants
     self.class.where("path <@ ? AND path != ?", path, path)
   end
 
-  # Direct children — `path` exactly one level deeper.
   def children
     self.class.where("path ~ ?::lquery", "#{path}.*{1}")
   end
 
-  # Strict ancestors — every node whose path is a prefix of self.path.
   def ancestors
     return self.class.none if depth.zero?
     self.class.where("path @> ? AND path != ?", path, path)
   end
 
-  # Direct parent (or nil for roots).
   def parent
     return nil if depth.zero?
     parent_path = path.split(SEPARATOR)[0..-2].join(SEPARATOR)
     self.class.find_by(path: parent_path)
   end
 
-  # 0 for a root, 1 for a direct child, etc. Read from PG via `nlevel`
-  # rather than counting dots in Ruby — keeps the source of truth in one
-  # place and matches what `WHERE nlevel(path) = ?` returns.
   def depth
     @depth ||= path.to_s.count(SEPARATOR)
   end
 
   def root? = depth.zero?
 
-  # Display: ["Food", "Cooking", "Supermarket"]. For breadcrumbs / pickers.
-  # One query for the whole chain.
   def breadcrumb_names
     chain = ancestors.order(Arel.sql("nlevel(path)")) + [ self ]
     chain.map(&:name)
@@ -143,9 +116,6 @@ class Category < ApplicationRecord
 
   private
 
-  # `path` is the source of truth — but we accept `slug` set by callers and
-  # auto-derive the path's leaf segment if missing. Seeds set `path`
-  # directly; admin form sets `parent_path` + `slug` and we compose.
   def ensure_path_ends_with_slug
     return if path.blank?
     segments = path.to_s.split(SEPARATOR)

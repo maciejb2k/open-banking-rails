@@ -39,21 +39,10 @@ class User < ApplicationRecord
 
   has_one :llm_setting, dependent: :destroy
 
-  # Audit log of every long-running operation the user triggered (sync, LLM
-  # enrichment, connection test). Cascade on delete — the FK is NOT NULL so
-  # without :destroy a user delete would be blocked by the constraint, and
-  # a vanished user's run history isn't useful on its own.
   has_many :operation_runs, foreign_key: :triggered_by_user_id, dependent: :destroy
 
-  # Always-on (no separate toggle). The act of selecting a category in
-  # /admin/settings/preferences IS the hide trigger; the topbar
-  # privacy_mode is orthogonal and broader (everything sensitive at once).
-  #
-  # Subtree-aware: hiding `food` hides every descendant
-  # (`food.cooking.*`, `food.eating_out.*`). The user-selected ids are
-  # widened to "any descendant of a hidden path" via an ltree subtree
-  # query. Memoized per-request — the answer is fixed within a render
-  # and the expansion is two queries (hidden ids → paths → descendants).
+  # Subtree-aware: hiding `food` hides every descendant. The user-selected
+  # ids widen to "any descendant of a hidden path" via ltree.
   def hides_category?(category_or_id)
     return false if category_or_id.blank?
     id = category_or_id.respond_to?(:id) ? category_or_id.id : category_or_id
@@ -76,10 +65,8 @@ class User < ApplicationRecord
     tpp_credentials.find_by(primary: true)
   end
 
-  # Every BankAccount the user owns — synced (via tpp_credentials) plus
-  # cash wallets (via manual_owner_id). The `has_many :bank_accounts,
-  # through:` association only covers synced accounts; this is the
-  # union, used wherever analytics needs "all of the user's accounts".
+  # `has_many :bank_accounts, through:` only covers synced - this is the
+  # union with cash wallets.
   def all_bank_account_ids
     BankAccount.where(tpp_credential_id: tpp_credentials.select(:id))
                .or(BankAccount.where(manual_owner_id: id))
@@ -90,17 +77,12 @@ class User < ApplicationRecord
     BankAccount.where(id: all_bank_account_ids)
   end
 
-  # Holder names across every account the user owns, normalized for
-  # case-insensitive comparison. Banks fill BankAccount#name differently
-  # (mBank uppercase, Revolut titlecase, PKO sometimes empty), so callers
-  # match against this set rather than a single canonical value.
+  # Banks fill `name` differently (mBank uppercase, Revolut titlecase, PKO
+  # sometimes empty) - match against this normalized set, not a single value.
   def own_holder_names
     owned_bank_accounts.pluck(:name).compact_blank.map { |n| n.strip.upcase }.uniq
   end
 
-  # Every IBAN the user owns — primary IBAN of each account plus any
-  # alternates the bank advertised. Normalized (no spaces, uppercase) so
-  # SQL/Ruby comparisons can use exact equality.
   def own_ibans
     accounts = owned_bank_accounts
     (accounts.pluck(:iban).compact + accounts.find_each.flat_map(&:alternate_ibans))

@@ -1,34 +1,20 @@
 # frozen_string_literal: true
 
 module Enrichment
-  # Per-BankAccount "Own account" merchant with iban-kind MerchantRules
-  # covering every IBAN that account is known by (primary + alternates from
-  # the bank — Revolut PL exposes a second LT IBAN for that same account).
+  # Lets the enricher recognize own-IBAN transfers (Revolut PL exposes a
+  # second LT IBAN for the same account, hence the alternates list).
+  # Idempotent: removed IBANs disable their rules, never delete (historical
+  # enrichments reference merchant_rule_id).
   #
-  # The whole point: when `counterparty_iban` on an inbound/outbound tx
-  # matches one of the user's own IBANs, the enricher recognizes it as a
-  # transfer between own accounts — not an expense, not a private p2p, not
-  # a fallback bucket. That's what lets `Category#kind == 'transfer'`
-  # cleanly exclude these from spend analytics.
-  #
-  # Idempotent on every dimension:
-  #   - Re-running on the same account: same merchant slug, no duplicate rules.
-  #   - IBAN added (rare): new rule appended, others untouched.
-  #   - IBAN removed (rare): old rule disabled (not deleted) so historical
-  #     enrichments keep their merchant_rule_id link.
-  #
-  # Priority is set above seeded retail rules (200 vs default 0) so within
-  # source=system, an own-IBAN match beats a generic title-keyword like
-  # "JOHN DOE" that some PKO outgoing transfers carry. User-source rules
-  # still override (different SOURCE_RANK tier).
+  # Priority 200 beats seeded retail rules (default 0) within source=system -
+  # so own-IBAN match wins against a generic title keyword like "JOHN DOE" on
+  # outgoing PKO transfers. User-source rules still override.
   class OwnAccountMerchantSyncer
     OWN_TRANSFER_CATEGORY_SLUG = "transfers"
     RULE_PRIORITY              = 200
 
     def self.call(bank_account) = new(bank_account).call
 
-    # Bulk entrypoint for backfills + a one-time bootstrap. Ignores accounts
-    # without a primary IBAN (shouldn't happen post-sync, but defensive).
     def self.sync_all(scope: BankAccount.all)
       scope.find_each.map { |acc| call(acc) }.compact
     end
@@ -74,17 +60,13 @@ module Enrichment
       merchant
     end
 
-    # Account owner: synced accounts go through tpp_credential, manual cash
-    # wallets through manual_owner_id. Single source of truth so we don't
-    # have to special-case both call sites.
     def account_user
       @account_user ||= @bank_account.tpp_credential&.user ||
                         (@bank_account.manual_owner_id && User.find_by(id: @bank_account.manual_owner_id))
     end
 
-    # Stable per account uid — survives display_name changes, deletes leave
-    # historical enrichments pointing at a known-dead slug rather than a
-    # collision with another account.
+    # Stable per account uid - survives display_name changes; deletes leave
+    # historical enrichments on a dead slug rather than colliding.
     def merchant_slug
       "own_account_#{@bank_account.uid.to_s[0, 8]}"
     end
@@ -97,9 +79,6 @@ module Enrichment
       "Own account (#{bank_label} ⋯#{last4})"
     end
 
-    # Reconcile against existing rules so re-runs don't churn rows. Rules
-    # for IBANs no longer present get disabled — never deleted, since
-    # transaction_enrichments may reference them.
     def sync_rules(merchant, ibans)
       existing = merchant.merchant_rules
                          .where(kind: "iban", field: "counterparty_iban")

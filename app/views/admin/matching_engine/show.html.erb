@@ -4,18 +4,15 @@
         subtitle: "Every transaction flows through this cascade top-to-bottom. The first matching rule wins, the rest are skipped." %>
 
   <% if current_user.categories.active.empty? %>
-    <%# Empty taxonomy — every fallback path lookup fails, so the cascade
-        view becomes 23 red "missing category" errors. Short-circuit with
-        a single setup CTA. %>
+    <%# Without categories the fallback table renders as 23 "missing category" rows - short-circuit to setup. %>
     <%= render "admin/shared/components/empty_state",
           title: "Taxonomy not set up yet",
-          description: "Categories haven't been seeded — the matching engine has nothing to map transactions to. Load the baseline taxonomy to get started.",
+          description: "Categories haven't been seeded - the matching engine has nothing to map transactions to. Load the baseline taxonomy to get started.",
           action_label: "Load baseline taxonomy",
           action_path: admin_onboarding_seed_taxonomy_path,
           action_method: :post,
           icon: "shopping_cart" %>
   <% else %>
-  <%# ── STEP 1: RULES ── %>
   <%= render "admin/shared/components/card", padding: false do %>
     <div class="border-b px-4 py-3">
       <h3 class="font-semibold">1. Match rules (<%= @total_rules_count %>)</h3>
@@ -55,14 +52,14 @@
                 <% end %>
               </span>
             <% else %>
-              <span class="text-muted-foreground/50">—</span>
+              <span class="text-muted-foreground/50">-</span>
             <% end %>
           </td>
           <td class="px-4 py-3 text-xs text-muted-foreground">
             <% if (cat = rule.merchant&.default_category) %>
               <%= render "admin/shared/components/category_breadcrumb", category: cat %>
             <% else %>
-              <span class="text-muted-foreground/50">—</span>
+              <span class="text-muted-foreground/50">-</span>
             <% end %>
           </td>
           <td class="px-4 py-3">
@@ -81,11 +78,10 @@
     <%= render "admin/shared/components/pagination", pagy: @pagy %>
   <% end %>
 
-  <%# ── STEP 2: FALLBACK ── %>
   <%= render "admin/shared/components/card", padding: false do %>
     <div class="border-b px-4 py-3">
       <h3 class="font-semibold">2. Payment-method fallback (<%= @fallback_map.size %>)</h3>
-      <p class="text-xs text-muted-foreground">When no rule matches — we look at <code>payment_method</code> and assign a generic category.</p>
+      <p class="text-xs text-muted-foreground">When no rule matches - we look at <code>payment_method</code> and assign a generic category.</p>
     </div>
     <%= render "admin/shared/components/data_table",
           columns: [
@@ -126,7 +122,6 @@
     <% end %>
   <% end %>
 
-  <%# ── SUMMARY ── %>
   <%= render "admin/shared/components/card", title: "Summary" do %>
     <%= render "admin/shared/components/definition_list", pairs: [
       { label: "All transactions",        value: @total_count, mono: true },

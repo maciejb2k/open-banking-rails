@@ -2,16 +2,8 @@
 
 module EnableBanking
   module Operations
-    # Refreshes a BankConnection's lifecycle state from EB.
-    #
-    # GET /sessions/{id} returns SKINNY data — only status, scope and timestamps.
-    # We deliberately do NOT touch BankAccount records here (see Api::GetSession
-    # comment for why). For full account data refresh, use RefreshAccountDetails.
-    #
-    # On API failure we still record `last_error` on the connection so the UI
-    # can show what went wrong.
-    #
-    # Raises Failed on API failure (after persisting last_error).
+    # GET /sessions/{id} returns skinny data only - DO NOT touch BankAccount
+    # records here (see Api::GetSession). Use RefreshAccountDetails for those.
     class RefreshConnection < Base
       Failed = Class.new(StandardError)
 

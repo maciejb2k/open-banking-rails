@@ -1,5 +1,4 @@
 <%# locals: (run:, **) %>
-<%# Re-rendered live via Turbo Streams on every run.update! (after each batch). %>
 <%= tag.div id: dom_id(run, :progress), class: "space-y-6" do %>
   <div class="flex items-center gap-3">
     <%= render "admin/shared/components/badge", text: run.status, variant: run.status_tone %>
@@ -47,7 +46,7 @@
     </div>
     <% if batches.empty? %>
       <p class="px-4 py-6 text-sm text-muted-foreground">
-        <%= run.queued? ? "Run is queued — waiting for the worker to pick it up." : "Processing hasn't started yet." %>
+        <%= run.queued? ? "Run is queued - waiting for the worker to pick it up." : "Processing hasn't started yet." %>
       </p>
     <% else %>
       <%= render "admin/shared/components/data_table",
@@ -83,7 +82,7 @@
                   </ul>
                 </details>
               <% else %>
-                <span class="text-xs text-muted-foreground">—</span>
+                <span class="text-xs text-muted-foreground">-</span>
               <% end %>
             </td>
           </tr>

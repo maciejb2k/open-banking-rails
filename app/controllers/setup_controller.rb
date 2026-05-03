@@ -18,7 +18,7 @@ class SetupController < ApplicationController
       Seeders::Categories.call(@user)
       Seeders::MerchantRules.call(@user)
       sign_in @user
-      redirect_to admin_root_path, notice: "Welcome — your account is ready."
+      redirect_to admin_root_path, notice: "Welcome - your account is ready."
     else
       render :new, status: :unprocessable_entity
     end

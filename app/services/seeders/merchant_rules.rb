@@ -1,16 +1,9 @@
 # frozen_string_literal: true
 
 module Seeders
-  # Baseline system-source merchants + rules for Polish/EU retailers
-  # commonly seen in card transactions. Idempotent: keyed on
-  # (merchant_slug, rule_pattern). User-source rules always beat these
-  # — system seeds are just a starting baseline so the dashboard isn't
-  # 100% noise on first sync.
-  #
-  # Depends on Seeders::Categories having run first (it looks up
-  # categories by their full ltree path).
+  # Idempotent. Depends on Seeders::Categories having run (path lookups).
   module MerchantRules
-    # [merchant_slug, name, category_path, rule_field, rule_pattern, rule_kind]
+    # [slug, name, category_path, rule_field, rule_pattern, rule_kind]
     RETAIL = [
       [ "biedronka",      "Biedronka",     "food.cooking.supermarket",         "title",              "BIEDRONKA",       "contains" ],
       [ "lidl",           "Lidl",          "food.cooking.supermarket",         "title",              "LIDL",            "contains" ],
@@ -41,7 +34,6 @@ module Seeders
 
       [ "allegropay",     "AllegroPay",    "lifestyle.shopping.general",       "title",              "ALLEGROPAY",      "contains" ],
 
-      # Card-on-file SaaS — counterparty_name is set, type_hint is empty.
       [ "claude_ai",      "Claude.ai",     "lifestyle.tools.saas",             "counterparty_name",  "Claude.ai",       "contains" ],
       [ "openai",         "OpenAI",        "lifestyle.tools.saas",             "counterparty_name",  "Openai",          "contains" ],
       [ "anthropic",      "Anthropic",     "lifestyle.tools.saas",             "counterparty_name",  "Anthropic",       "contains" ],
@@ -81,12 +73,7 @@ module Seeders
       end
     end
 
-    # ATM withdrawal — special-case system merchant. Withdrawing cash is a
-    # *location change* (account → wallet), not spend; default category
-    # is `money.transfers.atm` so the row falls out of spend analytics.
-    # Cash::AtmWithdrawalLinker pairs it with a manual topup for users
-    # who opted into cash tracking. Priority 300 beats retail (0) and
-    # own-account-syncer rules (200).
+    # Priority 300 beats retail (0) and own-account-syncer rules (200).
     def self.seed_atm(user, cat)
       atm_merchant = user.merchants.find_or_initialize_by(slug: "atm_withdrawal")
       atm_merchant.assign_attributes(
@@ -110,11 +97,9 @@ module Seeders
       rule.save!
     end
 
-    # Mobile-wallet top-ups (Revolut, Wise, Trade Republic). Funding card
-    # is the user's own — semantically a transfer, not spend or income.
-    # Without this rule the credit can land in a hallucinated category
-    # because LLM/seed rules see "Google" in counterparty data. Priority
-    # 250 — above own-account-syncer (200) and below ATM (300).
+    # Funding card is the user's own - without this rule, the credit lands
+    # in a hallucinated category because LLM/seed rules see "Google" in
+    # counterparty data. Priority 250 (above own-account 200, below ATM 300).
     def self.seed_topup(user, cat)
       topup_merchant = user.merchants.find_or_initialize_by(slug: "mobile_wallet_topup")
       topup_merchant.assign_attributes(
@@ -124,7 +109,7 @@ module Seeders
         default_category: cat.call("money.transfers.own"),
         approved_at:      topup_merchant.approved_at || Time.current,
         notes:            "Auto-generated. Google Pay / Apple Pay top-ups to " \
-                          "own balance accounts. Funding card is the user's own — " \
+                          "own balance accounts. Funding card is the user's own - " \
                           "this is a transfer between own surfaces."
       )
       topup_merchant.save!

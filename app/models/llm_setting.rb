@@ -23,13 +23,6 @@
 #  fk_rails_...  (user_id => users.id)
 #
 class LlmSetting < ApplicationRecord
-  # Per-user LLM credentials + model choice. Replaces the previous global
-  # ENV-based config (OPENAI_API_KEY / GEMINI_API_KEY / LLM_MODEL) — every user
-  # brings their own key, AI features fail loudly if not configured.
-  #
-  # Lookup of supported providers/models lives in Llm::Providers::REGISTRY,
-  # so adding a vendor doesn't require touching this file.
-
   belongs_to :user
 
   encrypts :api_key
@@ -56,9 +49,7 @@ class LlmSetting < ApplicationRecord
     model.presence || provider_config[:default_model]
   end
 
-  # Build a ready-to-use Llm::Client (OpenAI/Gemini/...). The factory in
-  # Llm::Client.for(user:) is the canonical entry point — most callers should
-  # use that, not this method directly.
+  # Llm::Client.for(user:) is the canonical entry point - prefer that.
   def build_client
     klass = provider_config[:client_class].constantize
     klass.new(api_key: api_key, model: effective_model)

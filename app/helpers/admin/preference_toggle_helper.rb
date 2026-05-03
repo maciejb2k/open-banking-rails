@@ -1,13 +1,8 @@
 # frozen_string_literal: true
 
 module Admin
-  # Helpers for cookie-backed boolean preferences (privacy mode, dark mode, etc.)
-  # paired with the `preference-toggle` Stimulus controller.
-  #
-  # Read state:        preference?("dark_mode")
-  # Render a button:   preference_toggle_button "dark_mode", class_name: "dark",
-  #                      icon_off: "sun", icon_on: "moon",
-  #                      title: "Toggle dark mode"
+  # Cookie-backed boolean preferences paired with the preference-toggle
+  # Stimulus controller.
   module PreferenceToggleHelper
     DEFAULT_BUTTON_CLASS = "rounded-lg p-2 text-muted-foreground " \
                            "hover:bg-card-hover hover:text-foreground transition-colors"
@@ -16,15 +11,6 @@ module Admin
       cookies[name].to_s == "1"
     end
 
-    # Render an icon button wired to the preference-toggle Stimulus controller.
-    #
-    #   name        - cookie name (e.g. "privacy_mode")
-    #   class_name  - CSS class to flip on the scope element (e.g. "privacy-mode")
-    #   icon_off    - admin/shared/icons partial name shown when preference is OFF
-    #   icon_on     - admin/shared/icons partial name shown when preference is ON
-    #   scope       - CSS selector for scope element (default ":root" = <html>)
-    #   title       - tooltip text
-    #   button_class- override the wrapper button class
     def preference_toggle_button(name, class_name:, icon_off:, icon_on: nil, scope: ":root", title: nil, button_class: nil)
       icon_on ||= icon_off
       active   = preference?(name)

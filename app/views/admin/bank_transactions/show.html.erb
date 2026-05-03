@@ -4,7 +4,7 @@
     <%= @transaction.currency %>
   <% end %>
   <% header_subtitle = capture do %>
-    <span class="<%= sensitive_class %>"><%= @transaction.title.presence || @transaction.external_id %></span> — <%= @transaction.booking_date %>
+    <span class="<%= sensitive_class %>"><%= @transaction.title.presence || @transaction.external_id %></span> - <%= @transaction.booking_date %>
   <% end %>
   <%= render "admin/shared/components/page_header",
         title: header_title,
@@ -39,13 +39,13 @@
         { label: "Direction", value: @transaction.direction },
         { label: "Status", value: @transaction.status },
         { label: "Title", value: @transaction.title, wrap: true, sensitive: true },
-        { label: "Type hint", value: @transaction.type_hint, hint: "(remittance_information[1] — bank-specific)" },
+        { label: "Type hint", value: @transaction.type_hint, hint: "(remittance_information[1] - bank-specific)" },
         { label: "Bank txn code", value: @transaction.bank_transaction_code, mono: true, hint: "(Berlin Group, only Revolut populates)" },
         { label: "Booking date", value: @transaction.booking_date&.to_s, mono: true },
         { label: "Value date", value: @transaction.value_date&.to_s, mono: true },
         { label: "Transaction date", value: @transaction.transaction_date&.to_s, mono: true },
         { label: "External ID", value: @transaction.external_id, mono: true, wrap: true,
-          hint: "(transaction_id || entry_reference — Revolut uses entry_reference)" }
+          hint: "(transaction_id || entry_reference - Revolut uses entry_reference)" }
       ] %>
     <% end %>
 
@@ -106,7 +106,7 @@
 
   <%= render "admin/shared/components/card", title: "Raw payload (from Enable Banking)" do %>
     <p class="text-xs text-muted-foreground mb-3">
-      Source of truth — full transaction object as returned by
+      Source of truth - full transaction object as returned by
       <code>GET /accounts/{uid}/transactions</code>. Encrypted at rest.
     </p>
     <%= render "admin/shared/components/json_viewer", json: @transaction.parsed_raw_payload %>

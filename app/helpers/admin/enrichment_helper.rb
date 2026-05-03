@@ -1,11 +1,6 @@
 # frozen_string_literal: true
 
 module Admin
-  # View helpers for transaction enrichment UI: human labels for source /
-  # payment_method enums + matching badge variants.
-  #
-  # Single source of truth for these labels — controllers, tables, modals,
-  # all read from here so changing a label in one place updates everywhere.
   module EnrichmentHelper
     SOURCE_LABELS = {
       "system_rule"     => "Auto",
@@ -56,19 +51,15 @@ module Admin
       PAYMENT_METHOD_LABELS.fetch(method.to_s, method.to_s.humanize)
     end
 
-    # Choices for select inputs.
     def payment_method_options(include_blank: true)
       opts = BankTransaction::PAYMENT_METHODS.map { |m| [ payment_method_label(m), m ] }
       include_blank ? [ [ "All", "" ] ] + opts : opts
     end
 
-    # Path-aware select options: every active category as a full
-    # breadcrumb ("Lifestyle / Shopping / Electronics") so the leaf is
-    # unambiguous. Indented by depth so the visual order matches the
-    # tree's natural traversal. Scoped to current_user.
+    # Full-breadcrumb labels so leaves are unambiguous; indented by depth.
     def category_select_options(selected_id: nil)
       pairs = current_user.categories.active.ordered.map do |c|
-        indent = "—" * c.path.to_s.count(".")
+        indent = "-" * c.path.to_s.count(".")
         [ "#{indent} #{c.breadcrumb_names.join(' / ')}".strip, c.id ]
       end
       options_for_select(pairs, selected_id)

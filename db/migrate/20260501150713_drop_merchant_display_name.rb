@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# `display_name` was a redundant duplicate of `name` — every code path
+# `display_name` was a redundant duplicate of `name` - every code path
 # (seeders, LLM enricher, own-account merchant syncer) set both to the
 # same value, and `Merchant#display` fell back to `name` when
 # display_name was blank. No call site ever benefited from the split.

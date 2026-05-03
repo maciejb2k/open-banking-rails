@@ -2,20 +2,6 @@
 
 module DataExchange
   module Operations
-    # Build a passphrase-encrypted bundle of the chosen resources for a user.
-    #
-    #   result = Export.call(
-    #     user:           current_user,
-    #     resource_keys:  %i[tpp_credentials bank_connections bank_accounts],
-    #     passphrase:     "..."
-    #   )
-    #   send_data result.blob, filename: "obr-export-...obrbundle"
-    #   result.run    # OperationRun(kind: "data_export", status: "succeeded")
-    #
-    # The OperationRun is owned by this operation (mirrors
-    # Llm::ConnectionTestRunner): created `running` once inputs validate,
-    # marked `succeeded` with a counts summary on completion, marked
-    # `failed` with the exception message if anything raises.
     class Export < Base
       Failed = Class.new(StandardError)
       Result = Struct.new(:blob, :run, keyword_init: true)
@@ -105,9 +91,8 @@ module DataExchange
         }
       end
 
-      # Informational provenance — HMAC of AR encryption primary key. Lets
-      # importer hint "this came from THIS instance" without ever exposing the
-      # key itself. Never used for verification, only UX.
+      # HMAC of AR encryption primary key - UX hint "from THIS instance" without
+      # exposing the key. Never used for verification.
       def source_fingerprint
         primary = ENV["ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY"].to_s
         return nil if primary.empty?
@@ -127,8 +112,6 @@ module DataExchange
         refs.transform_keys(&:to_s).transform_values { |(rk, sid)| [ rk.to_s, sid ] }
       end
 
-      # Coerce non-JSON-native values to safe wire types. Times → ISO8601,
-      # BigDecimal → string, everything else round-trips natively.
       def serializable(value)
         case value
         when Time, DateTime then value.iso8601(6)

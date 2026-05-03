@@ -1,37 +1,19 @@
 # frozen_string_literal: true
 
-# Drives a transaction_sync OperationRun. Thin wrapper around the
-# domain operations (EnableBanking::Operations::Sync*Transactions) —
-# adds OperationRun lifecycle (start/succeed/partial/fail) and live
-# progress via the on_account_synced callback.
-#
-# The actual work lives in the operations; the job owns scheduling
-# and the run-tracking record. Synchronous callers (rake, console)
-# can use the operations directly without ever touching this job.
-#
-# Triggered by:
-#   - Manual: Admin::TransactionSyncsController#create
-#   - Scheduled: AutoSync::Dispatcher (every minute via sidekiq-cron)
-# After finalization, scheduled runs feed AutoSync::CircuitBreaker
-# which gates further dispatches when failures pile up.
 class TransactionSyncJob < ApplicationJob
   queue_as :default
 
-  # Default Sidekiq retry of 25 (~21 days) is overkill for transaction sync —
-  # per-account `Failed` is already caught inside the operation and recorded
-  # as a failed outcome, so anything that escapes to `perform` is either a
-  # bug or genuine infrastructure trouble. 3 retries cap the worst-case
-  # spam to the bank API; the AutoSync::CircuitBreaker handles longer-term
-  # suppression by pausing the schedule after 3 consecutive failed runs.
-  # dead: false skips the Dead Set on exhaustion (the run is already marked
-  # failed through our rescue + finalizer, no second alert needed).
+  # Default Sidekiq retry of 25 is overkill - per-account Failed is already
+  # caught inside the operation, anything escaping to perform is a bug or
+  # infra trouble. CircuitBreaker handles longer-term suppression. dead:false
+  # because the run is already marked failed via our rescue + finalizer.
   sidekiq_options retry: 3, dead: false
 
   KIND = "transaction_sync"
 
   def perform(operation_run_id)
     run = OperationRun.find(operation_run_id)
-    return if run.terminal? # idempotent guard
+    return if run.terminal?
 
     run.start!
     summary = { accounts: [] }
@@ -45,9 +27,6 @@ class TransactionSyncJob < ApplicationJob
 
     OperationRunFinalizer.call(run, summary)
 
-    # Enrichment runs after sync finalization — idempotent and only touches
-    # rows without an existing enrichment, so it's safe even on partial
-    # failures (failed accounts contribute no new transactions).
     enrich_new_transactions(run)
   rescue StandardError => e
     run&.fail!(error: "#{e.class.name}: #{e.message}", summary: summary)
@@ -58,9 +37,7 @@ class TransactionSyncJob < ApplicationJob
 
   private
 
-  # Updates the SyncSchedule's failure counter / pause window for scheduled
-  # runs. Wrapped so a CircuitBreaker bug can't mask the original exception
-  # propagating from `perform`.
+  # Wrapped so a CircuitBreaker bug can't mask the original exception.
   def observe_circuit_breaker(run)
     return unless run&.terminal? && run.trigger == "scheduled"
     AutoSync::CircuitBreaker.observe(run: run)
@@ -68,10 +45,8 @@ class TransactionSyncJob < ApplicationJob
     Rails.logger.error("[TransactionSyncJob] CircuitBreaker failed for run=#{run&.id}: #{e.class}: #{e.message}")
   end
 
-  # Scopes the enricher to whichever account(s) this run touched, so a
-  # per-account run doesn't scan the whole table. Failures here are logged
-  # but don't fail the run — sync already succeeded; enrichment can be
-  # retried separately.
+  # Failures here are logged, not raised - sync already succeeded;
+  # enrichment can be retried separately.
   def enrich_new_transactions(run)
     user = scoped_user(run)
     return if user.nil?
@@ -83,11 +58,8 @@ class TransactionSyncJob < ApplicationJob
     Rails.logger.error("[TransactionSyncJob] Enrichment failed for run=#{run.id}: #{e.class}: #{e.message}")
   end
 
-  # Materializes cash topups for every BLIK ATM withdrawal touched by this
-  # run, but only when the owning user has cash tracking enabled. Best-effort:
-  # one row failing doesn't abort the rest, and any error is swallowed by the
-  # caller's rescue (sync already succeeded — link state is recoverable later
-  # via the cash:backfill_atm_links rake task).
+  # Best-effort. Sync already succeeded; link state is recoverable later
+  # via the cash:backfill_atm_links rake task.
   def link_atm_withdrawals(run)
     user = scoped_user(run)
     return unless user&.track_cash?
@@ -125,7 +97,6 @@ class TransactionSyncJob < ApplicationJob
     end
   end
 
-  # Dispatch to the right domain operation based on what the run is scoped to.
   def invoke_operation(run, on_progress)
     common = {
       date_from: run.params["date_from"],
@@ -150,8 +121,6 @@ class TransactionSyncJob < ApplicationJob
     end
   end
 
-  # Per-account row appended to summary[:accounts]. outcome is either an
-  # Outcome struct (success) or a Failed exception (per-account error).
   def account_entry(account, outcome)
     base = {
       bank_account_id: account.id,

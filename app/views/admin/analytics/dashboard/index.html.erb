@@ -6,8 +6,7 @@
   net_total       = Money.new(@net_cents,             @filter.currency)
   avg_daily_spend = Money.new(@avg_daily_spend_cents, @filter.currency)
 
-  # MTD: "5 days of May" reads better than "5 days"; for everything else
-  # the bare count is what the user picked and is unambiguous.
+  # MTD shows "N days of May"; other periods show the bare count.
   period_hint = if @filter.month_to_date?
                   "#{pluralize(@filter.period.length_days, 'day')} of #{Date.current.strftime('%b')}"
                 else
@@ -21,8 +20,6 @@
                  when :month then "%b %y"
                  end
 
-  # Chart palette — picked once so every widget sits in the same visual
-  # family.
   current_color = "rgb(99, 102, 241)"   # indigo-500
   positive_fill = "rgba(16, 185, 129, 0.75)"  # emerald
   negative_fill = "rgba(239, 68, 68, 0.75)"   # red
@@ -38,22 +35,10 @@
     "rgb(100, 116, 139)"   # slate
   ]
 
-  # ── Spend by category — Chart.js horizontal bar. Δ vs prev. lands in
-  # the tooltip via `metadata` (count + delta), and the "Top movers" row
-  # surfaces the biggest swings explicitly — so we deliberately avoid
-  # painting +/-% labels on the bars themselves (datalabels at variable
-  # bar-end positions look messy and steal focus from magnitude).
-  # Tail past 12 collapsed into one "Other" (no delta — different
-  # aggregation level).
   visible    = @breakdown.first(20)
   rest       = @breakdown.drop(20)
   rest_total = rest.sum(&:amount_cents)
 
-  # Path-based rows: each row has `path` (ltree string), `name` (rendered),
-  # `slug` (URL key), `amount_cents`, `prev_amount_cents`. The bar chart
-  # labels by name, drills by slug. Hiding a path subtree hides every
-  # row whose path starts with that prefix — covered by hide_private?
-  # (User#hides_category? walks the subtree).
   hidden_for_row = ->(row) {
     cat = current_user.categories.find_by(path: row.path)
     cat && current_user.hides_category?(cat)
@@ -109,10 +94,6 @@
   }
   category_chart_height = (category_labels.size * 32) + 40
 
-  # ── Cash flow timeline — paired bars per bucket: income (green up)
-  # next to spend (red up). Y axis stays positive; net is in the caption
-  # above so users still get the single-number takeaway. Bucket comes
-  # from the granularity chip selection (D/W/M).
   cf_labels        = @cash_flow.map { |p| p.date.strftime(date_fmt) }
   cf_income_values = @cash_flow.map { |p| (p.income_cents / 100.0).round(2) }
   cf_spend_values  = @cash_flow.map { |p| (p.spend_cents / 100.0).round(2) }
@@ -162,12 +143,11 @@
     }
   }
 
-  # ── Account breakdown donut.
   acct_total_cents = @account_rows.sum(&:amount_cents)
   acct_total       = Money.new(acct_total_cents, @filter.currency)
   acct_labels = @account_rows.map do |r|
     bank = r.account.current_bank_connection&.bank_name || r.account.current_bank_connection&.bank_slug
-    [bank, r.account.display_name].compact_blank.join(" — ")
+    [bank, r.account.display_name].compact_blank.join(" - ")
   end
   acct_values = @account_rows.map { |r| (r.amount_cents / 100.0).round(2) }
   acct_colors = donut_palette.first(@account_rows.size).then { |p| p.size < @account_rows.size ? p + Array.new(@account_rows.size - p.size, "rgb(100, 116, 139)") : p }
@@ -200,9 +180,7 @@
     }
   }
 
-  # ── Top merchants — Chart.js horizontal bar, basic.
-  # Merchants whose default category is hidden render as bullets — the
-  # merchant name itself is the giveaway ("Caritas Poland" → Pomoc).
+  # Merchants whose default category is hidden bullet out the label - the merchant name itself leaks the kind.
   merchant_labels = @top_merchants.map { |r|
     hide_private?(r.merchant.default_category_id) ? "•••" : r.merchant.display
   }
@@ -252,11 +230,7 @@
   category_labels_present = category_labels.any?
 %>
 
-<%# `data-controller="filter-panel"` is hoisted to the dashboard wrapper
-    so the Filters trigger can live in the page_header actions slot
-    (per styleguide: page-level actions belong on the right of the
-    header). The filter_strip below skips its own controller wrapper to
-    avoid nesting. %>
+<%# filter-panel hoisted to wrapper so the Filters trigger can sit in page_header actions; filter_strip skips its own controller to avoid nesting. %>
 <div class="space-y-6" data-controller="filter-panel">
   <% filter_panel_active_count = @filter.all_accounts? ? 0 : @filter.account_ids.size %>
   <% page_actions = capture do %>
@@ -264,14 +238,11 @@
   <% end %>
   <%= render "admin/shared/components/page_header",
         title: "Analytics",
-        subtitle: "Where your money goes — one filter, every view.",
+        subtitle: "Where your money goes - one filter, every view.",
         actions: page_actions %>
 
   <% if @drill_category %>
-    <%# Active subtree narrow — surface it so the user can back out. The
-        only path here today is the "Spend by domain" chart bars; once a
-        second drill entry-point appears, lift this into a proper
-        breadcrumb component. %>
+    <%# Custom: drill-out chip. Only entry-point today is the "Spend by domain" bars; lift to a breadcrumb component once a second drill exists. %>
     <div class="flex items-center gap-2 text-sm -mt-2">
       <span class="text-muted-foreground">Drilled into:</span>
       <span class="font-medium text-foreground <%= sensitive_class %>"><%= @drill_category.name %></span>
@@ -286,16 +257,12 @@
         filter: @filter, user_accounts: user_accounts,
         wrap_controller: false, with_trigger: false %>
 
-  <%# ── Unmatched-debits banner ──
-      Persistent CTA when the current view has uncategorised debits
-      (effective_category_id IS NULL). Those debits don't appear in
-      any total below — without surfacing them the dashboard silently
-      under-reports spend. Hidden when the queue is empty. %>
+  <%# Unmatched debits (effective_category_id NULL) don't appear in totals below - surface them or the dashboard silently under-reports spend. %>
   <% if @unmatched_count.positive? %>
     <%
       unmatched_amount = Money.new(@unmatched_amount_cents, @filter.currency)
       unmatched_share  = @unmatched_share_pct.positive? ? " · #{@unmatched_share_pct}% of detected spend" : ""
-      unmatched_desc   = "#{unmatched_amount.format(no_cents_if_whole: true)}#{unmatched_share} — these don't appear in totals below until classified."
+      unmatched_desc   = "#{unmatched_amount.format(no_cents_if_whole: true)}#{unmatched_share} - these don't appear in totals below until classified."
     %>
     <%= render "admin/shared/components/critical_banner",
           variant:      :warning,
@@ -306,7 +273,6 @@
           action_path:  admin_llm_enrichments_path %>
   <% end %>
 
-  <%# ── Stat cards row — 5 metrics, color-coded tones ── %>
   <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
     <%= render "admin/shared/components/stat_card",
           label: "Spend",
@@ -314,10 +280,7 @@
           icon: "shopping_cart", tone: :destructive,
           hint: period_hint,
           value_class: sensitive_class %>
-    <%# Card #2 swaps shape based on filter mode:
-        — MTD with ≥3 days elapsed: run-rate (projected EOM spend, with
-          delta vs previous full month)
-        — MTD on day 1–2 OR rolling N-day window: avg daily spend %>
+    <%# MTD with ≥3 days elapsed → run-rate; otherwise → avg daily spend. %>
     <% if @run_rate_cents %>
       <%
         run_rate_total      = Money.new(@run_rate_cents, @filter.currency)
@@ -347,7 +310,7 @@
     <% if @spend_delta_pct.nil? %>
       <%= render "admin/shared/components/stat_card",
             label: "Δ vs prev.",
-            value: "—",
+            value: "-",
             icon: "bar_chart_3",
             hint: "no prior data",
             value_class: sensitive_class %>
@@ -370,14 +333,11 @@
     <% if @savings_rate_pct.nil? %>
       <%= render "admin/shared/components/stat_card",
             label: "Savings rate",
-            value: "—",
+            value: "-",
             icon: "trending_up", tone: :muted,
             hint: "no income in period",
             value_class: sensitive_class %>
     <% else %>
-      <%# Savings rate = (income − spend) / income. The KPI of personal
-          finance — what % of what came in stayed in. Negative = overspent
-          (red). %>
       <%= render "admin/shared/components/stat_card",
             label: "Savings rate",
             value: "#{@savings_rate_pct}%",
@@ -388,9 +348,7 @@
     <% end %>
   </div>
 
-  <%# ── Layer 2 facets row — needs vs wants, recurring vs one-off ── %>
-  <%# Custom: paired stacked bars + share %. Each Pair has left/right
-      with amounts. If a 3rd two-axis facet shows up, extract _facet_pair. %>
+  <%# Custom: paired stacked bars + share %. If a 3rd two-axis facet shows up, extract _facet_pair. %>
   <% if @spend_cents.positive? %>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <% [
@@ -419,7 +377,6 @@
     </div>
   <% end %>
 
-  <%# ── Row 1: spend-by-category (rich bar) + cash-flow timeline ── %>
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
     <div class="lg:col-span-7">
       <%= render "admin/shared/components/card",
@@ -437,10 +394,7 @@
             <canvas></canvas>
           </div>
         <% else %>
-          <%# Distinguish three different "empty" states. Showing the same
-              "No spend in selected period" message for all of them is
-              misleading when raw debits exist — the user thinks the data
-              is missing. %>
+          <%# Three distinct empty states - a single "no spend" message hides existing-but-unclassified debits. %>
           <%
             raw_debit_count = @filter.scope.debits.count
             no_categories   = current_user.categories.active.empty?
@@ -448,7 +402,7 @@
           <% if no_categories %>
             <%= render "admin/shared/components/empty_state",
                   title: "Taxonomy not set up",
-                  description: "Categories haven't been seeded — analytics needs them to classify transactions. Use the banner above to load the baseline.",
+                  description: "Categories haven't been seeded - analytics needs them to classify transactions. Use the banner above to load the baseline.",
                   icon: "shopping_cart" %>
           <% elsif raw_debit_count.positive? %>
             <%= render "admin/shared/components/empty_state",
@@ -477,9 +431,7 @@
                 description: "No transaction in the selected period changed the balance.",
                 icon:  "bar_chart_3" %>
         <% else %>
-          <%# Custom: two-up summary above the chart (Net flow / Biggest bucket).
-              Tied to this widget's specific signals; if a 2nd chart needs the
-              same shape, extract `_chart_caption` taking [{label, value, tone}]. %>
+          <%# Custom: two-up summary (Net flow / Biggest bucket). If a 2nd chart needs the same shape, extract `_chart_caption`. %>
           <% biggest = @cash_flow.max_by { |p| p.net_cents.abs } %>
           <div class="flex items-baseline justify-between gap-3 mb-3 px-1">
             <div>
@@ -508,11 +460,7 @@
     </div>
   </div>
 
-  <%# ── Row 2: top movers (5-up cards) ── %>
-  <%# Custom: per-mover card with directional tint and conditional drill
-      link. No equivalent shared component — stat_card is single-metric,
-      this row is comparative. If a 2nd "comparative card row" appears
-      (e.g. categories under-budget), extract `_movers_grid`. %>
+  <%# Custom: comparative per-mover card (stat_card is single-metric). If a 2nd comparative row appears, extract `_movers_grid`. %>
   <% if @top_movers.any? %>
     <%= render "admin/shared/components/card",
           title: "Top movers",
@@ -555,7 +503,6 @@
     <% end %>
   <% end %>
 
-  <%# ── Row 3: top merchants list + accounts donut ── %>
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
     <div class="lg:col-span-7">
       <%= render "admin/shared/components/card",
@@ -579,7 +526,7 @@
 
     <div class="lg:col-span-5">
       <%= render "admin/shared/components/card",
-            title: "Accounts — share of spend",
+            title: "Accounts - share of spend",
             subtitle: "click → filter to this account" do %>
         <% if @account_rows.empty? %>
           <%= render "admin/shared/components/empty_state",
@@ -587,10 +534,7 @@
                 description: "No spend on any of the selected accounts.",
                 icon: "package" %>
         <% else %>
-          <%# Custom: donut + center "Total X PLN". No equivalent shared
-              component. Trigger extraction once a 2nd donut appears.
-              The chart_controller swaps the right-side legend to bottom
-              on <sm; the center label widens to inset-0 to track. %>
+          <%# Custom: donut + centered total. Extract once a 2nd donut appears. Center label widens to inset-0 on <sm to track the legend reflow. %>
           <div class="relative h-[260px] sm:h-[260px]">
             <div data-controller="chart"
                  data-chart-config-value="<%= donut_config.to_json %>"
@@ -611,10 +555,7 @@
     </div>
   </div>
 
-  <%# ── Layer-1 rollup — top-level domains (or one level under current drill).
-      Click on a bar narrows the whole dashboard via ?under_path; the
-      detailed leaf chart in Row 1 stays in sync because it shares the
-      same scope. ── %>
+  <%# Bar click narrows the whole dashboard via ?under_path; the leaf chart in Row 1 stays in sync because it shares the scope. %>
   <% if @domain_breakdown.any? %>
     <%
       domain_visible    = @domain_breakdown.first(10)
@@ -677,7 +618,6 @@
     <% end %>
   <% end %>
 
-  <%# ── Row 5: biggest single transactions ── %>
   <% if @top_transactions.any? %>
     <%
       all_transactions_url = admin_bank_transactions_path(q: {
@@ -706,14 +646,9 @@
               { label: "Amount",           align: :right }
             ] do %>
         <% @top_transactions.each do |tx| %>
-          <%# Privacy gating — when the transaction's effective category
-              is on the user's hidden list, both the label (merchant /
-              title) and the category cell render as bullets so the row
-              still shows up in totals but reveals nothing. The amount,
-              date and account stay visible since they don't leak the
-              nature of the spend. %>
+          <%# Hidden-category rows bullet out label+category but keep amount/date/account so the row still counts toward totals. %>
           <% private_row = hide_private?(tx.effective_category_id) %>
-          <% raw_label   = tx.merchant&.display.presence || tx.title.presence || tx.counterparty_name.presence || "—" %>
+          <% raw_label   = tx.merchant&.display.presence || tx.title.presence || tx.counterparty_name.presence || "-" %>
           <% label       = private_row ? "•••" : raw_label %>
           <% category    = tx.effective_category %>
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors cursor-pointer"

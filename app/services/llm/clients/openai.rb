@@ -2,11 +2,6 @@
 
 module Llm
   module Clients
-    # OpenAI-flavored Llm::Client. Wraps RubyLLM exactly like the Gemini
-    # client — same structured output via with_schema, same error contract.
-    #
-    # Recommended model: gpt-4o-mini (~$0.15/1M input tokens).
-    # Supports JSON Schema structured output natively.
     class OpenAI < Llm::Client
       MAX_RETRIES = 4
 
@@ -23,7 +18,7 @@ module Llm
           raise Error, "OpenAI API error: #{e.class.name}: #{e.message}" if attempts > MAX_RETRIES
 
           wait = parse_retry_after(e.message)
-          Rails.logger.info("[Llm::Clients::OpenAI] rate limited — retry #{attempts}/#{MAX_RETRIES} after #{wait}s")
+          Rails.logger.info("[Llm::Clients::OpenAI] rate limited - retry #{attempts}/#{MAX_RETRIES} after #{wait}s")
           sleep wait
           retry
         rescue RubyLLM::Error => e

@@ -6,8 +6,7 @@
     <title><%= content_for(:title).presence || "Open Banking Admin" %></title>
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-    <%# Hydrate the sidebar-collapsed state before first paint so a refresh
-        with a collapsed sidebar doesn't animate from expanded → collapsed. %>
+    <%# Sets the collapsed class before first paint to avoid the expanded→collapsed flash on reload. %>
     <script>
       (function () {
         if (localStorage.getItem("sidebar-collapsed") === "true") {
@@ -36,10 +35,7 @@
 
       <div class="flex flex-1 flex-col overflow-hidden min-w-0">
         <%= render "admin/shared/topbar" %>
-        <%# `scrollbar-gutter: stable` reserves the scrollbar track even when
-            content fits — pages don't shift horizontally when navigating
-            from a long page to a short one. Browsers without support fall
-            back to overflow-y-auto's default behavior gracefully. %>
+        <%# scrollbar-gutter:stable reserves the scrollbar track to prevent horizontal shifts between long/short pages. %>
         <main class="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6 [scrollbar-gutter:stable]">
           <div class="mx-auto w-full max-w-[1400px]">
             <%= render "admin/shared/flash" %>

@@ -1,13 +1,10 @@
 <%# locals: (category:) %>
 <%
-  # Parent options: every existing category EXCEPT this one and its
-  # descendants (would create a cycle). Top-level option ("blank") creates
-  # a new root domain. Path-ordered so the picker visually follows the
-  # tree.
+  # Exclude self + descendants from parent options to prevent cycles.
   forbidden_ids = category.persisted? ? category.self_and_descendants.pluck(:id) : []
   parent_options = current_user.categories.active.where.not(id: forbidden_ids).ordered.map do |c|
     next if current_user.hides_category?(c)
-    indent = "—" * c.path.to_s.count(".")
+    indent = "-" * c.path.to_s.count(".")
     [ "#{indent} #{c.breadcrumb_names.join(" / ")}".strip, c.path.to_s ]
   end.compact
 %>
@@ -27,15 +24,12 @@
           hint: "Stable identifier; auto-generated from the path. Don't change it once rules or exports rely on it.",
           placeholder: "lifestyle_shopping_electronics" %>
 
-    <%# Custom: parent path picker. Selected value is the parent's
-        ltree path (or blank for a new top-level domain). The controller
-        composes the full path = "<parent_path>.<leaf_segment>" before
-        save. If a 2nd path-typed picker shows up, extract _path_select. %>
+    <%# Custom: ltree parent-path picker. Controller composes "<parent_path>.<leaf>" before save. If a 2nd path-typed picker appears, extract _path_select. %>
     <div>
       <%= f.label :parent_path, "Parent path", class: "block text-sm font-medium mb-1" %>
       <%= f.select :parent_path,
             options_for_select(parent_options, params[:parent_path] || category.path.to_s.split(".")[0..-2].join(".")),
-            { include_blank: "— top-level (new root) —" },
+            { include_blank: "- top-level (new root) -" },
             class: "form-input" %>
       <p class="text-xs text-muted-foreground mt-1">Empty = new top-level domain. Otherwise the new category becomes a child of the selected path.</p>
     </div>
@@ -49,7 +43,7 @@
     <%= render "admin/shared/form/checkbox",
           form: f, field: :essential,
           label: "Essential (need)",
-          hint: "Counts toward the essentials KPI. Defaults to off — flip on for needs (rent, utilities, groceries, transit)." %>
+          hint: "Counts toward the essentials KPI. Defaults to off - flip on for needs (rent, utilities, groceries, transit)." %>
 
     <%= render "admin/shared/form/text_field",
           form: f, field: :color,

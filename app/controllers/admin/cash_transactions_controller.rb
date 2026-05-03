@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
 module Admin
-  # Off-bank ledger CRUD. Each entry lands in a per-currency cash wallet
-  # (BankAccount#manual=true) auto-resolved by Cash::WalletResolver.
-  # Only manual-source rows are user-editable here — atm-link rows
-  # (Phase 3) are read-only from this controller's perspective.
+  # Only manual-source rows are user-editable here - atm-link rows are
+  # read-only from this controller's perspective.
   class CashTransactionsController < BaseController
     before_action :load_cash_transaction, only: %i[show edit update destroy]
     before_action :reject_non_manual,     only: %i[edit update destroy]
@@ -28,7 +26,6 @@ module Admin
     end
 
     def show
-      # Reuse edit view for now; show-only would be redundant given the form's clarity.
       redirect_to edit_admin_cash_transaction_path(@cash_transaction)
     end
 
@@ -59,8 +56,7 @@ module Admin
     end
 
     def edit
-      # Same logic as the bank-tx show: editing a row in a hidden
-      # category would reveal what's hidden, so bounce.
+      # Editing a row in a hidden category would reveal what's hidden.
       if current_user.hides_category?(@cash_transaction.effective_category)
         redirect_to admin_cash_transactions_path,
                     alert: "This transaction is in a hidden category. Remove it from the hidden list in preferences to edit it."
@@ -116,14 +112,10 @@ module Admin
       )
     end
 
-    # Default to existing wallet currency when the user already has one,
-    # else PLN. Avoids pushing a fresh user toward EUR by accident.
     def default_currency
       current_user.cash_wallets.order(:created_at).first&.currency || "PLN"
     end
 
-    # PLN as canonical + any currency the user already touches via a wallet
-    # or a synced bank account. No global "every currency on Earth" dropdown.
     def supported_currencies
       ([
         "PLN",

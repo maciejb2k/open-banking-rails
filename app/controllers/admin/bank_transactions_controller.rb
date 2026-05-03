@@ -7,9 +7,9 @@ module Admin
     def index
       scope = BankTransaction.for_user(current_user)
 
-      # Enrichment-based filters live outside Ransack — they cross the
-      # polymorphic boundary into transaction_enrichments. We apply them as
-      # explicit scopes so Ransack stays clean for the bank-data filters.
+      # Enrichment-based filters cross the polymorphic boundary into
+      # transaction_enrichments - applied as explicit scopes to keep Ransack
+      # clean for the bank-data filters.
       scope = scope.joins(:enrichment).where(transaction_enrichments: { merchant_id: params[:merchant_id] }) if params[:merchant_id].present?
       scope = scope.joins(:enrichment).where(transaction_enrichments: { category_id: params[:category_id] }) if params[:category_id].present?
       scope = scope.joins(:enrichment).where(transaction_enrichments: { source: params[:enrichment_source] }) if params[:enrichment_source].present?
@@ -28,9 +28,7 @@ module Admin
                        .includes(bank_account: :current_bank_connection, enrichment: [ :merchant, :category, :merchant_rule ])
                        .find(params[:id])
 
-      # Drilling into a tx in a hidden category exposes everything the
-      # index/dashboard hid. Bounce back; user has to remove the category
-      # from the hidden list in /admin/settings/preferences to open it.
+      # Drilling into a tx in a hidden category would expose what's hidden.
       if current_user.hides_category?(@transaction.effective_category)
         redirect_to admin_bank_transactions_path,
                     alert: "This transaction is in a hidden category. Remove it from the hidden list in preferences to open it."
@@ -42,7 +40,6 @@ module Admin
 
     private
 
-    # User-owned account list for filter selects (active accounts only).
     def set_user_scope_helpers
       @user_bank_accounts = BankAccount
                               .joins(:tpp_credential)
@@ -50,19 +47,11 @@ module Admin
                               .order(:iban)
     end
 
-    # Drill-down filters for the LLM-enrichment dashboard. Each value
-    # corresponds to a row in the "What's left" panel:
-    #   merchantless   — every tx without a merchant (panel total)
-    #   llm_ready      — what the next LLM run would actually pick up.
-    #                    Defers to EnrichmentRunner so the count here matches
-    #                    the count there exactly. That scope filters out
-    #                    non-merchant payment methods and rows already
-    #                    resolved as counterparty_kind: "self", so "ready to
-    #                    send" is honest.
-    #   no_llm_signal  — merchantless minus llm_ready: rows that won't ever
-    #                    benefit from the LLM (BLIK codes, "PRZELEW", numeric
-    #                    junk, own-account moves) and need manual
-    #                    classification or a different rule.
+    # State values mirror the LLM-enrichment "What's left" panel:
+    #   merchantless  - every tx without a merchant
+    #   llm_ready     - what EnrichmentRunner would actually pick up
+    #   no_llm_signal - merchantless minus llm_ready (BLIK codes, "PRZELEW",
+    #                   own-account moves - won't benefit from the LLM)
     def filter_by_enrichment_state(scope, state)
       merchantless = scope.joins(:enrichment).merge(TransactionEnrichment.merchantless)
 

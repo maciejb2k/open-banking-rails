@@ -2,19 +2,11 @@
 
 module EnableBanking
   module Operations
-    # Verifies a TppCredential against EB by hitting GET /application
-    # and persisting the outcome on the credential record.
-    #
-    # Side effect — redirect_url reconciliation:
-    #   - If EB has exactly ONE registered redirect_url and it differs
-    #     from ours, we sync ours to match (no ambiguity).
-    #   - If EB has MULTIPLE and ours isn't among them, we don't change
-    #     anything — only flag a warning. The user must pick one in
-    #     the EB console (or update ours manually).
-    #
-    # Returns a VerifyResult struct so the controller can render the
-    # right flash without re-deriving anything. Never raises Failed —
-    # API failures are reported via VerifyResult.failed(...).
+    # Side effect - redirect_url reconciliation:
+    #   - If EB has exactly ONE registered URL differing from ours, sync ours.
+    #   - If EB has MULTIPLE and ours isn't among them, only flag a warning;
+    #     user must pick one in the EB console.
+    # Never raises Failed - API failures are reported via VerifyResult.
     class VerifyCredential < Base
       VerifyResult = Struct.new(
         :status, :message, :redirect_url_synced_to, :registered_urls,
@@ -85,7 +77,7 @@ module EnableBanking
       end
 
       def build_message(sync_target, warning)
-        parts = [ "Connection verified — metadata refreshed." ]
+        parts = [ "Connection verified - metadata refreshed." ]
         parts << "Local redirect_url updated to match EB: #{sync_target}" if sync_target
         parts << warning if warning
         parts.join(" ")

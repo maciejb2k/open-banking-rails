@@ -2,21 +2,9 @@
 
 module DataExchange
   module Resources
-    # Reference resource — copy this shape when adding new resources.
-    #
-    # Notes specific to TppCredential:
-    #   - Encrypted fields (`application_id`, `private_key_pem`) are read as
-    #     plaintext via the `encrypts` accessors. Bundle carries plaintext;
-    #     destination re-encrypts under its own AR encryption keys on save.
-    #   - Natural key is (name, provider) scoped to the user. Two creds with
-    #     the same name+provider for one user are not allowed in practice
-    #     (the form steers users toward unique names) — collisions on import
-    #     follow the chosen strategy.
-    #   - `primary` flag is intentionally NOT in updatable_attributes — the
-    #     destination decides primacy via `make_primary!`. Importing should
-    #     never silently flip which credential is primary.
-    #   - `last_verified_at` / `last_verification_error` belong to the
-    #     destination's verification history, frozen on overwrite.
+    # `primary` flag is intentionally NOT in updatable_attributes - destination
+    # decides primacy via `make_primary!`, never silently flipped on import.
+    # last_verified_at / last_verification_error belong to the destination.
     class TppCredentialResource < Base
       key :tpp_credentials
       model TppCredential

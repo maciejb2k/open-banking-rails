@@ -1,5 +1,5 @@
 <%# locals: (active_count: 0) %>
-<%# Button that opens the slide-out filter_panel. Wrap inside data-controller="filter-panel". %>
+<%# Wrap inside data-controller="filter-panel". %>
 <button type="button" data-action="filter-panel#open"
         class="inline-flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-card-hover transition-colors <%= "border-primary/40 text-primary" if active_count > 0 %>">
   <%= render "admin/shared/icons/sliders_horizontal", classes: "h-4 w-4" %>

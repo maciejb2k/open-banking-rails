@@ -1,15 +1,6 @@
 <%# locals: (columns:, rows: nil) %>
-<%# Column hash supports: %>
-<%#   label:    column header text %>
-<%#   sortable: "field" → renders sort_link helper (real Ransack sorting) %>
-<%#             true    → arrow icon only (decorative, legacy) %>
-<%#             omit    → plain header %>
-<%#   align:    :right → right-aligns the header (set tdcell alignment in row) %>
-<%#   width:    e.g. "w-12" — extra th class %>
-<%# `min-w-[640px]` keeps multi-column tables from collapsing into unreadable
-    slivers on phones — the scrollbar appears instead, which is the
-    expected mobile pattern. Card layouts at the row level are tracked
-    separately if/when they become worth the maintenance. %>
+<%# Column hash: label:, sortable: ("field" → Ransack sort_link / true → decorative arrow / omit), align: (:right), width: (extra th class). %>
+<%# `min-w-[640px]` forces horizontal scroll on mobile instead of column collapse. %>
 <div class="overflow-x-auto -mx-px">
   <table class="w-full min-w-[640px] text-sm">
     <thead>

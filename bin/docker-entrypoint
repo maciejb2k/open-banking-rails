@@ -5,13 +5,13 @@
 #    the `app_secrets` named volume). On first boot it generates random
 #    values; on every subsequent boot it reads them from the volume.
 # 2. Exports those secrets into the process env so Rails initializers see
-#    them — the AR encryption initializer otherwise raises in production.
+#    them - the AR encryption initializer otherwise raises in production.
 # 3. exec's whatever command was passed (rails server, sidekiq, migrate,
 #    a one-off rake task, ...).
 #
 # Idempotent. Safe to run on every container start. ENV values explicitly
 # set by the operator (e.g. SECRET_KEY_BASE in compose) are NEVER
-# overwritten — the volume only fills the gaps.
+# overwritten - the volume only fills the gaps.
 
 set -e
 

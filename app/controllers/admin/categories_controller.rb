@@ -4,8 +4,6 @@ module Admin
   class CategoriesController < BaseController
     before_action :set_category, only: %i[edit update destroy archive unarchive]
 
-    # Render every category in path order — the natural left-right
-    # traversal of the tree. Indentation in the view is depth-based.
     def index
       @categories = current_user.categories.active.ordered.to_a
       @archived   = current_user.categories.archived.ordered
@@ -33,9 +31,6 @@ module Admin
     end
 
     def edit
-      # Editing a hidden category exposes its name in the form header +
-      # the form fields. Bounce; user has to remove from the hidden list
-      # in /admin/settings/preferences to inspect.
       return unless current_user.hides_category?(@category)
 
       redirect_to admin_categories_path,
@@ -56,13 +51,10 @@ module Admin
       end
     end
 
-    # Hard delete only when nothing depends on it; otherwise direct user
-    # to archive instead. Subtree-aware — a category with descendants
-    # can't go away without orphaning them.
     def destroy
       if @category.descendants.any? || @category.merchants.any? || @category.transaction_enrichments.any?
         redirect_to admin_categories_path,
-                    alert: "Can't delete — this category is in use or has sub-categories. Archive it instead."
+                    alert: "Can't delete - this category is in use or has sub-categories. Archive it instead."
       else
         @category.destroy
         redirect_to admin_categories_path, notice: "Category deleted."

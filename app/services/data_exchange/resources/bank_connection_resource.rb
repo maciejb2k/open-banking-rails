@@ -2,22 +2,13 @@
 
 module DataExchange
   module Resources
-    # PSD2 bank session/consent. Owned indirectly via TppCredential — scoping
-    # joins through `tpp_credentials.user_id`.
+    # session_id is the natural key - `(tpp_credential_id, bank_slug)` doesn't
+    # work because rotation leaves multiple rows per slug, and session_id is
+    # encrypted non-deterministically so `find_by` won't match the ciphertext.
+    # We compare plaintext in Ruby (n is a handful per user).
     #
-    # Natural key is `session_id`: it's the bank-issued OAuth-like session
-    # token, semantically the unique identity of the consent. We can't use
-    # `(tpp_credential_id, bank_slug)` because the rotation flow leaves
-    # multiple rows per slug (expired predecessor + authorized successor),
-    # and we can't `find_by(session_id: ...)` because the column is encrypted
-    # non-deterministically. So: load the user's connections, compare in
-    # Ruby. n is small (a handful per user) and AES-GCM decrypt is sub-ms.
-    #
-    # `replaces_id` is an optional self-FK for the rotation chain. We export
-    # it through `references` so the chain is preserved when both predecessor
-    # and successor are in the bundle. If the predecessor is missing on the
-    # destination, the FK silently drops to nil — the chain trims, the
-    # connection is still usable, but rotation history is lost. Acceptable.
+    # `replaces_id` self-FK silently drops to nil when the predecessor isn't
+    # on the destination - the chain trims but the connection is still usable.
     class BankConnectionResource < Base
       key :bank_connections
       model BankConnection
@@ -35,10 +26,8 @@ module DataExchange
         ]
       end
 
-      # Destination owns its own interaction history — last_*_at and last_error
-      # describe what THIS instance has done with the consent. Don't revert
-      # those on overwrite. session_id and the access flags are immutable
-      # properties of the consent itself, safe to overwrite.
+      # last_*_at and last_error describe what THIS instance has done with
+      # the consent - don't revert those on overwrite.
       def updatable_attributes
         %i[
           bank_country bank_name
@@ -58,8 +47,6 @@ module DataExchange
                       .where(tpp_credentials: { user_id: user.id })
       end
 
-      # session_id is encrypted non-deterministically — `find_by` against the
-      # ciphertext column won't match. Iterate + compare plaintext in Ruby.
       def find_existing(attrs)
         target = attrs["session_id"]
         return nil if target.blank?

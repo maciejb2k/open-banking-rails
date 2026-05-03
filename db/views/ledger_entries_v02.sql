@@ -1,18 +1,18 @@
--- v02 — adds Layer 1/2 columns from the three-layer category model.
+-- v02 - adds Layer 1/2 columns from the three-layer category model.
 --
 -- New projected columns vs. v01:
---   * category_path (ltree)        — full materialized path of the
+--   * category_path (ltree)        - full materialized path of the
 --                                    effective category (e.g. food.cooking.supermarket).
 --                                    Use `<@ 'food'::ltree` for subtree filters.
 --                                    NULL when no enrichment match (unmatched row).
---   * essential (boolean)          — Layer 2 facet on the effective category.
+--   * essential (boolean)          - Layer 2 facet on the effective category.
 --                                    Falls through `false` for unmatched.
---   * recurring (boolean)          — Layer 2 facet on the enrichment.
+--   * recurring (boolean)          - Layer 2 facet on the enrichment.
 --                                    Populated by Recurrence::Detector.
---   * recurrence_interval (text)   — weekly/monthly/yearly when recurring.
+--   * recurrence_interval (text)   - weekly/monthly/yearly when recurring.
 --
 -- Schema invariants (relied on by LedgerEntry):
---   * Both UNION branches project the same column types — `NULL::ltree`
+--   * Both UNION branches project the same column types - `NULL::ltree`
 --     and `NULL::text` casts are required where a branch may not produce
 --     a value (Postgres rejects bare NULL union with concrete type).
 --   * effective_category_id stays in the projection for back-compat

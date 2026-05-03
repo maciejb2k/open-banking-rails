@@ -1,34 +1,13 @@
 # frozen_string_literal: true
 
 module Recurrence
-  # Detects cyclical charges from transaction history and writes the
-  # `recurring` / `recurrence_interval` flags onto TransactionEnrichment.
-  #
-  # No library exists for this in Ruby — the heuristic is small enough to
-  # own. Layer 2 facet: independent of category, merchant, and source.
-  #
-  # Algorithm (per merchant):
-  #   1. Look at this merchant's last `lookback_days` of debit charges
-  #      (spend only — refunds/credits don't establish recurrence).
-  #   2. Need ≥ MIN_OCCURRENCES bookings to claim a pattern.
-  #   3. Compute consecutive interval deltas in days; the median tells us
-  #      the candidate cadence.
-  #   4. Confirm it: ≥ MIN_OCCURRENCES of those deltas fall into the
-  #      tolerance band of one of the canonical buckets (weekly / monthly
-  #      / yearly).
-  #   5. Confirm amount stability: the merchant's amount stddev / mean
-  #      ratio (CV) is ≤ AMOUNT_CV_MAX. Recurring charges are typically
-  #      flat-fee within a small range; one-offs swing wildly.
-  #   6. Set `recurring=true, recurrence_interval=<bucket>` on every
-  #      enrichment for that merchant within the lookback window where
-  #      `category_overridden` is false (don't override user decisions).
-  #
-  # Manual rows are also touched — the user signs up for a subscription
-  # via cash too. Source-rule classifications stay; only the Layer 2
-  # property is updated.
+  # Per merchant: ≥ MIN_OCCURRENCES debit charges, interval deltas mostly fall
+  # in one of the canonical buckets, and amount CV (stddev/mean) ≤
+  # AMOUNT_CV_MAX. Spend only - refunds/credits don't establish recurrence.
+  # Skips category-overridden rows.
   class Detector
     MIN_OCCURRENCES  = 3
-    AMOUNT_CV_MAX    = 0.30      # < 30 % coefficient of variation
+    AMOUNT_CV_MAX    = 0.30
     INTERVAL_BUCKETS = {
       "weekly"  => (5..9),       # 7 ± 2
       "monthly" => (26..34),     # 30 ± 4 (covers 28/29/30/31-day months)
@@ -55,8 +34,6 @@ module Recurrence
 
         next stats[:skipped_unstable] += 1 unless amount_stable?(charges)
 
-        # Apply: every enrichment for this merchant in the window where
-        # the user hasn't manually decided on the recurrence flag.
         ids = enrichment_ids_for(merchant_id, window_start)
         TransactionEnrichment.where(id: ids).update_all(
           recurring: true,
@@ -70,10 +47,8 @@ module Recurrence
 
     private
 
-    # All spend charges in lookback window, grouped by merchant. We pull
-    # straight from LedgerEntry (the view) to honour the same partitioning
-    # as the dashboard — and so a misclassified income credit can't
-    # accidentally establish a "monthly" pattern.
+    # Pull from LedgerEntry so a misclassified income credit can't establish
+    # a pattern.
     def grouped_charges
       window_start = @lookback_days.days.ago.to_date
       LedgerEntry.for_user(@user).booked.spend
@@ -92,7 +67,7 @@ module Recurrence
 
       INTERVAL_BUCKETS.each do |label, range|
         hits = deltas.count { |d| range.cover?(d) }
-        return label if hits >= MIN_OCCURRENCES - 1   # n-1 deltas for n charges
+        return label if hits >= MIN_OCCURRENCES - 1
       end
       nil
     end
@@ -106,10 +81,7 @@ module Recurrence
       cv <= AMOUNT_CV_MAX
     end
 
-    # Enrichment ids for this merchant within the window — both bank and
-    # manual side, untouched by user override. We don't go via LedgerEntry
-    # because it's a view (no UPDATE); reach back to the source records'
-    # enrichments directly.
+    # Reach back to source records' enrichments - LedgerEntry is a view, no UPDATE.
     def enrichment_ids_for(merchant_id, window_start)
       TransactionEnrichment
         .for_user(@user)

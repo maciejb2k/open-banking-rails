@@ -1,8 +1,6 @@
 <%# locals: (merchant:) %>
 <%= form_with model: merchant, url: merchant.persisted? ? admin_merchant_path(merchant) : admin_merchants_path, html: { class: "space-y-6" } do |f| %>
-  <%# `return_to` survives the form submit so the controller can redirect
-      back to whatever launched the edit (e.g. AI enrichment review queue)
-      instead of the default merchant show page. Sanitized server-side. %>
+  <%# return_to survives the submit so the controller can redirect back to the launching page (e.g. AI review queue). Sanitized server-side. %>
   <%= hidden_field_tag :return_to, params[:return_to] if params[:return_to].present? %>
   <%= render "admin/shared/form/error_summary", object: merchant %>
 
@@ -17,7 +15,7 @@
       <%= render "admin/shared/form/text_field",
             form: f, field: :slug,
             label: "Slug",
-            hint: "URL identifier — generated automatically, don't change.",
+            hint: "URL identifier - generated automatically, don't change.",
             html: { readonly: true, class: "form-input bg-muted/40 cursor-not-allowed" } %>
     <% end %>
 
@@ -32,7 +30,7 @@
     <%= render "admin/shared/form/select",
           form: f, field: :kind,
           label: "Kind",
-          include_blank: "—",
+          include_blank: "-",
           options: Merchant::KINDS.map { |k| [ k.humanize, k ] } %>
 
     <%= render "admin/shared/form/text_field",

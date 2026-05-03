@@ -44,22 +44,9 @@ class BankTransaction < ApplicationRecord
 
   DIRECTIONS = %w[credit debit].freeze
   STATUSES   = %w[booked pending].freeze
-  # Single source of truth for payment_method values. Set by
-  # EnableBanking::PaymentMethodInferer at sync time. Each entry must have a
-  # mapping in PaymentMethodInferer (or be reachable via heuristics) AND a
-  # fallback category in Enrichment::TransactionEnricher::PAYMENT_METHOD_FALLBACK
-  # — otherwise unmatched transactions disappear into the "unmatched" bucket.
-  #
-  #   card                 — POS / online card payment, card-on-file SaaS
-  #   card_authorization   — preauth block (paliwo, hotel) — not a real charge
-  #   blik_pos             — BLIK at merchant terminal
-  #   blik_p2p             — BLIK to phone (direction tells in vs out)
-  #   blik_atm             — BLIK ATM withdrawal (PKO MOBILE-PAYMENT-ATM)
-  #   transfer             — external bank transfer (PRZELEW ZEWNĘTRZNY)
-  #   internal_transfer    — between own accounts, incl. credit-card payback
-  #   topup                — Revolut TOPUP (Google Pay → Revolut)
-  #   fee                  — bank fee / commission
-  #   other                — explicitly classified, but doesn't fit above
+  # Each value must have a mapping in EnableBanking::PaymentMethodInferer AND
+  # a fallback category in Enrichment::TransactionEnricher - otherwise
+  # transactions disappear into the unmatched bucket.
   PAYMENT_METHODS = %w[
     card card_authorization
     blik_pos blik_p2p blik_atm
@@ -67,10 +54,8 @@ class BankTransaction < ApplicationRecord
     fee other
   ].freeze
 
-  # Set by Banking::CounterpartyResolver at sync time. See that service for
-  # signal priority. "self" means the counterparty is one of the user's own
-  # accounts; "external" means a third party; "unknown" means we can't tell
-  # (no IBAN, no name).
+  # Set by Banking::CounterpartyResolver at sync time. "unknown" means no
+  # IBAN, no name.
   COUNTERPARTY_KINDS = %w[self external unknown].freeze
 
   belongs_to :bank_account
@@ -79,8 +64,6 @@ class BankTransaction < ApplicationRecord
 
   encrypts :raw_payload
 
-  # `amount` returns a Money built from (amount_cents, currency). Arithmetic
-  # between mismatched currencies raises — no silent PLN+EUR sums.
   monetize :amount_cents, with_model_currency: :currency
 
   validates :external_id, presence: true, uniqueness: { scope: :bank_account_id }

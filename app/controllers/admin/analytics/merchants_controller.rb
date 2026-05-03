@@ -6,8 +6,6 @@ module Admin
       def show
         @merchant = current_user.merchants.find_by!(slug: params[:slug])
 
-        # Same logic as analytics/categories: bounce when the merchant's
-        # default category is on the user's hidden list.
         if current_user.hides_category?(@merchant.default_category_id)
           redirect_to admin_analytics_root_path(@filter.to_query_params),
                       alert: "This merchant is in a hidden category. Remove it from the hidden list in preferences to open it."
@@ -15,10 +13,6 @@ module Admin
         end
 
         scope = @filter.scope.spend.where(merchant_id: @merchant.id)
-        # Aggregates run on the unpaginated scope so the user sees totals
-        # for the full window, not just the current page. Pagy direct
-        # (not via the ransack-wrapping `paginated` helper) — sort is
-        # fixed and LedgerEntry doesn't allowlist ransack attributes.
         @total_cents = scope.sum(:amount_cents)
         @count       = scope.count
         @pagy, @transactions = pagy(
@@ -30,9 +24,6 @@ module Admin
           user: current_user, merchant_id: @merchant.id, currency: @filter.currency
         )
 
-        # Resolve the dominant category for this merchant, used as the
-        # middle breadcrumb step. Picks the category most recently
-        # associated — falls back to the merchant's default.
         @breadcrumb_category = @transactions.first&.effective_category || @merchant.default_category
 
         crumbs = [

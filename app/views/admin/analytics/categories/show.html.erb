@@ -29,7 +29,7 @@
         href:         admin_analytics_merchant_path(row.merchant.slug, @filter.to_query_params)
       )
     else
-      # Transactions classified into this category but without a merchant —
+      # Transactions classified into this category but without a merchant -
       # typical for one-off P2P payments, manual cash entries, or rules
       # that set only a category. Link drills into the underlying ledger
       # rows so the user can open and reclassify each one.

@@ -1,16 +1,7 @@
 # frozen_string_literal: true
 
-# Decides the terminal status of an OperationRun based on the per-account
-# outcomes accumulated in `summary[:accounts]`. Mapping:
-#
-#   no accounts touched → failed   ("No accounts in scope")
-#   all succeeded       → succeeded
-#   mixed               → partial  ("N account(s) failed")
-#   all failed          → failed   ("All N account(s) failed")
-#
-# Pulled out of TransactionSyncJob so the same rule can be reused by future
-# kinds (balance_refresh, account_details_refresh) and tested without
-# spinning up a Sidekiq job.
+# Maps per-account outcomes in `summary[:accounts]` to a terminal run status:
+#   none touched → failed; all ok → succeeded; mixed → partial; none ok → failed.
 class OperationRunFinalizer
   def self.call(run, summary)
     new(run, summary).call

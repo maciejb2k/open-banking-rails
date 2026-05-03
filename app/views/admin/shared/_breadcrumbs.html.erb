@@ -1,10 +1,5 @@
 <%# locals: (items: []) %>
-<%# Mobile rules:
-      1 level   → just the current page (no chevron, no …)
-      2 levels  → "Parent › Current" (parent stays visible — no … needed)
-      3+ levels → "… › Current", where … links to the immediate parent so
-                  the user can still navigate up one level
-    sm+ shows the full trail in every case. %>
+<%# Mobile collapses to "… › Current" at 3+ levels (… links to immediate parent); sm+ shows the full trail. %>
 <% items.each_with_index do |item, i| %>
   <% is_last = i == items.size - 1 %>
   <% sensitive_classes = sensitive_prop(item[:sensitive]) %>
@@ -22,8 +17,6 @@
       <span class="font-medium text-foreground truncate <%= sensitive_classes %>"><%= item[:label] %></span>
     </span>
   <% else %>
-    <%# Visible on mobile only when the trail is short enough (2 levels)
-        and this is the first item — otherwise the … above takes over. %>
     <% mobile_visible = items.size == 2 && i == 0 %>
     <span class="flex items-center gap-1 shrink-0 <%= 'hidden sm:flex' unless mobile_visible %>">
       <%= link_to item[:label], item[:path], class: "text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap #{sensitive_classes}" %>

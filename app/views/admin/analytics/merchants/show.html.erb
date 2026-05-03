@@ -55,7 +55,7 @@
     <% end %>
   </div>
 
-  <%= render "admin/shared/components/card", title: "Monthly trend — 12 months" do %>
+  <%= render "admin/shared/components/card", title: "Monthly trend - 12 months" do %>
     <% if trend_values.sum.zero? %>
       <%= render "admin/shared/components/empty_state",
             title: "No transactions",
@@ -81,11 +81,10 @@
             description: "No transactions at this merchant in the selected period.",
             icon: "search" %>
     <% else %>
-      <%# Full-row clickable list — same pattern as llm_enrichments/index
-          "What's left" rows. <tr> can't host an <a>, so we use <ul>/<li>. %>
+      <%# <tr> can't wrap an <a>; ul/li lets the whole row link. %>
       <ul class="divide-y">
         <% @transactions.each do |tx| %>
-          <%# Dispatch by source_type to avoid N+1 from LedgerEntry#source_record. %>
+          <%# Dispatch by source_type - LedgerEntry#source_record would N+1. %>
           <% detail_path = case tx.source_type
                            when "BankTransaction"   then admin_bank_transaction_path(tx.source_id)
                            when "ManualTransaction" then edit_admin_cash_transaction_path(tx.source_id)
@@ -99,7 +98,7 @@
               </div>
               <div class="min-w-0 flex-1">
                 <div class="text-sm truncate <%= sensitive_class %>">
-                  <%= tx.title.presence || tx.counterparty_name.presence || "—" %>
+                  <%= tx.title.presence || tx.counterparty_name.presence || "-" %>
                 </div>
                 <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
                   <% if bc %>

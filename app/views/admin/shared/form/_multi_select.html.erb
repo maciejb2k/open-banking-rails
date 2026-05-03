@@ -1,12 +1,5 @@
 <%# locals: (form:, field:, label:, options:, placeholder: "Select options...", hint: nil, cloak_selected: false, searchable: false) %>
-<%# cloak_selected wraps each chip label in bullets server-side-style so
-    onlookers can't read what's currently selected. Use for self-redacting
-    prefs (e.g. "private categories") where revealing the selection defeats
-    the feature. The dropdown itself is unchanged — interaction reveals,
-    glance doesn't.
-    searchable adds a sticky search input at the top of the dropdown,
-    filters by label substring (case-insensitive). For long lists where
-    scrolling is impractical. %>
+<%# cloak_selected: bullet-out chip labels so glancing onlookers can't read the selection (interaction still reveals). %>
 <% selected_values = form.object.respond_to?(field) ? Array(form.object.public_send(field)) : [] %>
 <div data-controller="multi-select"
      data-multi-select-options-value="<%= options.to_json %>"

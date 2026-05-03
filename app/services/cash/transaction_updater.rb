@@ -1,21 +1,15 @@
 # frozen_string_literal: true
 
 module Cash
-  # Edit an existing manual cash entry. Only manually-sourced rows are
-  # editable here; atm-link rows are produced by the ATM linker (Phase 3)
-  # and shouldn't be free-edited from this UI — the caller decides whether
-  # to surface the edit affordance at all.
-  #
   # Currency is locked: changing it would mean moving the row to a different
   # wallet, which is destructive (balance jumps in two places). If the user
-  # really wants that, they delete + re-add. So Input has no `currency` —
+  # really wants that, they delete + re-add. So Input has no `currency` -
   # the row's existing currency drives amount parsing.
   class TransactionUpdater
-    # Update semantics differ from creation: blank `title`/`note`/
-    # `counterparty_name` are passed through as-is so the user can
-    # explicitly clear a field. Blank `direction` / `payment_method` /
-    # `booking_date` mean "keep what's there" — those have no
-    # null-meaningful value on a saved row.
+    # Blank `title` / `note` / `counterparty_name` are passed through as-is so
+    # the user can explicitly clear a field. Blank `direction` /
+    # `payment_method` / `booking_date` mean "keep what's there" - those have
+    # no null-meaningful value on a saved row.
     Input = Struct.new(
       :amount, :direction, :booking_date, :transaction_date,
       :title, :note, :counterparty_name, :merchant_id, :category_id,
@@ -109,8 +103,6 @@ module Cash
       transaction_user.categories.active.find_by(id: @input.category_id)
     end
 
-    # Cash wallets are owned via manual_owner_id; resolve back to constrain
-    # merchant/category lookups to the row's owner.
     def transaction_user
       @transaction_user ||= User.find(@transaction.bank_account.manual_owner_id)
     end

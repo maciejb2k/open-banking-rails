@@ -93,7 +93,6 @@
                 icon: "tag" %>
         <% end %>
 
-        <%# Inline form to add a new rule %>
         <div class="border-t px-4 py-3 bg-muted/10">
           <%= form_with model: @new_rule, url: admin_merchant_merchant_rules_path(@merchant), html: { class: "flex flex-wrap items-end gap-2" } do |f| %>
             <div class="w-full sm:flex-1 sm:min-w-[140px]">
@@ -117,9 +116,6 @@
         </div>
       <% end %>
 
-      <%# Recent transactions — capped at 10 here. The full list (with
-          filters, search, sortable columns, pagination) lives on
-          /admin/bank_transactions filtered by merchant_id. %>
       <%= render "admin/shared/components/card", padding: false do %>
         <div class="flex items-center justify-between border-b px-4 py-3">
           <div>
@@ -139,7 +135,7 @@
             <% @recent_transactions.each do |tx| %>
               <li class="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-muted/20 transition-colors">
                 <div class="min-w-0 flex-1">
-                  <div class="text-sm truncate <%= sensitive_class %>"><%= tx.title.presence || "—" %></div>
+                  <div class="text-sm truncate <%= sensitive_class %>"><%= tx.title.presence || "-" %></div>
                   <div class="text-xs text-muted-foreground"><%= tx.booking_date %> · <%= payment_method_label(tx.payment_method) || tx.type_hint %></div>
                 </div>
                 <div class="amount text-sm whitespace-nowrap <%= sensitive_class %> <%= tx.direction == 'credit' ? 'text-success' : 'text-foreground' %>">

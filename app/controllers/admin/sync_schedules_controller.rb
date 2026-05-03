@@ -1,9 +1,6 @@
 # frozen_string_literal: true
 
 module Admin
-  # Per-BankConnection auto-sync settings (singular nested resource).
-  # No `show` — schedule lives on the parent connection's show page.
-  # No `destroy` — disabling is just enabled=false.
   class SyncSchedulesController < BaseController
     before_action :set_connection
 

@@ -4,7 +4,7 @@ class CreateBankAccounts < ActiveRecord::Migration[8.1]
       t.references :tpp_credential, null: false, foreign_key: true
       t.references :current_bank_connection, foreign_key: { to_table: :bank_connections }
 
-      # Enable Banking UID — UUID, stable across session renewals
+      # Enable Banking UID - UUID, stable across session renewals
       t.string :uid, null: false
 
       # Primary identification
@@ -21,7 +21,7 @@ class CreateBankAccounts < ActiveRecord::Migration[8.1]
       t.string :usage               # PRIV / COMM
       t.string :status, null: false, default: "active"  # active | inactive | revoked
 
-      # Servicer (BIC, bank name) — only some banks return this
+      # Servicer (BIC, bank name) - only some banks return this
       t.jsonb :account_servicer
 
       # Source-of-truth payloads
@@ -29,7 +29,7 @@ class CreateBankAccounts < ActiveRecord::Migration[8.1]
       t.jsonb :raw_details             # what came from /accounts/{uid}/details (if fetched)
       t.datetime :details_fetched_at
 
-      # Sync state — for future Data module
+      # Sync state - for future Data module
       t.datetime :balances_synced_at
       t.datetime :transactions_synced_at
 

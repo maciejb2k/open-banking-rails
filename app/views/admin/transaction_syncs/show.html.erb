@@ -4,9 +4,9 @@
                  when User then "all my connections"
                  when BankConnection then @run.subject.bank_name.presence || @run.subject.bank_slug
                  when BankAccount then sensitive(@run.subject.display_name)
-                 else "—"
+                 else "-"
                  end %>
-<% subtitle = safe_join(["#{@run.trigger.humanize} sync — ", scope_label]) %>
+<% subtitle = safe_join(["#{@run.trigger.humanize} sync - ", scope_label]) %>
 
 <div class="space-y-6">
   <%= render "admin/shared/components/page_header",

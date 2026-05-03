@@ -1,9 +1,6 @@
 # frozen_string_literal: true
 
 module Admin
-  # Single endpoint for the "edit classification" modal on a transaction's
-  # show page. Delegates all logic to ClassificationApplier — the controller
-  # only resolves params and routes the result back to the user.
   class TransactionEnrichmentsController < BaseController
     def update
       transaction = BankTransaction.for_user(current_user).find(params[:bank_transaction_id])

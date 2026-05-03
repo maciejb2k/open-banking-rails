@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Sidebar collapsed state — see app/views/layouts/admin.html.erb (inline
+/* Sidebar collapsed state - see app/views/layouts/admin.html.erb (inline
    <head> script) and controllers/sidebar_controller.js. The class on <html>
    is applied before first paint so the sidebar renders in the correct width
    on refresh, instead of animating from expanded → collapsed. */
@@ -112,7 +112,7 @@
      See app/helpers/admin/privacy_helper.rb for usage.
 
      Text masking for :blur / :redact / :mask happens in
-     controllers/sensitive_mask_controller.js — characters in text nodes are
+     controllers/sensitive_mask_controller.js - characters in text nodes are
      swapped for `•` so the layout stays sharp and there's no visual bleed.
      :strong stays CSS-only (heavy JSON payloads where char-masking would be
      too expensive / pointless). */
@@ -124,21 +124,21 @@
     user-select: none;
   }
 
-  /* :blur / :mask — bullets only (controller handles text replacement). Privacy
+  /* :blur / :mask - bullets only (controller handles text replacement). Privacy
      mode is intentionally all-or-nothing: no hover reveal, otherwise
      screen-shares leak content the moment the cursor moves.
 
      Pre-mask shield: until the controller swaps text to bullets and sets
      `data-masked="1"`, hide the raw text via text-shadow. Without this,
      Turbo navigation paints the new HTML for a frame before the
-     MutationObserver fires — leaking unredacted content. */
+     MutationObserver fires - leaking unredacted content. */
   html.privacy-mode .sensitive:not(.sensitive--strong):not(.sensitive--redact):not([data-masked="1"]),
   html.privacy-mode .sensitive:not(.sensitive--strong):not(.sensitive--redact):not([data-masked="1"]) * {
     color: transparent !important;
     text-shadow: 0 0 8px var(--color-foreground);
   }
 
-  /* :strong — text-only blur via text-shadow. Layout (border/bg/padding)
+  /* :strong - text-only blur via text-shadow. Layout (border/bg/padding)
      stays sharp; only the characters get smudged. JSON viewers / payloads. */
   html.privacy-mode .sensitive--strong {
     color: transparent !important;
@@ -151,7 +151,7 @@
     text-shadow: 0 0 8px var(--color-foreground);
   }
 
-  /* :redact — solid block over masked bullets, no reveal (inline secrets) */
+  /* :redact - solid block over masked bullets, no reveal (inline secrets) */
   html.privacy-mode .sensitive--redact {
     color: transparent !important;
     background: var(--color-muted-foreground);
@@ -174,7 +174,7 @@
     background: color-mix(in oklab, var(--color-primary) 12%, transparent);
   }
 
-  /* Avatar / circular containers — neutralize background + initials */
+  /* Avatar / circular containers - neutralize background + initials */
   html.privacy-mode .sensitive-avatar {
     background: var(--color-muted) !important;
     color: var(--color-muted-foreground) !important;

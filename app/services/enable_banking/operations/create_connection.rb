@@ -2,18 +2,8 @@
 
 module EnableBanking
   module Operations
-    # Materializes the OAuth-like callback into a BankConnection +
-    # BankAccount records in a single transaction.
-    #
-    # Combines:
-    #   - Api::CreateSession (exchange `code` for full session payload)
-    #   - building BankConnection from session payload
-    #   - upserting BankAccounts from the FULL account info
-    #     (only POST /sessions returns full per-account data — see
-    #     Api::CreateSession comment)
-    #   - marking the previous connection as "replaced" (audit trail kept)
-    #
-    # Returns the freshly-created BankConnection, or raises Failed.
+    # Only POST /sessions returns full per-account data, so account upsert
+    # must happen here rather than on a later refresh.
     class CreateConnection < Base
       Failed = Class.new(StandardError)
 
@@ -65,7 +55,7 @@ module EnableBanking
           ba = BankAccount.find_or_initialize_by(uid: account["uid"])
           ba.assign_attributes(
             tpp_credential: @credential,
-            current_bank_connection: bc,  # repoint to new connection (old stays in DB)
+            current_bank_connection: bc,
             iban: account.dig("account_id", "iban"),
             bban: BankAccount.bban_from(account["account_id"]),
             all_account_ids: account["all_account_ids"] || [],
@@ -81,25 +71,17 @@ module EnableBanking
           )
           ba.save!
 
-          # Refresh the per-account "Own account" merchant + iban rules so
-          # transfers between own accounts get classified correctly on the
-          # very first sync. Idempotent — safe to call on every save.
           Enrichment::OwnAccountMerchantSyncer.call(ba)
         end
       end
 
-      # Mark replaced connection — KEEP the record (audit trail), don't destroy.
-      # Accounts that were on the new payload have already been re-pointed
-      # in #upsert_accounts. Accounts NOT in the new payload (user deselected
-      # them at the bank) keep their old current_bank_connection_id — they
-      # appear "stale" in the UI and stop syncing, but historical data is preserved.
+      # KEEP the old record (audit trail). Accounts not in the new payload
+      # keep their old current_bank_connection_id - they appear "stale" in the
+      # UI and stop syncing, but historical data is preserved.
       def mark_replaced(old_connection)
         old_connection&.update!(status: "replaced", closed_at: Time.current)
       end
 
-      # Resolve `replaces_connection_id` from the signed state, scoped to the
-      # current credential. Returns nil if missing or if it points to a connection
-      # that doesn't belong to this credential (defense-in-depth).
       def find_replaces_target
         id = @state[:replaces_connection_id]
         return nil if id.blank?

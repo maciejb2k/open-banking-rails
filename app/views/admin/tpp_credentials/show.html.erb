@@ -3,7 +3,7 @@
 <div class="space-y-6">
   <%= render "admin/shared/components/page_header",
         title: @credential.name,
-        subtitle: "TPP credential — #{@credential.provider} (#{@credential.environment || 'environment not set'})" %>
+        subtitle: "TPP credential - #{@credential.provider} (#{@credential.environment || 'environment not set'})" %>
 
   <% if @credential.last_verification_error.present? %>
     <%= render "admin/shared/components/callout", variant: :destructive, title: "Last verification failed" do %>
@@ -97,7 +97,7 @@
         ] %>
       <% else %>
         <p class="text-sm text-muted-foreground">
-          No certificate uploaded — paste the public cert (PEM) to see metadata here.
+          No certificate uploaded - paste the public cert (PEM) to see metadata here.
         </p>
       <% end %>
     <% end %>
@@ -124,7 +124,7 @@
               <div>
                 <p class="font-medium text-foreground"><%= bc.bank_name.presence || bc.bank_slug %></p>
                 <p class="text-xs text-muted-foreground">
-                  <%= bc.psu_type %> · valid until <%= bc.valid_until&.to_date || "—" %>
+                  <%= bc.psu_type %> · valid until <%= bc.valid_until&.to_date || "-" %>
                 </p>
               </div>
               <%= render "admin/shared/components/badge", text: bc.status, variant: bc.status_tone %>

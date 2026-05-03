@@ -2,17 +2,8 @@
 
 module EnableBanking
   module Api
-    # POST /auth — initiates the authorization flow with a bank.
-    #
-    # Returns { url, authorization_id, psu_id_hash } — `url` is what the
-    # PSU opens in their browser to log into the bank and authorize.
-    # After SCA the bank redirects to credential.redirect_url with
-    # ?code=...&state=... query parameters.
-    #
-    # `state` MUST be signed/verifiable on the callback side to prevent
-    # CSRF — the controller is responsible for that, not this query.
-    #
-    # Defaults: 180 days consent, both balances + transactions scope, personal PSU.
+    # `state` MUST be signed/verifiable on the callback to prevent CSRF -
+    # the controller is responsible for that, not this query.
     # Some banks cap valid_until lower than requested (mBank → 90 days).
     class StartAuth < Base
       DEFAULT_VALID_DAYS = 180

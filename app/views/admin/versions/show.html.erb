@@ -7,7 +7,7 @@
   <% end %>
   <%= render "admin/shared/components/page_header",
         title: header_title,
-        subtitle: "#{@version.item_type} ##{@version.item_id} — #{l(@version.created_at, format: :long)}",
+        subtitle: "#{@version.item_type} ##{@version.item_id} - #{l(@version.created_at, format: :long)}",
         back_path: admin_versions_path,
         browser_title: "Version ##{@version.id}" %>
 
@@ -27,7 +27,7 @@
       </div>
       <div>
         <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Changed by</p>
-        <p class="text-sm text-foreground"><%= @version.whodunnit || "—" %></p>
+        <p class="text-sm text-foreground"><%= @version.whodunnit || "-" %></p>
       </div>
       <div>
         <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Timestamp</p>

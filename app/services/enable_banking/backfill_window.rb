@@ -1,12 +1,7 @@
 # frozen_string_literal: true
 
 module EnableBanking
-  # Per-bank max history horizons (PoC findings, see docs/banks/comparison.md).
-  # Used as the default `date_from` for first-time syncs and as a sanity cap
-  # for backfill date pickers in the UI.
-  #
-  # Banks SILENTLY truncate beyond their cap — no error, just missing data —
-  # so we encode the empirical limits to set realistic expectations.
+  # Banks silently truncate beyond their cap - no error, just missing data.
   module BackfillWindow
     HORIZONS = {
       "revolut"         => 90,    # PSD2 hard 90-day cap, strictly enforced

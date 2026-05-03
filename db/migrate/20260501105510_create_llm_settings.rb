@@ -6,7 +6,7 @@ class CreateLlmSettings < ActiveRecord::Migration[8.1]
       t.string :provider, null: false
 
       # Encrypted at app layer via `encrypts :api_key` (Rails 8 ActiveRecord
-      # encryption — same pattern as TppCredential#private_key_pem).
+      # encryption - same pattern as TppCredential#private_key_pem).
       t.text :api_key, null: false
 
       t.string :model

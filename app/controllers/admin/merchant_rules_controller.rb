@@ -1,10 +1,6 @@
 # frozen_string_literal: true
 
 module Admin
-  # Nested under Merchant — all rule CRUD happens from a merchant's show page.
-  # After every mutation we trigger a rebuild of rebuildable enrichments so
-  # the UI stays consistent: the user immediately sees the impact of the
-  # rule change on existing transactions.
   class MerchantRulesController < BaseController
     before_action :set_merchant
     before_action :set_rule, only: %i[update destroy]
@@ -13,7 +9,7 @@ module Admin
       @rule = @merchant.merchant_rules.build(rule_params.merge(user: current_user, source: "user", approved_at: Time.current, approved_by: current_user))
       if @rule.save
         Enrichment::TransactionEnricher.rebuild!(user: current_user)
-        redirect_to admin_merchant_path(@merchant), notice: "Rule added — historical transactions re-classified."
+        redirect_to admin_merchant_path(@merchant), notice: "Rule added - historical transactions re-classified."
       else
         redirect_to admin_merchant_path(@merchant), alert: "Could not add rule: #{@rule.errors.full_messages.join(', ')}"
       end
@@ -31,7 +27,7 @@ module Admin
     def destroy
       @rule.destroy
       Enrichment::TransactionEnricher.rebuild!(user: current_user)
-      redirect_to admin_merchant_path(@merchant), notice: "Rule deleted — transactions re-classified."
+      redirect_to admin_merchant_path(@merchant), notice: "Rule deleted - transactions re-classified."
     end
 
     private

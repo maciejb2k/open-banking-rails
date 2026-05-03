@@ -1,12 +1,11 @@
 <%# locals: (schedule_rows:) %>
-<%# One li per active BankConnection. schedule may be nil — connection has
-    no SyncSchedule yet; the link goes to edit which lazy-creates on save. %>
+<%# schedule may be nil - Edit lazy-creates the SyncSchedule on save. %>
 <%= render "admin/shared/components/card", padding: false do %>
   <div class="border-b px-4 py-3">
     <h3 class="font-semibold">Auto-sync schedules</h3>
     <p class="text-xs text-muted-foreground">
       Per-connection cadence (daily / every 2 days / weekly). Dispatcher checks every minute and fires at the
-      preferred hour. Missed runs aren't replayed — the next slot pulls everything since the last success.
+      preferred hour. Missed runs aren't replayed - the next slot pulls everything since the last success.
     </p>
   </div>
 

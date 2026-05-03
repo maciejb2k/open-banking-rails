@@ -2,18 +2,9 @@
 
 module EnableBanking
   module Operations
-    # Pulls transactions for a single BankAccount and persists them as
-    # BankTransaction rows. Idempotent — duplicates (by bank_account_id +
-    # external_id) are skipped.
-    #
-    # Booked PSD2 transactions are immutable, so we don't update existing
-    # rows. Pending → booked transitions are not yet handled (see PoC
-    # open-questions.md — needs PDNG observation in real time first).
-    #
-    # date_from defaults to BackfillWindow per bank for first sync, otherwise
-    # `transactions_synced_at - overlap` for incremental.
-    #
-    # Returns Result struct with counts. Raises Failed on API failure.
+    # Idempotent - duplicates (by bank_account_id + external_id) are skipped.
+    # Booked PSD2 transactions are immutable; we don't update existing rows.
+    # Pending → booked transitions are not yet handled.
     class SyncAccountTransactions < Base
       Failed = Class.new(StandardError)
 

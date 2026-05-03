@@ -5,18 +5,16 @@
     <%= render "admin/shared/icons/menu", classes: "h-5 w-5" %>
   </button>
 
-  <%# Breadcrumbs — overflow-aware so long titles don't push out the right side. %>
   <nav class="flex items-center gap-1 text-sm min-w-0 flex-1 overflow-hidden">
     <%= render "admin/shared/breadcrumbs", items: breadcrumb_items %>
   </nav>
 
   <div class="ml-auto flex items-center gap-2 shrink-0">
-    <%# Privacy mode toggle — hides sensitive data on screen-share %>
     <%= preference_toggle_button "privacy_mode",
           class_name: "privacy-mode",
           icon_off: "eye",
           icon_on: "eye_off",
-          title: "Toggle privacy mode — hides sensitive data on screen-share" %>
+          title: "Toggle privacy mode - hides sensitive data on screen-share" %>
 
     <div class="hidden sm:flex items-center gap-2 ml-2 pl-2 border-l">
       <div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold sensitive-avatar">

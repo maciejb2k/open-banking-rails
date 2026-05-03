@@ -1,14 +1,6 @@
 # frozen_string_literal: true
 
 module Analytics
-  # Layer 2 aggregations — the orthogonal axes that hierarchy can't
-  # express. Each method returns a 2-row breakdown so the dashboard can
-  # render a paired bar (or stacked card) without further math.
-  #
-  # All methods consume an already-scoped LedgerEntry relation (typically
-  # `Analytics::Filter#scope`) and partition through `.spend` first.
-  # Income / transfers / savings need different lenses — those go on
-  # CashFlow, not here.
   class FacetBreakdown
     Row = Struct.new(:label, :amount_cents, :count, :currency, keyword_init: true) do
       def amount = Money.new(amount_cents, currency)
@@ -21,8 +13,6 @@ module Analytics
       def right_share_pct   = total_cents.zero? ? 0 : (right.amount_cents.to_f / total_cents * 100).round(1)
     end
 
-    # Essentials vs discretionary. THE personal-finance KPI — what % of
-    # spend is needs vs wants. Nil-safe at zero spend.
     def self.essential(scope, currency:)
       ess = scope.spend.essential
       dis = scope.spend.discretionary
@@ -33,10 +23,6 @@ module Analytics
       )
     end
 
-    # Recurring vs one-off. Recurring is detected by Recurrence::Detector
-    # and stored on transaction_enrichments; the view surfaces it.
-    # "Recurring" answers "ile mnie kosztują stałe zobowiązania" without
-    # forcing them into a synthetic `subscriptions` category.
     def self.recurring(scope, currency:)
       rec = scope.spend.recurring
       one = scope.spend.one_off
@@ -47,8 +33,6 @@ module Analytics
       )
     end
 
-    # Recurring spend grouped by interval — gives the dashboard a
-    # "you'll spend ~X/month on subscriptions" forecast number.
     def self.recurring_by_interval(scope, currency:)
       rows = scope.spend.recurring
                   .group(:recurrence_interval)

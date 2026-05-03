@@ -1,4 +1,4 @@
-# 0002 — Polymorphic enrichment association
+# 0002 - Polymorphic enrichment association
 
 ## Context
 Classification (merchant, category, decision source, confidence) is
@@ -21,5 +21,5 @@ uniformly. Adding a ledger type costs `include LedgerEntryConcern`.
 - Rule field allowlist applies across ledger types; the enricher uses
   `respond_to?(rule.field)` so a rule that targets a column the model
   doesn't expose is a non-match, not an error.
-- No DB-level referential integrity (Rails polymorphic FK limitation) —
+- No DB-level referential integrity (Rails polymorphic FK limitation) -
   acceptable, rebuild scope handles orphans.

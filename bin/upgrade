@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Developer convenience wrapper for upgrading the production compose stack.
 # Self-hosters using the published GHCR image just run two commands by hand
-# (`docker compose -f docker-compose.prod.yml pull && up -d`) — this script
+# (`docker compose -f docker-compose.prod.yml pull && up -d`) - this script
 # is for the contributor flow where the image is built locally instead.
 #
 # Pre-migration backup is automatic in the `migrate` service; if migrations
@@ -20,7 +20,7 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 
 if [ ! -f "$COMPOSE_FILE" ]; then
-  echo "[upgrade] $COMPOSE_FILE missing — are you in the repo root?" >&2
+  echo "[upgrade] $COMPOSE_FILE missing - are you in the repo root?" >&2
   exit 1
 fi
 
@@ -44,7 +44,7 @@ else
   docker compose -f "$COMPOSE_FILE" pull
 fi
 
-echo "[upgrade] applying — migrations run in the migrate service before app/worker start"
+echo "[upgrade] applying - migrations run in the migrate service before app/worker start"
 docker compose -f "$COMPOSE_FILE" up -d
 
 echo "[upgrade] done. Container status:"

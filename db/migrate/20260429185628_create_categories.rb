@@ -4,7 +4,7 @@
 #
 # Self-referential parent_id keeps the tree to two practical levels (top-level
 # group + sub-category) without enforcing depth in the schema. `slug` is the
-# stable identifier used by seeds, exports, and rule generators — `name` is a
+# stable identifier used by seeds, exports, and rule generators - `name` is a
 # display-only field the user can rename freely.
 #
 # `kind` partitions categories for analytics: only `expense` rows count toward

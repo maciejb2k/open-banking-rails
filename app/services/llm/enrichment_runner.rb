@@ -1,19 +1,8 @@
 # frozen_string_literal: true
 
 module Llm
-  # Orchestrates LLM-driven enrichment for a batch of unmatched transactions.
-  #
-  # Flow:
-  #   1. Find unmatched transactions (with usable `title` or `counterparty_name`)
-  #   2. Group by (normalized_title, counterparty_name) — deduplicate clusters
-  #   3. Send clusters to MerchantSuggester in batches of BATCH_SIZE (one API
-  #      call per batch, not per transaction)
-  #      - confidence ≥ AUTO_APPROVE_THRESHOLD → create Merchant + enabled rule
-  #      - confidence < threshold but > 0     → create Merchant + disabled rule
-  #      - confidence == 0                    → skip
-  #   4. Rebuild enrichments at the end so newly enabled rules apply to history
-  #
-  # Idempotent on re-runs: existing Merchant slugs are never duplicated.
+  # confidence ≥ AUTO_APPROVE_THRESHOLD → enabled rule; > 0 below threshold →
+  # disabled rule (pending review); == 0 → skip. Idempotent on re-runs.
   class EnrichmentRunner
     Result = Struct.new(:processed, :auto_applied, :pending_review, :skipped, :errors, keyword_init: true)
 
@@ -26,10 +15,8 @@ module Llm
       @user             = user
       @scope            = scope
       @limit            = limit
-      # Client resolved lazily — historically callers instantiated the
-      # runner just to introspect groups; today that path goes through
-      # EnrichableQuery directly, but lazy client resolution still makes
-      # the runner safe to construct without an LLM provider configured.
+      # Lazy client resolution - runner is safe to construct without an LLM
+      # provider configured.
       @client_override  = client
       @throttle_seconds = throttle_seconds
       @on_batch         = on_batch
@@ -104,11 +91,8 @@ module Llm
       return :skipped if suggestion.merchant_name.blank? || suggestion.confidence.zero?
 
       validated = enforce_pattern_matches(suggestion, sample)
-      # nil means we couldn't produce a working pattern — neither LLM's
-      # nor a derived one matched the source. Skip rather than persist a
-      # disabled rule with a useless pattern (those linger in the DB,
-      # waste future LLM tokens, and the disabled state means the rule
-      # never actually classifies anything).
+      # nil = no working pattern (neither LLM's nor derived). Skip rather
+      # than persist a useless rule.
       return :skipped if validated.nil?
 
       ActiveRecord::Base.transaction do
@@ -118,15 +102,9 @@ module Llm
       end
     end
 
-    # Three outcomes:
-    #   1. LLM's pattern already matches the source title → keep as-is.
-    #   2. LLM's pattern doesn't match, but TitleNormalizer.likely_pattern
-    #      can derive one that does → swap LLM's pattern for the derived
-    #      one and KEEP the original confidence. The merchant identity
-    #      came from the LLM (which is what's hard); the regex was the
-    #      easy part it stumbled on, and we have a deterministic fallback.
-    #   3. Even derived doesn't work → return nil. Caller skips the row
-    #      instead of persisting a useless disabled rule.
+    # If LLM's pattern doesn't match, try a derived pattern via TitleNormalizer
+    # and KEEP the LLM's confidence - the merchant identity came from the LLM
+    # (the hard part), regex is the easy part with a deterministic fallback.
     def enforce_pattern_matches(suggestion, sample)
       sample_value = case suggestion.rule_field
       when "title"             then sample[:title]
@@ -160,10 +138,8 @@ module Llm
       nil
     end
 
-    # Deterministic fallback pattern derived from the source value via the
-    # same stripping logic the title normalizer uses for grouping. Only
-    # `title` field — for counterparty_name (free-text), if the LLM's
-    # pattern fails, we have no better signal to derive from.
+    # Only `title` - counterparty_name is free-text, no better signal to
+    # derive from when the LLM's pattern fails.
     def derive_pattern_for(field, value)
       return nil unless field == "title"
       Enrichment::TitleNormalizer.likely_pattern(value)
@@ -209,10 +185,8 @@ module Llm
       Merchant::KINDS.include?(value) ? value : nil
     end
 
-    # LLM returns a full ltree path (e.g. "food.cooking.supermarket").
-    # We accept paths that exist in the user's active set; anything else
-    # falls back to noise.unmatched.other (kind=ignored), which keeps the
-    # merchant assignable but invisible to spend totals until reviewed.
+    # Unknown paths fall back to noise.unmatched.other (kind=ignored) - keeps
+    # the merchant assignable but invisible to spend totals until reviewed.
     def resolve_category_for(suggestion)
       path = suggestion.category_path.to_s.strip
       @user.categories.find_by(path: path) ||

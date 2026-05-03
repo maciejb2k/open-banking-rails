@@ -1,4 +1,4 @@
-# 0009 — `OperationRun` as the generic long-operation tracker
+# 0009 - `OperationRun` as the generic long-operation tracker
 
 ## Context
 Several flows are async with a UI surface for live progress + later
@@ -9,9 +9,9 @@ inputs and summary shape, but the operational concerns
 broadcast progress) are identical.
 
 ## Alternatives
-- **Per-kind tables** (`transaction_syncs`, `llm_enrichments`, …) —
+- **Per-kind tables** (`transaction_syncs`, `llm_enrichments`, …) -
   schema duplication; each new operation is a migration.
-- **Sidekiq job log only** — no domain model to render in `/admin`,
+- **Sidekiq job log only** - no domain model to render in `/admin`,
   retries pollute history, no `subject` association.
 - **Single table + `kind` discriminator + jsonb `params`/`summary`.**
 

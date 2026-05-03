@@ -1,18 +1,12 @@
 # frozen_string_literal: true
 
 module AutoSync
-  # Polled every minute by AutoSync::DispatcherJob (sidekiq-cron). Scans
-  # SyncSchedule.due, creates a scheduled OperationRun per due schedule,
-  # enqueues TransactionSyncJob, and advances next_run_at via NextRunCalculator.
-  #
   # Idempotency rests on the partial unique index on operation_runs
-  # (subject_type, subject_id, kind, scheduled_for). If two ticks overlap and
-  # both try to dispatch the same slot, one wins, the other catches
-  # RecordNotUnique and skips — no double-fire, no double-advance.
+  # (subject_type, subject_id, kind, scheduled_for). Overlapping ticks racing
+  # the same slot fall through RecordNotUnique - no double-fire.
   class Dispatcher
-    # How long to pause a schedule whose connection isn't authorized. Long
-    # enough to stop minute-by-minute re-examination, short enough that a
-    # re-authorization is picked up the same day.
+    # Stops minute-by-minute re-examination of an unauthorized connection but
+    # picks up re-authorization the same day.
     REVOKED_BACKOFF = 6.hours
 
     Result = Struct.new(:examined, :dispatched, :skipped, keyword_init: true) do
@@ -52,12 +46,8 @@ module AutoSync
       connection = schedule.bank_connection
       user = connection.tpp_credential&.user
 
-      # Connection no longer authorized (revoked / expired / closed) or
-      # orphaned. Pause for REVOKED_BACKOFF instead of just skipping — without
-      # the pause, the dispatcher re-examines this row every minute (1440×/day)
-      # for nothing. The pause is a soft sleep, not a circuit-breaker trip:
-      # we don't bump consecutive_failures (no actual run happened), and the
-      # user can re-authorize and click "Resume" to clear it sooner.
+      # Soft sleep (not a circuit-breaker trip - no consecutive_failures bump,
+      # since no actual run happened). User can re-authorize to clear it sooner.
       unless connection.status == "authorized" && user.present?
         schedule.update!(paused_until: REVOKED_BACKOFF.from_now)
         return false
@@ -89,7 +79,6 @@ module AutoSync
       TransactionSyncJob.perform_later(run_id)
       true
     rescue ActiveRecord::RecordNotUnique
-      # Another tick already dispatched this exact slot. Safe to skip.
       false
     end
 

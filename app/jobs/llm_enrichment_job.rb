@@ -1,23 +1,5 @@
 # frozen_string_literal: true
 
-# Drives an llm_enrichment OperationRun. Follows the same pattern as
-# TransactionSyncJob: thin wrapper around the domain service, owns the
-# OperationRun lifecycle and live-progress broadcasting.
-#
-# Summary structure stored in operation_runs.summary (JSONB):
-#   {
-#     "total_groups" => N,
-#     "auto_applied" => N,
-#     "pending_review" => N,
-#     "skipped" => N,
-#     "batches" => [
-#       { "index" => 0, "size" => 15, "status" => "succeeded",
-#         "auto" => 3, "pending" => 2, "skipped" => 0, "errors" => [] },
-#       { "index" => 1, "size" => 5,  "status" => "failed",
-#         "auto" => 0, "pending" => 0, "skipped" => 0,
-#         "errors" => [{ "title" => "...", "error" => "..." }] }
-#     ]
-#   }
 class LlmEnrichmentJob < ApplicationJob
   queue_as :default
 
@@ -46,12 +28,9 @@ class LlmEnrichmentJob < ApplicationJob
     }
 
     limit  = run.params["limit"]&.to_i || Llm::EnrichmentRunner::DEFAULT_LIMIT
-    # The run subject is always the user (set by LlmEnrichmentsController#create).
-    # Defensive fallback to triggered_by_user lets us re-run older runs that
-    # may have been queued before per-user scoping landed.
     user   = run.subject.is_a?(User) ? run.subject : run.triggered_by_user
     raise "OperationRun #{run.id} has no resolvable user — cannot enrich" if user.nil?
-
+-
     result = Llm::EnrichmentRunner.call(user: user, limit: limit, on_batch: on_batch)
 
     summary["total_groups"]   = result.processed

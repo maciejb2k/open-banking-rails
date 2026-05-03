@@ -1,7 +1,7 @@
 class AllowManualBankAccounts < ActiveRecord::Migration[8.1]
   # Cash wallets are bank_accounts that aren't backed by a TPP connection.
   # Owned directly by a user, no IBAN, currency-scoped. The check constraint
-  # is the source of truth — exactly one of (tpp_credential_id, manual_owner_id)
+  # is the source of truth - exactly one of (tpp_credential_id, manual_owner_id)
   # must be set, in lockstep with the `manual` flag. AR validations mirror it
   # so the failure mode is a clean message instead of a constraint violation.
   def change

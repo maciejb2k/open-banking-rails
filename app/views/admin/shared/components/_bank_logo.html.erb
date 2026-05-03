@@ -1,6 +1,5 @@
 <%# locals: (slug:, name: nil, size: :md) %>
-<%# Square logo tile. Loads app/assets/images/banks/{slug}.svg via Propshaft;
-    falls back to first 1–3 letters of name/slug on bg-muted when missing. %>
+<%# Loads app/assets/images/banks/{slug}.svg via Propshaft; falls back to initials when missing. %>
 <%
   size_classes = {
     sm: "size-6 text-[10px]",

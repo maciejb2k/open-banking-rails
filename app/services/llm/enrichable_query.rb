@@ -1,26 +1,10 @@
 # frozen_string_literal: true
 
 module Llm
-  # "Which transactions can the LLM still help with?" — query object owning
-  # both the SQL scope and the Ruby-side grouping (deduplication by
-  # normalized title + counterparty_name) used by the enrichment runner.
-  #
-  # Consolidating these here means the dashboard counters and the runner's
-  # actual workload can never drift apart — the index page asks the same
-  # query the job will execute. Previously both controllers were reaching
-  # into `Llm::EnrichmentRunner.new.send(:default_scope)`, which leaked a
-  # private API and made the runner the de-facto owner of a query that
-  # belongs to neither it nor a controller.
-  #
-  # Excluded payment methods (`NON_MERCHANT_PAYMENT_METHODS`) are kinds for
-  # which "merchant" is a category error: BLIK to a phone is a transfer
-  # between people, ATM is a cash withdrawal, internal transfers / topups
-  # move money within your own accounts, fees are bank charges. Sending
-  # them to the LLM produces noise at best ("John Doe is a merchant" —
-  # nope, that's the user) and bad rules at worst.
-  #
-  # Counterparty kind `self` filters out own-account moves — same rationale,
-  # set at sync time by Banking::CounterpartyResolver.
+  # NON_MERCHANT_PAYMENT_METHODS are kinds where "merchant" is a category
+  # error (BLIK p2p is people, ATM is cash, internal transfers/topups are own
+  # accounts, fees are bank charges). counterparty_kind: "self" filters
+  # own-account moves - set at sync time by Banking::CounterpartyResolver.
   class EnrichableQuery
     NON_MERCHANT_PAYMENT_METHODS = %w[blik_p2p blik_atm internal_transfer topup fee].freeze
 
@@ -31,10 +15,8 @@ module Llm
       @user = user
     end
 
-    # Anything without a merchant (source = unmatched OR system_fallback)
-    # AND that could plausibly have one. The title regex
-    # (`!~ '^[0-9]+$'`) drops rows whose title is purely numeric — those
-    # are BLIK codes / reference numbers, not merchant signal.
+    # The numeric-title regex drops BLIK codes / reference numbers - pure
+    # digits are not merchant signal.
     def scope
       BankTransaction.for_user(@user)
         .joins(:enrichment)
@@ -44,14 +26,8 @@ module Llm
         .where.not(counterparty_kind: "self")
     end
 
-    # Group eligible transactions by (normalized_title, counterparty_name)
-    # and skip those already covered by an existing MerchantRule
-    # (regardless of enabled/source) — sending them to the LLM would yield
-    # the same suggestion and waste tokens. User must accept the existing
-    # pending merchant to release the group.
-    #
-    # Returns { [normalized_title, counterparty_name] => { title:, counterparty_name: } }.
-    # The caller decides ordering and limit.
+    # Skip groups already covered by an existing MerchantRule (any source/state)
+    # - sending them again would yield the same suggestion and waste tokens.
     def groups(scope: nil)
       relation = scope || self.scope
       rules    = @user.merchant_rules.to_a

@@ -8,7 +8,7 @@ def system!(*args)
   system(*args, exception: true)
 end
 
-# Idempotent .env bootstrap. Self-hosters don't run this script — but for
+# Idempotent .env bootstrap. Self-hosters don't run this script - but for
 # the developer cloning the repo to contribute, this saves a manual copy
 # and three openssl calls. Keys we already have stay; missing ones get
 # generated.

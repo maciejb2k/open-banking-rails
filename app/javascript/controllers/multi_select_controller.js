@@ -60,7 +60,7 @@ export default class extends Controller {
     const cloak = this.cloakSelectedValue
     this.selectedTarget.innerHTML = selected.length
       ? selected.map(o => {
-          // Always-on bullet mask when cloak is set — independent of the
+          // Always-on bullet mask when cloak is set - independent of the
           // topbar privacy_mode (which only flips .sensitive). Same UX as
           // the server-side hide_private_text helper.
           const labelHtml = cloak ? "•".repeat(Math.min(o.label.length, 24)) : o.label

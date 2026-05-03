@@ -1,23 +1,12 @@
 # frozen_string_literal: true
 
 module Analytics
-  # A bounded date range with a bucket granularity for time-series queries.
-  #
-  # Used by every analytics service that needs to:
-  #   * narrow a relation to a time window (`from..to`)
-  #   * group by day / week / month, with empty buckets filled to zero
-  #   * compare against an immediately-preceding window of the same length
-  #
-  # Gap-fill is intentionally Ruby-side, not SQL `generate_series` — at
-  # personal-app scale the difference is microseconds, and pushing it into
-  # SQL means every aggregation duplicates the same bucket-skeleton CTE.
-  # The single Ruby helper (`fill`) is the wrapper for all charts.
+  # Gap-fill is intentionally Ruby-side, not SQL `generate_series` - at
+  # personal-app scale the difference is microseconds, and the single Ruby
+  # helper (`fill`) keeps every aggregation from duplicating a CTE.
   class Period
     BUCKETS = %i[day week month].freeze
 
-    # Inclusive on both ends. Default bucket :day matches the MVP1 dashboard
-    # (30-day window, 30 points). Day/week/month switch follows when longer
-    # windows are added — the helper is here, but the dispatcher is not.
     def self.last_n_days(n, bucket: :day)
       to = Date.current
       new(from: to - (n - 1).days, to: to, bucket: bucket)
@@ -34,14 +23,10 @@ module Analytics
     def range = from..to
     def length_days = (to - from).to_i + 1
 
-    # Same length, ending the day before `from`. Symmetric so any sum on
-    # `previous` is directly comparable to the same sum on `self`.
     def previous
       self.class.new(from: from - length_days.days, to: from - 1.day, bucket: bucket)
     end
 
-    # Every bucket-start in the range, in chronological order. Source of
-    # truth for gap-filling — chart x-axes iterate this, never the data.
     def buckets
       case bucket
       when :day   then (from..to).to_a
@@ -50,15 +35,10 @@ module Analytics
       end
     end
 
-    # Given { Date => value } (where Date is a bucket-start), returns
-    # [{ bucket: Date, value: x }] in bucket order with `default` filling
-    # gaps. Charts consume this directly.
     def fill(series, default: 0)
       buckets.map { |b| { bucket: b, value: series.fetch(b, default) } }
     end
 
-    # PG expression that maps a date column to its bucket-start. Use in
-    # GROUP BY when you need the database to bucket for you.
     def date_trunc_sql(column = "booking_date")
       "DATE_TRUNC('#{bucket}', #{column})::date"
     end

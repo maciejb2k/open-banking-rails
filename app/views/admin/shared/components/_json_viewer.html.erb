@@ -1,5 +1,4 @@
-<%# Locals: json (Hash/Array/nil), sensitive: (default true → :strong blur). %>
-<%# Pass sensitive: false to opt out, or a symbol (:blur/:redact/:strong) for a custom kind. %>
+<%# Locals: json (Hash/Array/nil), sensitive: (true=:strong blur, false=off, or :blur/:redact/:strong). %>
 <% sensitive = local_assigns.fetch(:sensitive, true) %>
 <% kind = sensitive == true ? :strong : sensitive %>
 <% extra_classes = sensitive_prop(kind) %>

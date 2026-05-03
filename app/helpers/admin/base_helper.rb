@@ -8,12 +8,8 @@ module Admin
       request.path == path || request.path.start_with?(path + "/")
     end
 
-    # Registry of /admin/settings/preferences sub-sections. Single source of
-    # truth for the in-page side nav AND default-redirect order — the first
-    # entry is what bare /preferences redirects to (kept in sync via
-    # routes.rb). Adding a section: one entry here + one controller action +
-    # one view. The aside layout in admin/settings/preferences/_layout.html.erb
-    # iterates this list verbatim, so it scales with however many we add.
+    # First entry doubles as the default-redirect target for bare /preferences
+    # (kept in sync via routes.rb).
     def preferences_sections
       [
         { id: :profile, label: "Profile", icon: "users",
@@ -57,12 +53,6 @@ module Admin
           ]
         },
         {
-          # Everything wired up to the AISP provider (currently Enable Banking):
-          # the cert/keys we present, the consents we hold, and the accounts
-          # those consents unlock. Distinct from "Settings" because the audit
-          # surface and personal preferences have nothing to do with provider
-          # plumbing — and grouping them obscured both. Group is purely UI;
-          # the resources live at top level like the rest.
           title: "Bank Integrations",
           items: [
             { name: "TPP Credentials",  path: admin_tpp_credentials_path,  icon: "file_text" },
@@ -87,8 +77,6 @@ module Admin
       ]
     end
 
-    # Renders a sortable column header link with an arrow icon.
-    # Reads current sort state from @q (Ransack search object set in controller).
     # Usage in th: <%= sort_link "Name", "name" %>
     def sort_link(label, column)
       current_sort = Array(@q&.sorts).first
@@ -105,10 +93,7 @@ module Admin
       end
     end
 
-    # Returns the Propshaft asset path for a bank logo if the file exists,
-    # otherwise nil — components fall back to an initials tile.
-    # Files live in app/assets/images/banks/{bank_slug}.svg (slug from
-    # BankConnection#bank_slug, e.g. "mbank", "revolut", "pko_bank_polski").
+    # Returns nil when no svg exists - components fall back to an initials tile.
     def bank_logo_asset_path(slug)
       return nil if slug.blank?
       asset = Rails.application.assets.load_path.find("banks/#{slug}.svg")
@@ -116,14 +101,9 @@ module Admin
     end
 
     def breadcrumb_items
-      # Controllers may set @custom_breadcrumbs when the path-based
-      # derivation can't express the right trail (e.g. drill-down views
-      # whose URL segments don't match nav items).
       return @custom_breadcrumbs if @custom_breadcrumbs.present?
 
-      # Trailing edit/new are CRUD actions, not destinations — drop them so
-      # /admin/settings/preferences/edit shows "Admin / Settings / Preferences"
-      # (not "… / Preferences / Edit") and keys nav items by the resource segment.
+      # Trailing edit/new are CRUD actions, not destinations - drop them.
       segments = strip_action_suffix(request.path.split("/").reject(&:empty?))
 
       nav_labels = { "admin" => { label: "Admin", path: admin_root_path } }
@@ -148,8 +128,7 @@ module Admin
       end
     end
 
-    # URL to the source transaction detail page. LedgerEntry is a view —
-    # the two source types have separate admin surfaces.
+    # The two LedgerEntry source types have separate admin surfaces.
     def ledger_entry_path(entry)
       if entry.source_type == "BankTransaction"
         admin_bank_transaction_path(entry.source_id)
@@ -158,8 +137,6 @@ module Admin
       end
     end
 
-    # Compact age label for a sync timestamp: "4m" / "3h" / "2d".
-    # Returns "never" when the timestamp is blank.
     def sync_age_label(synced_at)
       return "never" if synced_at.blank?
       diff = Time.current - synced_at
@@ -169,7 +146,6 @@ module Admin
       end
     end
 
-    # Tailwind text-color class based on sync age.
     def sync_age_class(synced_at)
       return "text-destructive" if synced_at.blank?
       diff = Time.current - synced_at
@@ -190,10 +166,8 @@ module Admin
       %w[edit new].include?(segments.last) ? segments[0..-2] : segments
     end
 
-    # Resolve `/.../tpp_credentials/1` → "Personal Enable Banking"
-    # by looking up the record and falling back through:
-    #   to_breadcrumb → display_name → name → id
-    # Returns nil if model can't be inferred or record not found.
+    # Falls back through to_breadcrumb → display_name → name. Returns nil
+    # if model can't be inferred or record not found.
     def breadcrumb_label_for_id(parent_segment:, id:)
       klass = parent_segment.singularize.classify.safe_constantize
       return nil unless klass.is_a?(Class) && klass < ApplicationRecord

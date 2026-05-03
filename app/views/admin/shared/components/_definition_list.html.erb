@@ -1,9 +1,6 @@
 <%# locals: (pairs:) %>
-<%# Each pair: { label:, value:, mono: false, wrap: false, hint: nil, sensitive: nil } %>
-<%# sensitive: accepts nil/false, true, a kind symbol, or a hash. See admin/privacy_helper.rb %>
-<%# Mobile: label stacks above value, value left-aligned. sm+: side-by-side
-    label/value with value right-aligned. Avoids cramped wraps when values
-    are long (IBANs, dates, hash IDs) on narrow phones. %>
+<%# Each pair: { label:, value:, mono: false, wrap: false, hint: nil, sensitive: nil }. %>
+<%# sensitive: nil/false, true, kind symbol, or hash - see admin/privacy_helper.rb. %>
 <dl class="space-y-2 sm:space-y-2 text-sm">
   <% Array(pairs).compact.each do |pair| %>
     <div class="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-4 py-1 sm:py-0 border-b border-border/40 sm:border-0 last:border-0">
@@ -20,7 +17,7 @@
             <span class="text-xs text-muted-foreground ml-1"><%= pair[:hint] %></span>
           <% end %>
         <% else %>
-          <span class="text-muted-foreground/50">—</span>
+          <span class="text-muted-foreground/50">-</span>
         <% end %>
       </dd>
     </div>

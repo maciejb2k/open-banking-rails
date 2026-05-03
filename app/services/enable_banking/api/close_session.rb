@@ -2,10 +2,7 @@
 
 module EnableBanking
   module Api
-    # DELETE /sessions/{session_id} — explicitly close a session on the EB side.
-    #
-    # PoC noted side effects untested. Use as best-effort cleanup; mark
-    # local connection as closed regardless of API result.
+    # Best-effort cleanup; mark local connection as closed regardless of result.
     class CloseSession < Base
       def initialize(credential:, session_id:)
         @credential = credential

@@ -2,13 +2,6 @@
 
 module Llm
   module Clients
-    # Gemini-flavored Llm::Client. Thin wrapper over RubyLLM — all the
-    # provider-specific quirks (model name, structured output via
-    # responseSchema, key in env) are encapsulated here.
-    #
-    # Uses RubyLLM's `with_schema` to enforce JSON Schema on the response —
-    # we get back a parsed Hash, not free-form text, so callers don't need
-    # to handle markdown fences or hallucinated prose.
     class Gemini < Llm::Client
       def structured(system_prompt:, user_prompt:, schema:)
         chat = ruby_llm_context
@@ -26,9 +19,7 @@ module Llm
 
       private
 
-      # RubyLLM::Message exposes parsed content for structured responses on
-      # `.content` (Hash when schema is set) — but defensively handle both
-      # the parsed Hash and a raw JSON string in case provider wraps it.
+      # Defensively handle Hash and raw JSON string - provider may wrap.
       def parse_content(message)
         content = message.respond_to?(:content) ? message.content : message
         return content if content.is_a?(Hash)

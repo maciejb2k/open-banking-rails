@@ -1,10 +1,5 @@
 <%# locals: (label:, value:, icon:, change: nil, trend: nil, value_class: nil, tone: :primary, hint: nil) %>
-<%# `change` + `trend` are optional — omit both for point-in-time stats
-    (e.g. balance) where delta-vs-prev doesn't apply. `value_class` lets
-    callers wrap sensitive numbers without overriding the layout.
-    `tone` differentiates icon-tile color across a stat-card row so the
-    eye scans the dashboard faster (each metric kind gets its own hue).
-    `hint` is a small line under the value (e.g. previous-period anchor). %>
+<%# `value_class` wraps sensitive numbers without overriding layout. Pass `change`+`trend` together or omit both. %>
 <%
   tone_classes = {
     primary:     "bg-primary/10 text-primary",

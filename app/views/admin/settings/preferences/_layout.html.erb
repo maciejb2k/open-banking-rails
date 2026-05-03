@@ -1,14 +1,4 @@
 <%# locals: (current:) %>
-<%# Two-column shell shared by every preferences section. Left aside lists
-<%# every entry from preferences_sections (the registry); right pane gets
-<%# the section's form via yield. On <lg the aside becomes a horizontally
-<%# scrollable strip so adding many sections never breaks the layout. %>
-<%# `mx-auto max-w-4xl` centers the whole shell (aside + main) on wide
-<%# screens. Without this, the narrow main column hugs the left edge of
-<%# the admin content area and the right side stays empty — feels
-<%# unbalanced. See styleguide → "Centered narrow layout" for the
-<%# canonical pattern; reuse the same wrapper for any settings-style
-<%# sub-nav page. %>
 <div class="mx-auto max-w-4xl space-y-6">
   <%= render "admin/shared/components/page_header",
         title: "Preferences",

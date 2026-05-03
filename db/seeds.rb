@@ -14,6 +14,6 @@ end
 
 # Categories are environment-agnostic: they're the analytical backbone, so we
 # want the same baseline in dev, test, and production. Seed file is idempotent
-# (keyed by slug) — safe to re-run after edits.
+# (keyed by slug) - safe to re-run after edits.
 load Rails.root.join("db/seeds/categories.rb")
 load Rails.root.join("db/seeds/merchant_rules.rb")

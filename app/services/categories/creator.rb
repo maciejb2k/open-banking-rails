@@ -1,20 +1,6 @@
 # frozen_string_literal: true
 
 module Categories
-  # Builds a new Category at a given position in the user's tree.
-  #
-  # Two parts of the lifecycle live here because they're inseparable:
-  #
-  #   1. Slug derivation (when the user didn't provide one) — uniqueness
-  #      is per-user, with `_2`, `_3` … suffixes appended on collision.
-  #   2. Path composition — `parent_path + "." + slug`, or just `slug`
-  #      for a root-level domain. Path is the canonical lookup key
-  #      (ltree-indexed); slug is the leaf-only segment that survives
-  #      across renames.
-  #
-  # Save failures land in Result.errors; the caller renders the form back.
-  # The category instance is always returned (persisted or not) so the
-  # form can repopulate user-entered values.
   class Creator
     Result = Struct.new(:success?, :category, :error_messages, keyword_init: true) do
       def error
@@ -49,8 +35,6 @@ module Categories
       "#{parent_path}.#{slug}"
     end
 
-    # Best-effort slug from name; user can always override.
-    # Resolves collisions per-user by appending `_2`, `_3`, …
     def generate_slug(name)
       return nil if name.blank?
       base = name.to_s.downcase

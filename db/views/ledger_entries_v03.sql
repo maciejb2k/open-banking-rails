@@ -1,7 +1,7 @@
--- v03 — projects counterparty_kind from both UNION branches.
+-- v03 - projects counterparty_kind from both UNION branches.
 --
 -- New column vs. v02:
---   * counterparty_kind (text)     — "self" / "external" / "unknown".
+--   * counterparty_kind (text)     - "self" / "external" / "unknown".
 --                                    Set at sync/create time by
 --                                    Banking::CounterpartyResolver. Lets
 --                                    analytics filter own-account moves

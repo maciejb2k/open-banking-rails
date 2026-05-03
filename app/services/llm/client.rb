@@ -1,16 +1,9 @@
 # frozen_string_literal: true
 
 module Llm
-  # Provider-agnostic interface for our LLM use cases. Each concrete client
-  # (Llm::Clients::OpenAI, Llm::Clients::Gemini, eventually ::Anthropic, ::Ollama)
-  # exposes the same shape. Callers depend on this — never on RubyLLM
-  # directly — so swapping providers is a one-line change in the registry
-  # (Llm::Providers::REGISTRY) and a per-user choice in Preferences.
-  #
-  # Methods raise Error on transport / parsing failure, NotConfiguredError
-  # when the user hasn't set up an LLM provider yet (callers should redirect
-  # to /admin/settings/preferences). Successful calls return plain Ruby
-  # Hashes matching the documented schema.
+  # Callers depend on this, not on RubyLLM directly, so swapping providers is
+  # a registry change. Methods raise Error on transport/parsing failure,
+  # NotConfiguredError when no provider is set up.
   class Client
     Error             = Class.new(StandardError)
     NotConfiguredError = Class.new(Error)
@@ -22,21 +15,16 @@ module Llm
       @model   = model
     end
 
-    # @param system_prompt [String]
-    # @param user_prompt [String]
-    # @param schema [Hash] JSON Schema (object) the response must conform to
-    # @return [Hash] parsed structured response
     def structured(system_prompt:, user_prompt:, schema:)
       raise NotImplementedError
     end
 
-    # Resolve the user's configured client. Raises NotConfiguredError when
-    # no LlmSetting exists — every caller must catch this and surface a
-    # "configure LLM in preferences" message rather than 500.
+    # Callers must rescue NotConfiguredError and redirect to preferences,
+    # not 500.
     def self.for(user:)
       setting = user.llm_setting
       unless setting&.configured?
-        raise NotConfiguredError, "User has not configured an LLM provider — see /admin/settings/preferences"
+        raise NotConfiguredError, "User has not configured an LLM provider - see /admin/settings/preferences"
       end
 
       setting.build_client
@@ -44,10 +32,8 @@ module Llm
 
     private
 
-    # Build a per-call RubyLLM context with this client's api_key. Uses
-    # `RubyLLM.context` (per-call config) so the global RubyLLM.configure
-    # never holds keys — every request carries the right user's key without
-    # mutating shared state.
+    # Per-call RubyLLM context so global config never holds keys - every
+    # request carries the right user's key without mutating shared state.
     def ruby_llm_context
       key_setter = Llm::Providers::REGISTRY
                      .values

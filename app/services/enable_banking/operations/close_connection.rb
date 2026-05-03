@@ -2,14 +2,8 @@
 
 module EnableBanking
   module Operations
-    # Best-effort close of a bank session.
-    #
-    # If the connection is still authorized and has a session_id, we ask EB
-    # to close the session. Either way we mark the local record as closed.
-    # The remote call is best-effort — failures are intentionally swallowed
-    # because the local "closed" state is what matters from the user's POV.
-    #
-    # Never raises Failed; returns the connection.
+    # Remote close is best-effort - failures are swallowed; the local "closed"
+    # state is what matters. Never raises Failed.
     class CloseConnection < Base
       def initialize(connection)
         @connection = connection
@@ -23,9 +17,6 @@ module EnableBanking
 
       private
 
-      # Best-effort: failures (network, config, EB rejecting the session)
-      # are intentionally swallowed — the local "closed" state is what
-      # matters from the user's POV.
       def try_remote_close
         return unless @connection.status == "authorized" && @connection.session_id.present?
 

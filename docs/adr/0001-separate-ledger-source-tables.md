@@ -1,4 +1,4 @@
-# 0001 — Separate ledger source tables (bank vs manual)
+# 0001 - Separate ledger source tables (bank vs manual)
 
 ## Context
 Two kinds of ledger entries coexist: bank-synced (immutable, idempotent on
@@ -7,9 +7,9 @@ cash (mutable, audited, currency must match wallet). Analytics needs both
 queryable as one relation.
 
 ## Alternatives
-- **Single table + `kind` discriminator (STI)** — nullable per-type cols,
+- **Single table + `kind` discriminator (STI)** - nullable per-type cols,
   CHECK constraints to enforce shape per kind.
-- **Single table + polymorphic source FK** — common cols + per-type
+- **Single table + polymorphic source FK** - common cols + per-type
   `source_data` row.
 - **Two source tables + DB view** for unified reads (Concrete Table
   Inheritance + view).

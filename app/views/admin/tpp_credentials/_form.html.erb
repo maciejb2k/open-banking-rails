@@ -16,7 +16,7 @@
     <%= render "admin/shared/form/select",
           form: f, field: :environment, label: "Environment",
           options: TppCredential::ENVIRONMENTS.map { |e| [ e, e ] },
-          include_blank: "—" %>
+          include_blank: "-" %>
 
     <%= render "admin/shared/form/text_field",
           form: f, field: :redirect_url, label: "Redirect URL", required: true,
@@ -27,7 +27,7 @@
   <div class="admin-section space-y-4">
     <h2 class="text-base font-semibold text-foreground">Secrets</h2>
     <p class="text-sm text-muted-foreground -mt-2">
-      Sensitive values — encrypted at rest. Never logged or shown after save.
+      Sensitive values - encrypted at rest. Never logged or shown after save.
     </p>
 
     <div class="<%= sensitive_class %>">

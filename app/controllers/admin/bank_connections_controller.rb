@@ -68,7 +68,7 @@ module Admin
     def refresh
       EnableBanking::Operations::RefreshConnection.call(@connection)
       redirect_to admin_bank_connection_path(@connection),
-                  notice: "Refreshed — status: #{@connection.status}, valid until #{@connection.valid_until&.to_date}."
+                  notice: "Refreshed - status: #{@connection.status}, valid until #{@connection.valid_until&.to_date}."
     rescue EnableBanking::Operations::RefreshConnection::Failed => e
       redirect_to admin_bank_connection_path(@connection),
                   alert: "Refresh failed: #{e.message}"
@@ -80,7 +80,7 @@ module Admin
         aspsp_country: @connection.bank_country,
         psu_type: @connection.psu_type,
         replaces: @connection.id
-      ), notice: "Re-authorize via the bank — the old connection will be marked as replaced when the new one is approved."
+      ), notice: "Re-authorize via the bank - the old connection will be marked as replaced when the new one is approved."
     end
 
     private
@@ -89,7 +89,6 @@ module Admin
       params.fetch(:bank_connection_request_form, {}).permit(:aspsp_name, :aspsp_country, :psu_type, :valid_days)
     end
 
-    # Only accept replaces_id that points to a connection owned by current_user.
     def sanitize_replaces_param(value)
       return nil if value.blank?
       id = value.to_i

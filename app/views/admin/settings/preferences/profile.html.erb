@@ -17,14 +17,11 @@
               placeholder: "Your full name",
               required: true %>
 
-        <%# Email is rendered readonly + sensitive (blur). Devise treats it
-            as a credential — changing it is a separate flow we don't expose
-            yet. The strong-params allowlist (profile_params) doesn't permit
-            :email, so even a forged submission can't update it. %>
+        <%# Email is readonly + not in profile_params strong-params allowlist - Devise treats it as a credential. %>
         <%= render "admin/shared/form/email_field",
               form: f, field: :email,
               label: "Email",
-              hint: "Contact support to change this — it's tied to your sign-in.",
+              hint: "Contact support to change this - it's tied to your sign-in.",
               html: {
                 readonly: true,
                 class: "#{sensitive_class} bg-muted/40 cursor-not-allowed text-muted-foreground"

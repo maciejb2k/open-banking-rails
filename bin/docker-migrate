@@ -4,7 +4,7 @@
 # Order: pre-migration backup → db:prepare. The backup is a safety net
 # for the upgrade path: if a migration corrupts data the dump is
 # already on disk before the schema changes. On first boot there is
-# nothing to dump (the database doesn't exist yet) — that case is
+# nothing to dump (the database doesn't exist yet) - that case is
 # tolerated.
 #
 # This script assumes the docker-entrypoint has already run, so secrets

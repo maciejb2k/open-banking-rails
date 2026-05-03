@@ -27,7 +27,7 @@
   end
 %>
 <% if href && method %>
-  <%# State-changing action — renders a real form (button_to) so non-GET methods + CSRF work %>
+  <%# State-changing action - renders a real form (button_to) so non-GET methods + CSRF work %>
   <%= button_to inner, href, method: method, data: data, class: cls %>
 <% elsif href %>
   <%= link_to inner, href, class: cls, data: data %>

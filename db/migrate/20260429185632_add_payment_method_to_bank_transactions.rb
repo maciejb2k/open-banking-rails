@@ -2,7 +2,7 @@
 
 # Adds a derived `payment_method` column to bank_transactions.
 #
-# This is normalization, not enrichment — the value is a deterministic
+# This is normalization, not enrichment - the value is a deterministic
 # function of bank-supplied fields (type_hint, bank_transaction_code, title)
 # and is computed in TransactionNormalizer at sync time. It lives on the
 # bank_transactions table (not transaction_enrichments) because it's

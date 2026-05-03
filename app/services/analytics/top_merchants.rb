@@ -1,13 +1,6 @@
 # frozen_string_literal: true
 
 module Analytics
-  # Top merchants by spend within a scope. Renders into the breakdown
-  # list widget on the dashboard and into "merchants in this category"
-  # on the category drill-down (different scope, same shape).
-  #
-  # Excludes rows without a merchant — those go into a separate
-  # "merchantless" surface (LLM enrichment review queue), not into the
-  # analytics top-list.
   class TopMerchants
     Row = Struct.new(:merchant, :amount_cents, :count, :currency, keyword_init: true) do
       def amount = Money.new(amount_cents, currency)
@@ -21,8 +14,6 @@ module Analytics
                    .limit(limit)
                    .pluck(Arel.sql("merchant_id, SUM(amount_cents), COUNT(*)"))
 
-      # Hydrate through the user's own merchants — any id not owned by
-      # the user is dropped from the list (filter_map skips it).
       merchants = user.merchants.where(id: pluck.map(&:first)).index_by(&:id)
 
       pluck.filter_map do |merchant_id, sum, count|

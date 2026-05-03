@@ -13,7 +13,7 @@ class CreateTppCredentials < ActiveRecord::Migration[8.1]
       t.text :application_id
       t.text :private_key_pem
 
-      # Cert is public material — keep clear so we can introspect without decrypt
+      # Cert is public material - keep clear so we can introspect without decrypt
       t.text :public_cert_pem
       t.datetime :cert_expires_at
 

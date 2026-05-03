@@ -8,7 +8,7 @@
 <div class="space-y-6" data-controller="filter-panel">
   <%= render "admin/shared/components/page_header",
         title: "Sync Transactions",
-        subtitle: "Pull transactions from your authorized banks. Each row is a single sync run — manual or scheduled. Live progress streams to the run page.",
+        subtitle: "Pull transactions from your authorized banks. Each row is a single sync run - manual or scheduled. Live progress streams to the run page.",
         actions: sync_button %>
 
   <%= render "admin/transaction_syncs/auto_sync_panel", schedule_rows: @schedule_rows %>
@@ -20,9 +20,6 @@
        params.dig(:q, :created_at_lteq).present?
      ].count(true) %>
 
-  <%# History card: header carries the filter trigger + Apply so the controls
-      visually belong to the runs table they affect. The form wraps everything
-      so submit picks up both header inputs and the slide-out filter_panel. %>
   <%= render "admin/shared/components/card", padding: false do %>
     <%= search_form_for @q, url: admin_transaction_syncs_path, html: { data: { turbo: false } } do |f| %>
       <%= f.hidden_field :s, value: params.dig(:q, :s) %>
@@ -30,7 +27,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b px-4 py-3">
         <div>
           <h3 class="font-semibold">History</h3>
-          <p class="text-xs text-muted-foreground">All sync runs — manual triggers and scheduled dispatches.</p>
+          <p class="text-xs text-muted-foreground">All sync runs - manual triggers and scheduled dispatches.</p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <%= render "admin/shared/components/filter_trigger", active_count: active_filter_count %>
@@ -75,13 +72,13 @@
         </div>
 
         <div class="space-y-1.5">
-          <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Created — from</label>
+          <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Created - from</label>
           <%= f.date_field :created_at_gteq, value: params.dig(:q, :created_at_gteq),
                 class: "form-input" %>
         </div>
 
         <div class="space-y-1.5">
-          <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Created — to</label>
+          <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Created - to</label>
           <%= f.date_field :created_at_lteq, value: params.dig(:q, :created_at_lteq),
                 class: "form-input" %>
         </div>
@@ -122,18 +119,18 @@
               <% elsif run.subject.is_a?(BankAccount) %>
                 <span class="text-foreground"><%= run.subject.display_name %></span>
               <% else %>
-                <span class="text-muted-foreground/50">—</span>
+                <span class="text-muted-foreground/50">-</span>
               <% end %>
             </td>
             <td class="px-4 py-3 text-muted-foreground"><%= run.trigger %></td>
             <td class="px-4 py-3 text-muted-foreground text-xs">
-              <%= run.started_at ? l(run.started_at, format: :short) : "—" %>
+              <%= run.started_at ? l(run.started_at, format: :short) : "-" %>
             </td>
             <td class="px-4 py-3 text-muted-foreground text-xs">
               <% if (d = run.duration_seconds) %>
                 <%= d %>s
               <% else %>
-                —
+                -
               <% end %>
             </td>
             <td class="px-4 py-3">

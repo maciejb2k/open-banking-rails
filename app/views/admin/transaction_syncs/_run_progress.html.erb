@@ -1,7 +1,5 @@
 <%# locals: (run:, **) %>
-<%# Re-rendered live via Turbo Streams on every run.update!. %>
-<%# Turbo::Broadcastable auto-injects the record as `operation_run` (model name); %>
-<%# the `**` accepts that extra local without us needing to use it. %>
+<%# `**` swallows the extra `operation_run` local that Turbo::Broadcastable auto-injects. %>
 <%= tag.div id: dom_id(run, :progress), class: "space-y-6" do %>
   <div class="flex items-center gap-3">
     <%= render "admin/shared/components/badge", text: run.status, variant: run.status_tone %>
@@ -12,7 +10,7 @@
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-info opacity-75"></span>
           <span class="relative inline-flex rounded-full h-2 w-2 bg-info"></span>
         </span>
-        Running — <%= Array(run.summary["accounts"]).size %> account(s) processed
+        Running - <%= Array(run.summary["accounts"]).size %> account(s) processed
       </span>
     <% elsif run.terminal? && run.finished_at %>
       <span class="text-xs text-muted-foreground">
@@ -28,7 +26,7 @@
         { label: "Status", value: run.status },
         { label: "Trigger", value: run.trigger },
         { label: "Subject",
-          value: ([run.subject_type, run.subject_label].compact.join(" — ").presence),
+          value: ([run.subject_type, run.subject_label].compact.join(" - ").presence),
           sensitive: true },
         { label: "Triggered by", value: run.triggered_by_user&.display_name, sensitive: true },
         { label: "Created at", value: run.created_at&.to_s },
@@ -58,7 +56,7 @@
   <%= render "admin/shared/components/card", title: "Per-account breakdown" do %>
     <% if account_rows.empty? %>
       <p class="text-sm text-muted-foreground">
-        <%= run.queued? ? "Run is queued — waiting for the worker to pick it up." : "No accounts processed yet." %>
+        <%= run.queued? ? "Run is queued - waiting for the worker to pick it up." : "No accounts processed yet." %>
       </p>
     <% else %>
       <%= render "admin/shared/components/data_table",
@@ -73,7 +71,7 @@
             ] do %>
         <% account_rows.each do |row| %>
           <tr class="border-b last:border-0">
-            <td class="px-4 py-3 text-foreground text-sm"><%= row["bank"] || "—" %></td>
+            <td class="px-4 py-3 text-foreground text-sm"><%= row["bank"] || "-" %></td>
             <td class="px-4 py-3 font-mono text-xs <%= sensitive_class %>"><%= row["iban"] || "uid #{row['bank_account_id']}" %></td>
             <td class="px-4 py-3 text-xs text-muted-foreground">
               <%= row["date_from"] %> → <%= row["date_to"] %>
@@ -89,9 +87,9 @@
                 <div class="text-xs text-destructive mt-1 break-all"><%= row["error"] %></div>
               <% end %>
             </td>
-            <td class="px-4 py-3 font-mono text-sm"><%= row["inserted"] || "—" %></td>
-            <td class="px-4 py-3 font-mono text-sm text-muted-foreground"><%= row["skipped"] || "—" %></td>
-            <td class="px-4 py-3 font-mono text-sm text-muted-foreground"><%= row["pages_fetched"] || "—" %></td>
+            <td class="px-4 py-3 font-mono text-sm"><%= row["inserted"] || "-" %></td>
+            <td class="px-4 py-3 font-mono text-sm text-muted-foreground"><%= row["skipped"] || "-" %></td>
+            <td class="px-4 py-3 font-mono text-sm text-muted-foreground"><%= row["pages_fetched"] || "-" %></td>
           </tr>
         <% end %>
       <% end %>

@@ -36,7 +36,7 @@ Rails.application.routes.draw do
   end
 
   namespace :admin do
-    # Analytics is the entry point — /admin redirects to it. Operations
+    # Analytics is the entry point - /admin redirects to it. Operations
     # / Classification / Settings are concrete-tool sections; the
     # at-a-glance view is what you want when you land on the app.
     root to: redirect("/admin/analytics")
@@ -84,13 +84,13 @@ Rails.application.routes.draw do
     # order + payment-method fallback map. Read-only, debugging aid.
     get "matching_engine", to: "matching_engine#show"
 
-    # Each OperationRun kind gets its own admin surface — the underlying
+    # Each OperationRun kind gets its own admin surface - the underlying
     # OperationRun model is shared, but the UI is concern-specific.
     resources :transaction_syncs, only: [ :index, :show, :new, :create ]
 
     # AISP-provider plumbing (credentials, consents, accounts) lives at the
     # top level alongside merchants/categories/etc. The "Bank Integrations"
-    # sidebar group is purely UI — same flat URL convention as every other
+    # sidebar group is purely UI - same flat URL convention as every other
     # admin section.
     resources :tpp_credentials do
       member do
@@ -121,7 +121,7 @@ Rails.application.routes.draw do
       get "preferences", to: redirect("/admin/settings/preferences/profile"),
                          as: :preferences
 
-      # Each preference section is its own GET (form) + PATCH (save) — keeps
+      # Each preference section is its own GET (form) + PATCH (save) - keeps
       # params permitted lists cleanly scoped per concern, and lets us add
       # a fourth section without growing one fat controller action.
       scope "preferences", as: :preferences do
@@ -138,7 +138,7 @@ Rails.application.routes.draw do
 
         # Export/import of user-owned domain data. Lives next to Preferences
         # in the side nav (registry in Admin::BaseHelper#preferences_sections)
-        # but its own controller — file upload + bundle cipher don't fit the
+        # but its own controller - file upload + bundle cipher don't fit the
         # field-grouped form pattern of PreferencesController.
         get   "data_exchange",        to: "data_exchange#show",   as: :data_exchange
         post  "data_exchange/export", to: "data_exchange#export", as: :data_exchange_export

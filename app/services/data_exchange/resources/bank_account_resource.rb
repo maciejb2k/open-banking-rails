@@ -2,22 +2,10 @@
 
 module DataExchange
   module Resources
-    # Synced bank account OR cash wallet. The two ownership shapes are
-    # mutually exclusive (DB-enforced via `bank_accounts_ownership_xor`):
-    #
-    #   manual=false → tpp_credential set, manual_owner nil
-    #   manual=true  → manual_owner set,    tpp_credential nil
-    #
-    # The resource handles both by branching on `manual` in `references` and
-    # `stamp_ownership!`:
-    #   - synced: tpp_credential_id + current_bank_connection_id come through
-    #     the RefMap (parents are exported earlier in the topo order).
-    #   - cash:   manual_owner_id is stamped from current_user, never copied
-    #     from the bundle.
-    #
-    # `uid` is globally unique (DB index), so it's a clean natural key.
-    # `manual` is in permitted but NOT in updatable — flipping ownership
-    # shape on an existing account would violate the XOR check anyway.
+    # The two ownership shapes are mutually exclusive (DB-enforced via
+    # `bank_accounts_ownership_xor`): manual=false → tpp_credential set;
+    # manual=true → manual_owner set. `manual` is permitted but NOT
+    # updatable - flipping ownership shape would violate the XOR check.
     class BankAccountResource < Base
       key :bank_accounts
       model BankAccount
@@ -34,9 +22,8 @@ module DataExchange
         ]
       end
 
-      # Frozen on overwrite: uid (natural key, never reassigned), manual
-      # (would break XOR), status (destination owns lifecycle), the synced_at
-      # timestamps (destination's sync history).
+      # Frozen on overwrite: uid (natural key), manual (XOR), status
+      # (destination owns lifecycle), synced_at timestamps.
       def updatable_attributes
         %i[
           iban bban all_account_ids currency
@@ -50,8 +37,6 @@ module DataExchange
         %i[uid]
       end
 
-      # Both ownership shapes in scope: synced accounts (via the user's TPP
-      # credentials) OR cash wallets (manual_owner = user).
       def scope_for_export
         BankAccount.where(tpp_credential_id: user.tpp_credentials.select(:id))
                    .or(BankAccount.where(manual_owner_id: user.id))
@@ -59,7 +44,7 @@ module DataExchange
 
       def references(record)
         if record.manual
-          {} # manual_owner_id is stamped from current_user on import
+          {}
         else
           {
             tpp_credential_id:          [ :tpp_credentials,   record.tpp_credential_id ],
@@ -68,9 +53,7 @@ module DataExchange
         end
       end
 
-      # Cash wallets own through manual_owner_id. Synced accounts own through
-      # tpp_credential_id, which is set via `references` → remap_foreign_keys,
-      # so nothing to stamp here for that shape.
+      # Synced accounts own via tpp_credential_id (handled by remap_foreign_keys).
       def stamp_ownership!(attrs, _refs)
         attrs["manual_owner_id"] = user.id if attrs["manual"]
       end

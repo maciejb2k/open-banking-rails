@@ -19,7 +19,7 @@ export default class extends Controller {
   }
 
   // On focus we wipe the visible input so the user can start typing
-  // immediately. The hidden value is preserved — if the user closes
+  // immediately. The hidden value is preserved - if the user closes
   // without picking, restoreLabel() puts the previous label back.
   focus() {
     this.searchTarget.value = ""

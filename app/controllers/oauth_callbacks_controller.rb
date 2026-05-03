@@ -1,10 +1,5 @@
 # frozen_string_literal: true
 
-# Receives the redirect from the bank after PSU authorizes a session.
-# Verifies signed `state`, then delegates to Operations::CreateConnection
-# which exchanges the auth code and materializes BankConnection +
-# BankAccount records in a single transaction.
-#
 # The route (`/callback`) must match the redirect_url registered with the
 # provider AND with the user's TppCredential.redirect_url. If those differ,
 # the bank rejects the auth flow before it ever reaches us.
@@ -29,7 +24,7 @@ class OauthCallbacksController < ApplicationController
     )
 
     redirect_to admin_bank_connection_path(bc),
-                notice: "Bank connected — #{bc.bank_name}, #{bc.current_bank_accounts.count} account(s)."
+                notice: "Bank connected - #{bc.bank_name}, #{bc.current_bank_accounts.count} account(s)."
   rescue EnableBanking::Operations::CreateConnection::Failed => e
     reject(e.message)
   end

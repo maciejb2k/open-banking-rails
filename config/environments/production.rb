@@ -66,7 +66,7 @@ Rails.application.configure do
     protocol: ENV.fetch("APP_PROTOCOL", "https")
   }.compact
 
-  # Outgoing SMTP. All optional — if SMTP_ADDRESS is unset, mailers fall back
+  # Outgoing SMTP. All optional - if SMTP_ADDRESS is unset, mailers fall back
   # to delivery_method :smtp with localhost defaults (which will fail loudly).
   # Self-hosters who don't care about email can ignore; password reset has a
   # rake-task escape hatch.
@@ -92,7 +92,7 @@ Rails.application.configure do
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
 
-  # DNS rebinding protection. APP_HOST is the canonical entry — self-hosters
+  # DNS rebinding protection. APP_HOST is the canonical entry - self-hosters
   # behind a reverse proxy add their domain. Multiple hosts via comma-separated
   # APP_HOSTS (e.g. "finance.example.com,finance.example.org"). Empty list
   # disables the check (default for first-boot before APP_HOST is configured).

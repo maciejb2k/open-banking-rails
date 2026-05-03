@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
 module AutoSync
-  # Creates or updates the SyncSchedule for a BankConnection from form input.
-  # Recomputes next_run_at when the user changes timing (cadence/hour) or
-  # transitions disabled→enabled — otherwise leaves it alone so toggling off
-  # and on without other edits resumes from the previously-planned slot.
+  # next_run_at is recomputed only on timing change or disabled→enabled -
+  # so toggling off and on without other edits resumes from the previously
+  # planned slot.
   class ScheduleUpserter
     Input = Struct.new(:enabled, :cadence, :preferred_hour, keyword_init: true) do
       def parsed_enabled = ActiveModel::Type::Boolean.new.cast(enabled)
@@ -55,8 +54,6 @@ module AutoSync
       { enabled: schedule.enabled, cadence: schedule.cadence, preferred_hour: schedule.preferred_hour }
     end
 
-    # Recompute when: scheduling on for the first time, transitioning off→on,
-    # or user changed timing while on. Disabling never recomputes.
     def recompute_needed?(schedule, prev)
       return false unless schedule.enabled
       schedule.next_run_at.nil? ||
@@ -65,10 +62,8 @@ module AutoSync
         prev[:preferred_hour] != schedule.preferred_hour
     end
 
-    # Pass the schedule's last_dispatched_at so a cadence change on a long-
-    # running schedule honors the new interval (daily → weekly waits a week,
-    # not until tomorrow). For never-dispatched schedules, nil → first-fire
-    # semantics: next preferred-hour slot ASAP.
+    # Pass last_dispatched_at so a cadence change honors the new interval
+    # (daily → weekly waits a week, not tomorrow).
     def recomputed_next_run(schedule)
       NextRunCalculator.call(
         input: NextRunCalculator::Input.new(

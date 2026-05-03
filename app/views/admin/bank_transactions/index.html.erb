@@ -29,16 +29,13 @@
 
   <%= search_form_for @q, url: admin_bank_transactions_path, html: { data: { turbo: false } } do |f| %>
     <%= f.hidden_field :s, value: params.dig(:q, :s) %>
-    <%# Enrichment filters live outside the q[] Ransack hash — propagate them
-        as plain hidden fields so submitting the form keeps them. %>
+    <%# Enrichment filters live outside Ransack q[] - mirrored as plain hidden fields so submit preserves them. %>
     <%= hidden_field_tag :merchant_id,        params[:merchant_id],        id: "ef_merchant_id" %>
     <%= hidden_field_tag :category_id,        params[:category_id],        id: "ef_category_id" %>
     <%= hidden_field_tag :payment_method,     params[:payment_method],     id: "ef_payment_method" %>
     <%= hidden_field_tag :enrichment_source,  params[:enrichment_source],  id: "ef_enrichment_source" %>
     <%= hidden_field_tag :enrichment_state,   params[:enrichment_state],   id: "ef_enrichment_state" %>
 
-    <%# Search bar + filter trigger — full-width search on mobile so the
-        placeholder isn't truncated; trigger + apply wrap below if needed. %>
     <div class="flex flex-wrap items-center gap-2 sm:gap-3">
       <div class="relative w-full sm:w-auto sm:flex-1 sm:max-w-md">
         <%= render "admin/shared/icons/search", classes: "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" %>
@@ -52,9 +49,6 @@
       <%= render "admin/shared/components/button", label: "Apply", type: :submit %>
     </div>
 
-    <%# Active filter chips. label: keyword for plain strings; block for chips
-        that need sensitive_class wrapping (Account, Search). Both renderings
-        are deterministic after the filter_chip detection fix. %>
     <% if active_filter_count > 0 %>
       <div class="flex flex-wrap items-center gap-2 mt-3">
         <% if (val = params.dig(:q, :bank_account_id_eq)).present? %>
@@ -130,12 +124,11 @@
           active_count: active_filter_count do %>
       <div class="space-y-1.5">
         <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Bank account</label>
-        <%# Native <option> text cannot be blurred by privacy mode (browsers ignore CSS %>
-        <%# on option content). If this becomes an issue, swap for searchable_select. %>
+        <%# Native <option> text can't be blurred by privacy CSS - swap for searchable_select if that becomes a problem. %>
         <%= f.select :bank_account_id_eq,
               [["All accounts", ""]] + @user_bank_accounts.map { |a|
                 bank = a.current_bank_connection&.bank_name || a.current_bank_connection&.bank_slug
-                ["#{bank.present? ? "#{bank} — " : ""}#{a.display_name}", a.id]
+                ["#{bank.present? ? "#{bank} - " : ""}#{a.display_name}", a.id]
               },
               { selected: params.dig(:q, :bank_account_id_eq) },
               class: "form-input" %>
@@ -167,21 +160,20 @@
       </div>
 
       <div class="space-y-1.5">
-        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Booking date — from</label>
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Booking date - from</label>
         <%= f.date_field :booking_date_gteq, value: params.dig(:q, :booking_date_gteq),
               class: "form-input" %>
       </div>
 
       <div class="space-y-1.5">
-        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Booking date — to</label>
+        <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Booking date - to</label>
         <%= f.date_field :booking_date_lteq, value: params.dig(:q, :booking_date_lteq),
               class: "form-input" %>
       </div>
 
       <div class="space-y-1.5">
         <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Merchant</label>
-        <%# Plain HTML select bound to the hidden field outside @q via JS.
-            Updates the mirror field on change so Apply submits both. %>
+        <%# Plain select mirrored to the hidden ef_merchant_id field (lives outside Ransack q[]). %>
         <select onchange="document.getElementById('ef_merchant_id').value = this.value"
                 class="form-input">
           <option value="">All merchants</option>
@@ -227,8 +219,7 @@
 
       <div class="space-y-1.5">
         <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Enrichment status</label>
-        <%# Mirrors the "What's left" panel on /admin/llm_enrichments. The
-            filter logic lives in BankTransactionsController#filter_by_enrichment_state. %>
+        <%# Logic lives in BankTransactionsController#filter_by_enrichment_state. %>
         <select onchange="document.getElementById('ef_enrichment_state').value = this.value"
                 class="form-input">
           <option value="">All</option>
@@ -292,7 +283,7 @@
                 <% end %>
               <% else %>
                 <div class="flex items-center gap-2 min-w-0">
-                  <span class="truncate <%= sensitive_class if tx.title.present? && !hidden %>"><%= hide_private_text(tx.title.presence || "—", cat) %></span>
+                  <span class="truncate <%= sensitive_class if tx.title.present? && !hidden %>"><%= hide_private_text(tx.title.presence || "-", cat) %></span>
                   <%= enrichment_source_badge(tx.enrichment&.source || "unmatched") %>
                 </div>
                 <% if tx.counterparty_name.present? %>
@@ -304,14 +295,11 @@
               <% if cat %>
                 <%= render "admin/shared/components/category_breadcrumb", category: cat %>
               <% else %>
-                <%# No category at all = enrichment.source = "unmatched" or
-                    no enrichment row yet. Surface as a warning badge so
-                    the user knows it's actionable, not "intentionally blank". %>
                 <%= render "admin/shared/components/badge", text: "unclassified", variant: :warning %>
               <% end %>
             </td>
             <td class="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-              <%= payment_method_label(tx.payment_method) || "—" %>
+              <%= payment_method_label(tx.payment_method) || "-" %>
             </td>
             <td class="px-4 py-3">
               <%= render "admin/shared/components/badge",

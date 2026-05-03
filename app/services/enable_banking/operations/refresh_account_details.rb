@@ -2,12 +2,8 @@
 
 module EnableBanking
   module Operations
-    # Pulls fuller per-account metadata from EB and updates the BankAccount.
-    # Only overwrites fields the API actually returned; anything missing
-    # falls back to the existing value (per-bank fill rates differ — see
-    # Api::GetAccountDetails comment).
-    #
-    # Raises Failed on API failure.
+    # Only overwrites fields the API actually returned - per-bank fill rates
+    # differ (see Api::GetAccountDetails).
     class RefreshAccountDetails < Base
       Failed = Class.new(StandardError)
 
@@ -38,9 +34,8 @@ module EnableBanking
           account_servicer: d["account_servicer"] || @account.account_servicer
         )
 
-        # Re-sync own-account merchant rules — Revolut, for example, only
-        # exposes the second (LT) IBAN via this endpoint, not via the
-        # initial /sessions payload. Idempotent on no-change.
+        # Revolut only exposes the second (LT) IBAN via this endpoint, not the
+        # initial /sessions payload - re-sync after refreshing details.
         Enrichment::OwnAccountMerchantSyncer.call(@account)
 
         @account

@@ -1,15 +1,9 @@
 # frozen_string_literal: true
 
 module EnableBanking
-  # CSRF protection for the OAuth-like auth flow:
-  #
-  #   1. UI generates a `state` token via .encode(...) — signed payload
-  #   2. State is sent in POST /auth body
-  #   3. Bank echoes it back in the redirect query string
-  #   4. Callback controller calls .decode(state) and verifies authenticity
-  #
-  # Without this, an attacker could trick a logged-in user into linking
-  # the attacker's bank account to the victim's app.
+  # CSRF protection for the OAuth-like auth flow - signed payload sent in
+  # POST /auth body, echoed back by the bank, verified on callback. Without
+  # it, an attacker could link their bank account to the victim's app.
   class State
     PURPOSE = "enable_banking:oauth_state"
     TTL = 30.minutes

@@ -1,9 +1,5 @@
 <%# locals: () %>
-<%# Form for ManualTransaction. Categories are rendered as full ltree
-    breadcrumbs ("Lifestyle / Shopping / Electronics") so the leaf is
-    unambiguous even when the leaf name alone collides. Currency on edit
-    is locked (moving an entry between currencies = moving between
-    wallets, which is destructive). %>
+<%# Currency is locked on edit - switching currencies = moving wallets, which is destructive. %>
 <%
   amount_value =
     if @cash_transaction.amount_cents.present?
@@ -55,10 +51,7 @@
 
       <div>
         <% if @cash_transaction.persisted? %>
-          <%# Custom: read-only mirror of the wallet's currency. form/_select
-              would imply editability; a disabled <input> communicates the
-              lock more honestly. If a second locked field appears, extract
-              shared/form/_locked_field. %>
+          <%# Custom: locked currency on edit. If a 2nd locked field appears, extract shared/form/_locked_field. %>
           <%= render "admin/shared/form/form_group", label: "Currency" do %>
             <input type="text" value="<%= @cash_transaction.currency %>" disabled
                    class="form-input bg-muted/30 font-mono">
@@ -82,21 +75,18 @@
   <div class="admin-section space-y-4">
     <h2 class="text-base font-semibold text-foreground">Classification</h2>
 
-    <%# Path-aware select: every category as a full breadcrumb so the
-        leaf is unambiguous. Indented by depth so the order matches the
-        tree's natural traversal. %>
     <%= render "admin/shared/form/form_group",
           label: "Category",
           hint: "Without a category the entry lands in Uncategorized." do %>
       <%= f.select :category_id,
             options_for_select(
               @category_options.map { |c|
-                indent = "—" * c.path.to_s.count(".")
+                indent = "-" * c.path.to_s.count(".")
                 [ "#{indent} #{c.breadcrumb_names.join(" / ")}".strip, c.id ]
               },
               @cash_transaction.enrichment&.category_id
             ),
-            { include_blank: "—" },
+            { include_blank: "-" },
             class: "form-input" %>
     <% end %>
 
@@ -104,7 +94,7 @@
           form: f, field: :merchant_id,
           label: "Merchant / counterparty",
           options: @merchant_options.map { |m| [ m.display, m.id ] },
-          include_blank: "—",
+          include_blank: "-",
           hint: "Optional. Helps later analysis and rule learning." %>
   </div>
 
@@ -124,7 +114,7 @@
     <%= render "admin/shared/form/textarea",
           form: f, field: :note,
           label: "Note", rows: 3,
-          placeholder: "Private note — only visible to you." %>
+          placeholder: "Private note - only visible to you." %>
   </div>
 
   <%= f.hidden_field :payment_method, value: @cash_transaction.payment_method.presence || "cash" %>

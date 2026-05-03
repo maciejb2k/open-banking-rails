@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
 module DataExchange
-  # Translates `(resource_key, source_id)` → destination_id during import.
-  # Populated as parents are written; consulted as children remap their FKs.
-  # Lookup miss returns nil — caller decides whether that's fatal (required FK)
-  # or just a soft drop (optional FK).
+  # Lookup miss returns nil - caller decides whether that's fatal (required FK)
+  # or a soft drop (optional FK).
   class RefMap
     def initialize
       @map = Hash.new { |h, k| h[k] = {} }

@@ -1,5 +1,4 @@
 <%# locals: (form:, field:, label:, search_url:, selected_label: nil, hint: nil, required: false, min_chars: 1, sort_by: nil, mock_options: nil) %>
-<%# See docs/admin_styleguide.md — "Ajax Select" section for full usage and endpoint convention. %>
 <% error = form.object.errors[field].first %>
 <%= render "admin/shared/form/form_group", label: label, hint: hint, error: error, required: required do %>
   <div class="relative"

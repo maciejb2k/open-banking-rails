@@ -2,21 +2,21 @@
 
 # Foundation for the three-layer category model:
 #
-#   Layer 1 — hierarchy: replaces `categories.parent_id` (capped at depth 2)
+#   Layer 1 - hierarchy: replaces `categories.parent_id` (capped at depth 2)
 #             with `categories.path` (PG ltree, unbounded depth, slug-based
-#             segments — `food.cooking.supermarket`). Native ltree, no gem
-#             on top — slug paths read better than the id-paths the
+#             segments - `food.cooking.supermarket`). Native ltree, no gem
+#             on top - slug paths read better than the id-paths the
 #             ancestry gem would produce.
 #
-#   Layer 2 — facets: `categories.essential` (needs vs wants) +
+#   Layer 2 - facets: `categories.essential` (needs vs wants) +
 #             `transaction_enrichments.recurring` / `recurrence_interval`
 #             (cyclical charges as a property, not a category).
 #
-#   Layer 3 — tags: gutentag tables (Tag + Tagging join), polymorphic
+#   Layer 3 - tags: gutentag tables (Tag + Tagging join), polymorphic
 #             but only attached to TransactionEnrichment in this app.
 #
 # Local dev: drops `parent_id` straight away. Production cutover (when it
-# happens) reseeds the tree from scratch — every existing category gets
+# happens) reseeds the tree from scratch - every existing category gets
 # repointed to a leaf in the new taxonomy via db/seeds/categories.rb,
 # then `parent_id` goes. There is no in-place ancestry backfill because
 # the new taxonomy's slugs don't 1:1 match the old ones.
@@ -24,7 +24,7 @@ class LayeredCategoriesFoundation < ActiveRecord::Migration[8.1]
   def up
     enable_extension "ltree"
 
-    # Gutentag tables — all three migrations from the gem, collapsed.
+    # Gutentag tables - all three migrations from the gem, collapsed.
     create_table :gutentag_taggings do |t|
       t.bigint :tag_id,         null: false
       t.bigint :taggable_id,    null: false
@@ -53,7 +53,7 @@ class LayeredCategoriesFoundation < ActiveRecord::Migration[8.1]
       remove_column :categories, :parent_id
     end
 
-    # Full path including the leaf — `food.cooking.supermarket`. Slug
+    # Full path including the leaf - `food.cooking.supermarket`. Slug
     # segments separated by dots, ltree-native. GiST index supports
     # subtree containment (`<@`), ancestor (`@>`), and lquery patterns
     # (`~ 'food.*{1}'` for direct children only).

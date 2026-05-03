@@ -2,29 +2,11 @@
 
 module DataExchange
   module Operations
-    # Decrypt + parse a bundle and apply it to the destination instance.
-    #
-    #   result = Import.call(
-    #     user:        current_user,
-    #     bundle_blob: uploaded_file.read,
-    #     passphrase:  "...",
-    #     strategy:    :skip_existing
-    #   )
-    #   result.imported # 12
-    #   result.run      # OperationRun(kind: "data_import", status: "succeeded")
-    #   result.per_resource[:tpp_credentials] # { imported: 1, ... }
-    #
-    # OperationRun lifecycle owned by this operation (mirrors
-    # Llm::ConnectionTestRunner): created `running` AFTER the bundle parses
-    # cleanly (so wrong-passphrase typos don't pollute audit history),
-    # marked `succeeded` with per-resource counts on completion, marked
-    # `failed` with the rescued message if anything in apply!/save raises.
-    #
-    # Pipeline: validate inputs → parse bundle → validate bundle → create run
-    # → apply (single transaction, all-or-nothing).
+    # OperationRun is created `running` AFTER the bundle parses cleanly so
+    # wrong-passphrase typos don't pollute audit history.
     #
     # Multi-tenant guard: user_id is ALWAYS taken from `user`, never from
-    # bundle data — enforced in Resources::Base#stamp_ownership! and the
+    # bundle data - enforced in Resources::Base#stamp_ownership! and the
     # per-resource permitted_attributes allowlist.
     class Import < Base
       Failed = Class.new(StandardError)
@@ -34,7 +16,7 @@ module DataExchange
       STRATEGIES = %i[skip_existing overwrite_existing fail_on_conflict].freeze
 
       MAX_BUNDLE_BYTES = 10 * 1024 * 1024  # post-decrypt cap; bundle stays in memory
-      MAX_RECORDS      = 50_000            # sanity cap, prevents pathological bundles
+      MAX_RECORDS      = 50_000
 
       def initialize(user:, bundle_blob:, passphrase:, strategy: :skip_existing)
         @user        = user
@@ -64,12 +46,12 @@ module DataExchange
       def validate_inputs!
         raise Failed, "passphrase required" if @passphrase.to_s.empty?
         raise Failed, "unknown strategy: #{@strategy}" unless STRATEGIES.include?(@strategy)
-        raise Failed, "AR encryption keys not configured on this instance — cannot store sensitive fields" \
+        raise Failed, "AR encryption keys not configured on this instance - cannot store sensitive fields" \
           unless ar_encryption_configured?
         raise Failed, "bundle is empty" if @bundle_blob.to_s.empty?
+        # *2: cap is on decrypted size; encrypted is roughly the same plus
+        # envelope + IV + tag overhead.
         raise Failed, "bundle exceeds size limit" if @bundle_blob.bytesize > MAX_BUNDLE_BYTES * 2
-        # *2 because the cap is on decrypted size; encrypted is roughly the same
-        # plus tiny overhead, but we leave headroom for envelope + IV + tag.
       end
 
       def parse_bundle!
@@ -94,7 +76,7 @@ module DataExchange
           next if bundle_v <= known_v
 
           raise Failed,
-                "bundle resource #{key} version #{bundle_v} is newer than this build (#{known_v}) — upgrade target instance"
+                "bundle resource #{key} version #{bundle_v} is newer than this build (#{known_v}) - upgrade target instance"
         end
       end
 
@@ -129,8 +111,7 @@ module DataExchange
               outcome = resource.apply!(serialized: serialized, ref_map: ref_map, strategy: @strategy)
               @partial_result.record(key, outcome)
             rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
-              # Per-record validation failure inside an otherwise valid bundle.
-              # Bubble up — the surrounding transaction rolls back, so the user
+              # Bubble up so the surrounding transaction rolls back - user
               # sees a clean "nothing imported" with the offending message.
               raise Failed, "#{key}: #{e.message}"
             end

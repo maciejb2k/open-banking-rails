@@ -41,45 +41,17 @@
 #  fk_rails_...  (linked_bank_transaction_id => bank_transactions.id)
 #
 class ManualTransaction < ApplicationRecord
-  # Off-bank ledger entries — cash, IOUs, anything the user types in by hand.
-  # Shares the polymorphic enrichment pipeline with BankTransaction via the
-  # LedgerEntry concern, so reports, filters, and rule-matching treat both the
-  # same.
-  #
-  # Why no external_id / uniqueness scope: the user is the source of truth. A
-  # duplicate row is a UX problem (warn + delete), not a data-integrity problem
-  # the way it is for synced bank rows.
-
   include LedgerEntryConcern
 
   DIRECTIONS = %w[credit debit].freeze
   STATUSES   = %w[booked pending].freeze
 
-  # Distinct namespace from BankTransaction::PAYMENT_METHODS — these only ever
-  # appear on manual rows. Each must have a fallback in
-  # Enrichment::TransactionEnricher::PAYMENT_METHOD_FALLBACK.
-  #
-  #   cash                — bare cash spend / income (the default)
-  #   cash_atm_topup      — auto-generated when an ATM withdrawal is linked
-  #                         (Phase 3); paired with the source bank tx via
-  #                         linked_bank_transaction_id
-  #   cash_deposit        — user deposited cash to a bank teller (rare)
-  #   cash_fx_conversion  — kantor: PLN debit + EUR credit (or similar)
-  #   cash_adjustment     — reconciliation correction when wallet balance
-  #                         drifts from physical wallet
+  # Distinct namespace from BankTransaction::PAYMENT_METHODS. Each must have
+  # a fallback in Enrichment::TransactionEnricher::PAYMENT_METHOD_FALLBACK.
   PAYMENT_METHODS = %w[cash cash_atm_topup cash_deposit cash_fx_conversion cash_adjustment].freeze
 
-  # Same enum + semantics as BankTransaction::COUNTERPARTY_KINDS.
-  # Manual rows have no counterparty_iban, so resolution is name-based
-  # (or implied by payment_method for cash_atm_topup / cash_deposit /
-  # cash_fx_conversion / cash_adjustment, which are always self).
   COUNTERPARTY_KINDS = %w[self external unknown].freeze
 
-  # Provenance:
-  #   manual       — user typed it in
-  #   atm_link     — auto-created by Cash::AtmWithdrawalLinker (Phase 3)
-  #   csv_import   — bulk import (future)
-  #   recurring    — generated from a recurring template (future)
   SOURCES = %w[manual atm_link csv_import recurring].freeze
 
   belongs_to :bank_account
@@ -101,10 +73,9 @@ class ManualTransaction < ApplicationRecord
 
   has_paper_trail
 
-  # Read-through delegates so admin form helpers (form/_select) can call
-  # form.object.merchant_id directly without knowing about the polymorphic
-  # enrichment row. Writes still go through Cash::TransactionUpdater, which
-  # handles the enrichment side-effects.
+  # Read-through delegates so form helpers can call form.object.merchant_id
+  # directly. Writes go through Cash::TransactionUpdater for the enrichment
+  # side-effects.
   delegate :merchant_id, :category_id, to: :enrichment, allow_nil: true
 
   scope :booked,  -> { where(status: "booked") }
@@ -133,8 +104,6 @@ class ManualTransaction < ApplicationRecord
     direction == "credit" ? amount : -amount
   end
 
-  # The owner is always reachable via the wallet — cash wallets carry
-  # manual_owner_id directly. Useful for authorization checks.
   def user
     bank_account&.manual_owner
   end

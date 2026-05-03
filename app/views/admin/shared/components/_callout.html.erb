@@ -1,8 +1,5 @@
 <%# locals: (variant: :info, title: nil, message: nil) %>
-<%# Static, non-dismissible inline alert. Block content overrides message:. %>
-<%# Structure deliberately mirrors _flash.html.erb (single <p> inside a
-<%# flex container) so vertical centering matches. Stacked title+message
-<%# in a wrapper div breaks centering — keep it flat. %>
+<%# Flat single-<p> structure mirrors _flash.html.erb for vertical centering - wrapping title+message in a div breaks alignment. %>
 <%
   variants = {
     info: "border-info/30 bg-info/10 text-info",
@@ -16,7 +13,7 @@
 <div class="flex items-center gap-3 rounded-xl border px-4 py-3 text-sm <%= cls %>">
   <p>
     <% if title %><span class="font-medium"><%= title %></span><% end %>
-    <% if title && has_body %> — <% end %>
+    <% if title && has_body %> - <% end %>
     <% if block_given? %><%= yield %><% elsif message %><%= message %><% end %>
   </p>
 </div>

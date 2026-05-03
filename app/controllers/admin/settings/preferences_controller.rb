@@ -2,20 +2,9 @@
 
 module Admin
   module Settings
-    # Per-user preferences split across three side-nav sections:
-    #
-    #   - profile : display name + password
-    #   - app     : cash tracking, hidden categories
-    #   - llm     : AI provider, API key, connection test
-    #
-    # Each section gets its own GET (render the section) + PATCH (save).
-    # That keeps params permitted lists scoped to one concern and makes
-    # adding a fourth section a copy-paste of one of the existing pairs
-    # — no fat update action accumulating fields.
     class PreferencesController < BaseController
       before_action :load_user
 
-      # ── Profile ──────────────────────────────────────────────────────
       def profile; end
 
       def update_profile
@@ -30,7 +19,7 @@ module Admin
       def update_password
         if @user.update_with_password(password_params)
           # Rememberable rotates the auth token on password change; rebind
-          # the session so the user isn't kicked out mid-flow.
+          # so the user isn't kicked out mid-flow.
           bypass_sign_in(@user)
           redirect_to admin_settings_preferences_profile_path, notice: "Password changed."
         else
@@ -39,7 +28,6 @@ module Admin
         end
       end
 
-      # ── App ──────────────────────────────────────────────────────────
       def app; end
 
       def update_app
@@ -58,7 +46,6 @@ module Admin
         end
       end
 
-      # ── LLM ──────────────────────────────────────────────────────────
       def llm
         load_llm_form_objects
       end
@@ -67,7 +54,7 @@ module Admin
         load_llm_form_objects
         attrs = llm_params
 
-        # Empty api_key on an existing record means "keep the current key" —
+        # Empty api_key on an existing record means "keep the current key" -
         # the form pre-fills with a placeholder, never the real value, so
         # blank submission is the intent to leave it untouched.
         attrs.delete(:api_key) if attrs[:api_key].blank? && @llm_setting.persisted?
@@ -90,7 +77,7 @@ module Admin
 
         result = Llm::ConnectionTestRunner.call(user: current_user)
         redirect_to admin_settings_preferences_llm_path,
-                    notice: "Connection OK — #{result.setting.provider_label} (#{result.setting.effective_model})."
+                    notice: "Connection OK - #{result.setting.provider_label} (#{result.setting.effective_model})."
       rescue Llm::ConnectionTestRunner::Failed => e
         redirect_to admin_settings_preferences_llm_path, alert: "Test failed: #{e.message}"
       end
@@ -120,9 +107,8 @@ module Admin
 
       def app_params
         permitted = params.require(:user).permit(:track_cash, hidden_category_ids: [])
-        # multi_select renders no hidden inputs when nothing is selected, so
-        # the param is omitted entirely from the form. Force an empty array
-        # so the has_many through can clear the join table.
+        # multi_select omits the param when nothing is selected - force [] so
+        # the has_many through can clear the join table.
         permitted[:hidden_category_ids] ||= []
         permitted
       end

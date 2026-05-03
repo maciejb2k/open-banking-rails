@@ -1,19 +1,8 @@
 # frozen_string_literal: true
 
 module Seeders
-  # Seeds the baseline three-layer category taxonomy for a single user.
-  # Idempotent — keyed on (user_id, slug). Re-running updates existing
-  # rows in place (name / kind / path / essential), never deletes them
-  # (use the UI to archive so historical FKs from transaction_enrichments
-  # stay valid).
-  #
-  # Call sites:
-  #   * `db/seeds/categories.rb` (loops every user during db:seed)
-  #   * registration / onboarding flow (seed the new user explicitly)
-  #   * test factories (when a spec needs the full tree)
-  #
-  # No model callback wires this up — seeding is an explicit decision
-  # made by whoever creates the user.
+  # Idempotent - keyed on (user_id, slug). Updates in place; never deletes
+  # (use UI archive so historical FKs from transaction_enrichments stay valid).
   module Categories
     SEPARATOR = "."
 
@@ -31,8 +20,6 @@ module Seeders
     }.freeze
 
     DEFINITIONS = [
-      # Top-level domains — name + icon set on roots only; sub-categories
-      # inherit color from the domain.
       { path: "food",        name: "Jedzenie",        kind: "expense",  icon: "utensils",       essential: false },
       { path: "mobility",    name: "Mobilność",       kind: "expense",  icon: "car",            essential: false },
       { path: "home",        name: "Mieszkanie",      kind: "expense",  icon: "home",           essential: true  },
@@ -44,7 +31,6 @@ module Seeders
       { path: "money",       name: "Ruch pieniędzy",  kind: "transfer", icon: "arrow-right-left", essential: false },
       { path: "noise",       name: "Niesklasyfikowane", kind: "ignored", icon: "help-circle",   essential: false },
 
-      # food.*
       { path: "food.cooking",                name: "W domu",                 kind: "expense", essential: true  },
       { path: "food.cooking.supermarket",    name: "Supermarkety",           kind: "expense", essential: true  },
       { path: "food.cooking.convenience",    name: "Sklepy osiedlowe",       kind: "expense", essential: true  },
@@ -59,7 +45,6 @@ module Seeders
       { path: "food.eating_out.delivery",    name: "Dostawa jedzenia",       kind: "expense", essential: false },
       { path: "food.eating_out.bar",         name: "Bar / pub / klub",       kind: "expense", essential: false },
 
-      # mobility.*
       { path: "mobility.daily",              name: "Codzienne",              kind: "expense", essential: true  },
       { path: "mobility.daily.transit",      name: "Komunikacja miejska",    kind: "expense", essential: true  },
       { path: "mobility.daily.rideshare",    name: "Taxi / Bolt / Uber",     kind: "expense", essential: false },
@@ -75,7 +60,6 @@ module Seeders
       { path: "mobility.travel.lodging",     name: "Noclegi",                kind: "expense", essential: false },
       { path: "mobility.travel.longdistance", name: "PKP / autobus",         kind: "expense", essential: false },
 
-      # home.*
       { path: "home.fixed",                  name: "Stałe",                  kind: "expense", essential: true  },
       { path: "home.fixed.rent",             name: "Czynsz / kredyt",        kind: "expense", essential: true  },
       { path: "home.fixed.utilities",        name: "Media (prąd / gaz)",     kind: "expense", essential: true  },
@@ -86,7 +70,6 @@ module Seeders
       { path: "home.variable.goods",         name: "Wyposażenie",            kind: "expense", essential: false },
       { path: "home.variable.maintenance",   name: "Konserwacja i remonty", kind: "expense", essential: false },
 
-      # health.*
       { path: "health.medical",              name: "Medyczne",               kind: "expense", essential: true  },
       { path: "health.medical.pharmacy",     name: "Apteki",                 kind: "expense", essential: true  },
       { path: "health.medical.doctor",       name: "Lekarze",                kind: "expense", essential: true  },
@@ -98,7 +81,6 @@ module Seeders
       { path: "health.body.beauty",          name: "Kosmetyk",               kind: "expense", essential: false },
       { path: "health.body.fitness",         name: "Sport i siłownia",       kind: "expense", essential: false },
 
-      # lifestyle.*
       { path: "lifestyle.entertainment",            name: "Rozrywka",              kind: "expense", essential: false },
       { path: "lifestyle.entertainment.streaming",  name: "Streaming",             kind: "expense", essential: false },
       { path: "lifestyle.entertainment.events",     name: "Bilety i wydarzenia",   kind: "expense", essential: false },
@@ -119,12 +101,10 @@ module Seeders
       { path: "lifestyle.giving.gifts",             name: "Prezenty",              kind: "expense", essential: false },
       { path: "lifestyle.giving.donations",         name: "Darowizny",             kind: "expense", essential: false },
 
-      # education.*
       { path: "education.courses",  name: "Kursy i szkolenia", kind: "expense", essential: false },
       { path: "education.books",    name: "Książki",           kind: "expense", essential: false },
       { path: "education.tuition",  name: "Studia / czesne",   kind: "expense", essential: false },
 
-      # services.*
       { path: "services.financial",            name: "Finansowe",             kind: "expense", essential: true  },
       { path: "services.financial.fees",       name: "Prowizje bankowe",      kind: "expense", essential: true  },
       { path: "services.financial.fx_markup",  name: "Spread walutowy",       kind: "expense", essential: false },
@@ -142,7 +122,6 @@ module Seeders
       { path: "services.professional.legal",   name: "Prawne",                kind: "expense", essential: false },
       { path: "services.professional.accounting", name: "Księgowość",         kind: "expense", essential: false },
 
-      # income.*
       { path: "income.work",            name: "Praca",            kind: "income", essential: false },
       { path: "income.work.salary",     name: "Wynagrodzenie",    kind: "income", essential: false },
       { path: "income.work.bonus",      name: "Premie",           kind: "income", essential: false },
@@ -161,7 +140,6 @@ module Seeders
       { path: "income.other.sale",      name: "Sprzedaż rzeczy",   kind: "income", essential: false },
       { path: "income.other.gifts_in",  name: "Otrzymane prezenty", kind: "income", essential: false },
 
-      # money.* (transfer/savings)
       { path: "money.transfers",            name: "Przelewy",         kind: "transfer", essential: false },
       { path: "money.transfers.own",        name: "Własne konta",     kind: "transfer", essential: false },
       { path: "money.transfers.private",    name: "Prywatne BLIK / przelewy", kind: "transfer", essential: false },
@@ -176,16 +154,10 @@ module Seeders
       { path: "money.investments.etf",      name: "ETF / fundusze",   kind: "savings",  essential: false },
       { path: "money.investments.crypto",   name: "Krypto",           kind: "savings",  essential: false },
 
-      # noise.* — buckets for transactions without a merchant signal.
-      #
-      # `noise.unmatched.*` leaves are kind=expense — these are REAL
-      # spend, just without a known merchant. They count toward Spend
-      # totals so the bottom-line "ile wydałem" stays honest. The UI
-      # surfaces them with a badge for review queue.
-      #
-      # `noise.authorizations.*` and `noise.adjustments.*` stay
-      # kind=ignored — those are non-real (preauth that gets reversed,
-      # reconciliation corrections) and shouldn't pollute totals.
+      # noise.unmatched.* are kind=expense - REAL spend without a known
+      # merchant; counted in totals so "ile wydałem" stays honest.
+      # noise.authorizations.* and noise.adjustments.* stay kind=ignored
+      # - preauth reversals and reconciliation corrections.
       { path: "noise.unmatched",         name: "Bez sklepu",            kind: "expense", essential: false },
       { path: "noise.unmatched.blik",    name: "BLIK POS bez nazwy",    kind: "expense", essential: false },
       { path: "noise.unmatched.card",    name: "Karta bez sklepu",      kind: "expense", essential: false },

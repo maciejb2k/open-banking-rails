@@ -1,10 +1,5 @@
 <%# locals: (connection:) %>
-<%# Projects what each scheduled sync will pull, per account. Mirrors the
-    logic in EnableBanking::Operations::SyncAccountTransactions:
-      - first sync (transactions_synced_at IS NULL) → BackfillWindow horizon
-      - incremental                                 → synced_at - 7d overlap
-    The "to" anchor is today; the actual fire-time will shift it forward.
-    Read-only display — behavior is owned by the sync operation, not here. %>
+<%# Read-only projection - actual sync behavior lives in EnableBanking::Operations::SyncAccountTransactions. %>
 <%
   overlap_days = EnableBanking::Operations::SyncAccountTransactions::INCREMENTAL_OVERLAP / 1.day
   bank_horizon_days = EnableBanking::BackfillWindow.days_for(connection.bank_slug)

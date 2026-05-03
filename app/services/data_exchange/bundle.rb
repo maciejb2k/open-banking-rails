@@ -5,16 +5,9 @@ require "zlib"
 require "stringio"
 
 module DataExchange
-  # Bundle envelope — manifest + per-resource payload, gzipped JSON, then
-  # passphrase-encrypted via BundleCipher. The envelope is the only thing
-  # that ever crosses an instance boundary.
-  #
-  # Wire pipeline:
-  #   { manifest:, payload: } → JSON.dump → gzip → BundleCipher.encrypt → blob
-  #
-  # Reverse on import. Sensitive payload (decrypted ciphertext from source
-  # records) lives in plaintext inside the gzipped JSON, which is why the
-  # outer encryption is non-negotiable.
+  # Pipeline: { manifest, payload } → JSON → gzip → BundleCipher.encrypt → blob.
+  # Sensitive plaintext (decrypted ciphertext from source records) lives in
+  # the gzipped JSON, so the outer encryption is non-negotiable.
   class Bundle
     FORMAT_VERSION = 1
     InvalidFormat  = Class.new(StandardError)

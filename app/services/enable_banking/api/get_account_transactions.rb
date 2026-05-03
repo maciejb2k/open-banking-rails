@@ -2,26 +2,14 @@
 
 module EnableBanking
   module Api
-    # GET /accounts/{uid}/transactions — paginated transactions list.
-    #
-    # Auto-paginates via `continuation_key` and aggregates pages into a single
-    # Result. Returns the flattened transactions array as `data["transactions"]`,
-    # plus `data["pages_fetched"]` and `data["truncated"]` (true if max_pages cap hit).
-    #
-    # Query parameters:
-    #   date_from, date_to  YYYY-MM-DD (inclusive, UTC)
-    #   transaction_status  BOOK | PDNG | INFO | OTHR
-    #                       Note: PKO returns 400 ASPSP_ERROR for PDNG; default
-    #                       (no filter) returns BOOK only on most banks.
-    #
-    # Per-bank history horizons (PoC findings, silently truncate if exceeded):
+    # Auto-paginates via `continuation_key`. Per-bank history horizons:
     #   Revolut: ~90 days (strict PSD2)
     #   PKO BP:  ~26 months
-    #   mBank:   inconclusive (constant 51 tx in tests, low activity sample)
-    #
-    # Each transaction shape per bank documented in PoC docs/banks/*.md.
+    #   mBank:   inconclusive
+    # PKO returns 400 ASPSP_ERROR for transaction_status=PDNG; default
+    # (no filter) returns BOOK only on most banks.
     class GetAccountTransactions < Base
-      DEFAULT_MAX_PAGES = 100  # safety cap; ~5000 tx with EB's 50/page typical
+      DEFAULT_MAX_PAGES = 100  # ~5000 tx with EB's 50/page typical
 
       def initialize(credential:, uid:, date_from: nil, date_to: nil,
                      transaction_status: nil, max_pages: DEFAULT_MAX_PAGES)

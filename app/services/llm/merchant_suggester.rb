@@ -1,13 +1,8 @@
 # frozen_string_literal: true
 
 module Llm
-  # Asks the LLM to identify merchants from a batch of raw transaction titles +
-  # counterparty names, and propose matching rules we can persist.
-  #
-  # Sends up to BATCH_SIZE items in one API call — each item gets an `index`
-  # so results can be matched back even if the model reorders or skips some.
-  #
-  # Privacy: only `title` and `counterparty_name` are ever sent.
+  # Each input item gets an `index` so results match back even if the model
+  # reorders or skips. Privacy: only `title` and `counterparty_name` are sent.
   class MerchantSuggester
     BATCH_SIZE = 15
 
@@ -43,20 +38,15 @@ module Llm
       }
     }.freeze
 
-    # Single-item interface kept for tests / manual use.
     def self.call(user:, title:, counterparty_name: nil, client: nil)
       batch_call([ { title: title, counterparty_name: counterparty_name } ], user: user, client: client).first
     end
 
-    # Primary interface for EnrichmentRunner.
-    # items: array of { title:, counterparty_name: }
-    # Returns array of Result in the same order as items.
     def self.batch_call(items, user:, client: nil)
       new(items: items, user: user, client: client).call
     end
 
-    # Last-call I/O — exposed so callers can log the actual prompt/response
-    # for debugging without re-running the model.
+    # Exposed so callers can log the actual prompt/response without re-running.
     attr_reader :last_input, :last_response
 
     def initialize(user:, items:, client: nil)
@@ -102,49 +92,49 @@ module Llm
         - prefiksy domen ("WWW.", "SKLEP.", "M.", "APP.")
         - sufiksy domen (".PL", ".COM", ".EU", ".NET")
         - separatory typu "*", "-", spacje wielokrotne
-        Co zostaje to RDZEŃ — używaj go i jako merchant_name (z normalną kapitalizacją)
+        Co zostaje to RDZEŃ - używaj go i jako merchant_name (z normalną kapitalizacją)
         i jako pattern.
 
         ## Klasy sprzedawców (rozpoznawaj klasą, nie listą marek)
         Każda transakcja należy do JEDNEJ z poniższych klas. Klasa narzuca strategię:
 
-        1. **Sieć handlowa / sklep stacjonarny** — tytuł z prefiksem miasta i nazwą sieci.
+        1. **Sieć handlowa / sklep stacjonarny** - tytuł z prefiksem miasta i nazwą sieci.
            Strategia: pattern = nazwa sieci, kind=contains, field=title.
 
-        2. **E-commerce / sklep internetowy** — tytuł zawiera domenę URL.
+        2. **E-commerce / sklep internetowy** - tytuł zawiera domenę URL.
            Strategia: pattern = rdzeń domeny, kind=contains, field=title.
 
-        3. **SaaS / subskrypcja cyfrowa** — counterparty_name niepuste, często z separatorem
+        3. **SaaS / subskrypcja cyfrowa** - counterparty_name niepuste, często z separatorem
            "*" oddzielającym wystawcę od produktu (Stripe-style).
            Strategia: pattern = rdzeń nazwy, kind=contains, field=counterparty_name.
 
-        4. **Lokalna firma / pojedynczy punkt** — tytuł zawiera imię + nazwisko, nazwę
-           niesieciową, lub branżową frazę. Może być nieznana wielkim modelom — to OK.
+        4. **Lokalna firma / pojedynczy punkt** - tytuł zawiera imię + nazwisko, nazwę
+           niesieciową, lub branżową frazę. Może być nieznana wielkim modelom - to OK.
            Strategia: pattern = nazwa firmy bez prefiksu miasta, kind=contains, field=title.
 
-        5. **Fundacja / NGO / charity** — domena .pl/.org z nazwą sugerującą cel społeczny
+        5. **Fundacja / NGO / charity** - domena .pl/.org z nazwą sugerującą cel społeczny
            ("FUNDACJA…", "RATUJEMY…", "POMOC…", "SIEPOMAGA"). kind=charity.
            Domyślna kategoria: gifts_donations.
 
-        6. **Instytucja publiczna** — urząd, ZUS, US, sąd. kind=government.
+        6. **Instytucja publiczna** - urząd, ZUS, US, sąd. kind=government.
 
-        7. **Bilety / transport / parking** — często z nazwą operatora (PKP, mPay, SkyCash).
+        7. **Bilety / transport / parking** - często z nazwą operatora (PKP, mPay, SkyCash).
 
         ## Reguła (rule_pattern)
-        Wzorzec musi dopasować WSZYSTKIE warianty tego sprzedawcy — różne miasta, różne
+        Wzorzec musi dopasować WSZYSTKIE warianty tego sprzedawcy - różne miasta, różne
         terminale, różne końcówki domen. Zasada: krótki rdzeń, nie cały tytuł.
         - DOBRZE: pattern="LIDL"           (matchuje "RZESZOWLIDL 01PL", "WARSZAWALIDL 22PL", …)
         - DOBRZE: pattern="DEVSTYLE"       (matchuje "SKLEP.DEVSTYLE.PL", "WWW.DEVSTYLE.COM", …)
         - DOBRZE: pattern="Spotify"        (matchuje "Spotify P0E5C3F0F", "Spotify ABC123", …)
-        - ŹLE:    pattern="RZESZOWLIDL 01PL"     (exact całego tytułu — przegapi inne terminale)
-        - ŹLE:    pattern="LI"                   (zbyt krótki — false positivy na "LINIA", "LIST")
+        - ŹLE:    pattern="RZESZOWLIDL 01PL"     (exact całego tytułu - przegapi inne terminale)
+        - ŹLE:    pattern="LI"                   (zbyt krótki - false positivy na "LINIA", "LIST")
         kind=contains jest defaultem. exact tylko gdy counterparty_name to *czysto* nazwa firmy.
         kind=iban tylko gdy field=counterparty_iban.
         field=title dla mBank/PKO card-payment, field=counterparty_name dla SaaS / Revolut.
 
-        ## Confidence — co znaczy każdy próg
+        ## Confidence - co znaczy każdy próg
         Confidence dotyczy *identyfikacji nazwy*, nie pewności kategorii. Niepewna kategoria
-        nie obniża confidence — wybierz "uncategorized" i zostaw normalne conf dla nazwy.
+        nie obniża confidence - wybierz "uncategorized" i zostaw normalne conf dla nazwy.
         - 0.95+: rozpoznana sieć / domena / SaaS, zerowe wątpliwości.
         - 0.8–0.9: czytelny rdzeń (nieznana lokalnie marka, ale tytuł sam się tłumaczy).
         - 0.6–0.8: lokalna firma, niepełna nazwa, ale jest co dopasować.
@@ -156,9 +146,9 @@ module Llm
 
         # KONTEKST
 
-        ## Pola wejściowe — title_raw vs title_normalized
+        ## Pola wejściowe - title_raw vs title_normalized
         Każdy item dostaje co najmniej `title_raw`. Gdy serwer wykrył że
-        warto, dorzuca `title_normalized` — to ten sam tytuł po stripie
+        warto, dorzuca `title_normalized` - to ten sam tytuł po stripie
         miasta, "PL", kodu terminala i cyfr. Użyj go do **identyfikacji
         sprzedawcy** (znacznie czystszy sygnał).
           title_raw:        "RzeszowP.U.N.K.TPL"
@@ -168,7 +158,7 @@ module Llm
         ## Reguła musi matchować TITLE_RAW
         Pattern (rule_pattern) jest sprawdzany contains/regex/exact-style
         na ORYGINALNYM `title_raw`, nie na znormalizowanym. Wybierz
-        substring który NA PEWNO występuje w title_raw — najczęściej
+        substring który NA PEWNO występuje w title_raw - najczęściej
         leksykalny rdzeń normalized z zachowaniem oryginalnej
         interpunkcji:
           title_raw="RzeszowP.U.N.K.TPL"  → pattern="P.U.N.K.T"  (z kropkami!)
@@ -176,7 +166,7 @@ module Llm
           title_raw="RzeszowAl CaponePL"  → pattern="Capone"  (jednowyrazowy bezpiecznik)
 
         Jeśli zaproponujesz pattern który NIE występuje w title_raw,
-        serwer wymieni go na deterministyczny derive — Twoja reguła
+        serwer wymieni go na deterministyczny derive - Twoja reguła
         i tak działa, ale lepiej daj poprawny od razu.
 
         ## Format mBank dla płatności kartą (przykład klasy 1)
@@ -192,11 +182,11 @@ module Llm
 
         #{available_category_paths.join("\n        ")}
 
-        Gdy żaden liść nie pasuje precyzyjnie — użyj "noise.unmatched.other"
+        Gdy żaden liść nie pasuje precyzyjnie - użyj "noise.unmatched.other"
         (oznacza: czeka na ręczną klasyfikację, nie wlicza się do wydatków).
 
         # WYJŚCIE
-        Każdy element MUSI mieć pole `index` równe indeksowi wejściowemu — nawet
+        Każdy element MUSI mieć pole `index` równe indeksowi wejściowemu - nawet
         gdy zwracasz pustą identyfikację.
       PROMPT
     end
@@ -206,9 +196,7 @@ module Llm
         raw        = item[:title].to_s
         normalized = Enrichment::TitleNormalizer.call(raw)
         parts = [ "index: #{idx}", "title_raw: #{raw.inspect}" ]
-        # Only include normalized when it actually differs and adds signal.
-        # For "RzeszowP.U.N.K.TPL" → "P U N K T" — clearer for the model.
-        # For "Spotify" → "SPOTIFY" — redundant noise, skip.
+        # Skip normalized when it adds no signal beyond casing.
         parts << "title_normalized: #{normalized.inspect}" if normalized.present? && normalized.upcase != raw.upcase
         parts << "counterparty_name: #{item[:counterparty_name].to_s.inspect}" if item[:counterparty_name].present?
         "{ #{parts.join(", ")} }"
@@ -216,13 +204,10 @@ module Llm
       "Sklasyfikuj poniższe transakcje:\n[\n  #{lines.join(",\n  ")}\n]"
     end
 
-    # Leaf-only — paths with descendants are intermediate buckets, not
-    # classification targets. Renders sorted by path so the prompt's
-    # natural-language ordering matches the tree's left-right layout.
+    # Leaf-only - paths with descendants are intermediate buckets, not
+    # classification targets.
     def available_category_paths
       @user.categories.active.pluck(:path).map(&:to_s).sort.select do |p|
-        # Only emit leaves: a path is a leaf if no other path starts with
-        # "<this>." (i.e. it has no descendants in the active set).
         all = @user.categories.active.pluck(:path).map(&:to_s)
         all.none? { |other| other != p && other.start_with?("#{p}.") }
       end

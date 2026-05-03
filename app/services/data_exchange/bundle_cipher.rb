@@ -6,15 +6,15 @@ module DataExchange
   # AES-256-GCM with key derived from a user-supplied passphrase via PBKDF2.
   # Salt + IV + tag are stored in the envelope (see #pack), passphrase is
   # never persisted. GCM auth tag = automatic passphrase verification on
-  # decrypt — wrong passphrase raises with a clean error.
+  # decrypt - wrong passphrase raises with a clean error.
   class BundleCipher
     InvalidPassphrase = Class.new(StandardError)
     MalformedBundle   = Class.new(StandardError)
 
-    MAGIC      = "OBRX1"     # bundle magic, format version 1 of the wire envelope
-    KEY_BYTES  = 32          # AES-256
+    MAGIC      = "OBRX1"
+    KEY_BYTES  = 32
     SALT_BYTES = 16
-    IV_BYTES   = 12          # GCM standard
+    IV_BYTES   = 12
     TAG_BYTES  = 16
     PBKDF2_ITER = 200_000    # ~150ms on a modern laptop, intentionally slow
 
@@ -59,8 +59,8 @@ module DataExchange
 
       cipher.update(ct) + cipher.final
     rescue OpenSSL::Cipher::CipherError
-      # GCM tag mismatch ⇒ wrong passphrase or tampered blob. Don't leak
-      # which one — the user-facing distinction is irrelevant.
+      # GCM tag mismatch - wrong passphrase or tampered blob. Don't leak
+      # which one.
       raise InvalidPassphrase, "wrong passphrase or corrupted bundle"
     end
 

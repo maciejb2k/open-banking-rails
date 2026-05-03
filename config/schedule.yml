@@ -1,5 +1,5 @@
 # sidekiq-cron schedule. Loaded on Sidekiq server boot from
-# config/initializers/sidekiq.rb. Keep this file small — it only pins
+# config/initializers/sidekiq.rb. Keep this file small - it only pins
 # *when* dispatcher-style jobs wake up. The actual schedule decisions
 # (which user, which connection, when) live in Postgres tables read by
 # the dispatcher.

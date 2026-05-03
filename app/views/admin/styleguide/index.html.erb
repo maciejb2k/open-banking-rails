@@ -1,9 +1,8 @@
 <div class="space-y-10">
   <%= render "admin/shared/components/page_header",
         title: "Styleguide",
-        subtitle: "Component library — all building blocks in one place." %>
+        subtitle: "Component library - all building blocks in one place." %>
 
-  <%# ── BADGES ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Badges</h2>
     <div class="flex flex-wrap gap-2">
@@ -16,7 +15,6 @@
     </div>
   </section>
 
-  <%# ── BUTTONS ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Buttons</h2>
     <div class="flex flex-wrap gap-2">
@@ -35,7 +33,6 @@
     </div>
   </section>
 
-  <%# ── PAGE HEADER ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Page Header</h2>
     <div class="space-y-4">
@@ -56,12 +53,11 @@
             } %>
       <%= render "admin/shared/components/page_header",
             title: "With media slot",
-            subtitle: "media: accepts any pre-rendered HTML — logo, avatar, icon tile.",
+            subtitle: "media: accepts any pre-rendered HTML - logo, avatar, icon tile.",
             media: render("admin/shared/components/bank_logo", slug: "mbank", name: "mBank", size: :xl) %>
     </div>
   </section>
 
-  <%# ── STAT CARDS ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Stat Cards</h2>
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -71,14 +67,14 @@
       <%= render "admin/shared/components/stat_card", label: "Conversion", value: "3.24%", change: 1.8, trend: :up, icon: "bar_chart_3" %>
     </div>
     <p class="text-sm text-muted-foreground pt-2">
-      Without delta — for point-in-time stats (balances, counts) where comparison doesn't apply. Omit <code class="bg-muted px-1 rounded text-xs">change</code> and <code class="bg-muted px-1 rounded text-xs">trend</code>.
+      Without delta - for point-in-time stats (balances, counts) where comparison doesn't apply. Omit <code class="bg-muted px-1 rounded text-xs">change</code> and <code class="bg-muted px-1 rounded text-xs">trend</code>.
     </p>
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <%= render "admin/shared/components/stat_card", label: "Account balance", value: "PLN 12,480.00", icon: "dollar_sign" %>
       <%= render "admin/shared/components/stat_card", label: "Connected banks", value: "3", icon: "package" %>
     </div>
     <p class="text-sm text-muted-foreground pt-2">
-      Tones — pass <code class="bg-muted px-1 rounded text-xs">tone:</code> to color-code the icon tile. Helps the eye scan a stat row by category. <code class="bg-muted px-1 rounded text-xs">hint:</code> adds a small caption under the value.
+      Tones - pass <code class="bg-muted px-1 rounded text-xs">tone:</code> to color-code the icon tile. Helps the eye scan a stat row by category. <code class="bg-muted px-1 rounded text-xs">hint:</code> adds a small caption under the value.
     </p>
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
       <%= render "admin/shared/components/stat_card", label: "Saldo", value: "12 480 zł", icon: "dollar_sign", tone: :info %>
@@ -89,7 +85,6 @@
     </div>
   </section>
 
-  <%# ── CARDS ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Cards</h2>
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -113,7 +108,6 @@
     </div>
   </section>
 
-  <%# ── EMPTY STATE ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Empty State</h2>
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -134,7 +128,6 @@
     </div>
   </section>
 
-  <%# ── TABS ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Tabs</h2>
     <div class="admin-section">
@@ -148,12 +141,11 @@
     </div>
   </section>
 
-  <%# ── CALLOUT ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Callout</h2>
     <p class="text-sm text-muted-foreground">
       Static, non-dismissible inline alert. Use for context-bound notices inside a page (e.g. validation hints, "this resource is in re-auth mode").
-      For top-of-page Rails flash, see <code class="bg-muted px-1 rounded text-xs">admin/shared/_flash.html.erb</code> — auto-dismissible, reads from <code class="bg-muted px-1 rounded text-xs">flash[:notice|:alert|:warning]</code> and is rendered once in the layout.
+      For top-of-page Rails flash, see <code class="bg-muted px-1 rounded text-xs">admin/shared/_flash.html.erb</code> - auto-dismissible, reads from <code class="bg-muted px-1 rounded text-xs">flash[:notice|:alert|:warning]</code> and is rendered once in the layout.
     </p>
     <%= render "admin/shared/components/callout",
           variant: :info,
@@ -165,13 +157,12 @@
     <%= render "admin/shared/components/callout",
           variant: :destructive,
           title: "Last verification failed",
-          message: "401 Unauthorized — check the application_id and certificate." %>
+          message: "401 Unauthorized - check the application_id and certificate." %>
     <%= render "admin/shared/components/callout",
           variant: :success,
           message: "Connection verified successfully." %>
   </section>
 
-  <%# ── CRITICAL BANNER ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Critical Banner</h2>
     <p class="text-sm text-muted-foreground">
@@ -182,7 +173,7 @@
     <%= render "admin/shared/components/critical_banner",
           variant: :destructive,
           title: "Set up your category taxonomy",
-          description: "Categories haven't been seeded — the dashboard, matching engine and LLM enrichment have nothing to classify against.",
+          description: "Categories haven't been seeded - the dashboard, matching engine and LLM enrichment have nothing to classify against.",
           action_label: "Load baseline taxonomy",
           action_path: "#",
           action_method: :post,
@@ -201,7 +192,6 @@
           icon: "refresh_cw" %>
   </section>
 
-  <%# ── TOAST ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Toast</h2>
     <p class="text-sm text-muted-foreground">Auto-dismisses after 4 seconds. Slides in from the right.</p>
@@ -213,7 +203,6 @@
     </div>
   </section>
 
-  <%# ── SKELETONS ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Skeletons</h2>
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -224,7 +213,6 @@
     <%= render "admin/shared/components/skeleton", type: :table %>
   </section>
 
-  <%# ── MODAL ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Modal</h2>
     <div class="flex flex-wrap gap-2">
@@ -263,7 +251,6 @@
     <% end %>
   </section>
 
-  <%# ── FILTER TRIGGER + CHIP ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Filter Trigger &amp; Chip</h2>
     <p class="text-sm text-muted-foreground">
@@ -278,17 +265,15 @@
     <h3 class="text-sm font-semibold pt-2">Two ways to set chip content</h3>
     <p class="text-xs text-muted-foreground">
       Use <code class="bg-muted px-0.5 rounded">label:</code> keyword for plain strings.
-      Use a block when you need custom markup — the canonical case is wrapping
+      Use a block when you need custom markup - the canonical case is wrapping
       sensitive values in <code class="bg-muted px-0.5 rounded">sensitive_class</code>
       so they get blurred under privacy mode. Block content also wins if both are passed.
     </p>
     <div class="flex flex-wrap items-center gap-2">
-      <%# label: keyword — simplest case %>
       <%= render "admin/shared/components/filter_chip", label: "Status: Active", remove_path: "#" %>
       <%= render "admin/shared/components/filter_chip", label: "Currency: EUR", remove_path: "#" %>
       <%= render "admin/shared/components/filter_chip", label: "Read-only chip" %>
 
-      <%# block — for custom markup like sensitive_class %>
       <%= render "admin/shared/components/filter_chip", remove_path: "#" do %>
         Account: <span class="<%= sensitive_class %>">PL45 1140 …</span>
       <% end %>
@@ -298,18 +283,16 @@
     </div>
   </section>
 
-  <%# ── FILTER PANEL ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Filter Panel</h2>
     <p class="text-sm text-muted-foreground">
       Slide-out panel triggered by <code class="bg-muted px-1 rounded text-xs">filter_trigger</code>. Wrap the index content in
       <code class="bg-muted px-1 rounded text-xs">data-controller="filter-panel"</code>.
-      The panel must live inside the filter <code class="bg-muted px-1 rounded text-xs">form_with</code> block —
+      The panel must live inside the filter <code class="bg-muted px-1 rounded text-xs">form_with</code> block -
       the Apply button submits the enclosing form. Clear navigates to the base path.
     </p>
     <div data-controller="filter-panel">
       <%= form_with url: "#", method: :get, data: {turbo: false} do |f| %>
-        <%# Visible bar — quick search + trigger %>
         <div class="flex items-center gap-3">
           <div class="relative flex-1 max-w-md">
             <%= render "admin/shared/icons/search", classes: "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" %>
@@ -318,13 +301,11 @@
           <%= render "admin/shared/components/filter_trigger", active_count: 1 %>
         </div>
 
-        <%# Active chip example %>
         <div class="flex flex-wrap items-center gap-2 mt-3">
           <%= render "admin/shared/components/filter_chip", label: "Status: Active", remove_path: "#" %>
           <span class="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">Clear all</span>
         </div>
 
-        <%# The slide-out panel %>
         <%= render "admin/shared/components/filter_panel", clear_url: "#", active_count: 1 do %>
           <div class="space-y-1.5">
             <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
@@ -348,7 +329,6 @@
     </div>
   </section>
 
-  <%# ── SORTABLE TABLE HEADERS ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Sortable Table Headers</h2>
     <p class="text-sm text-muted-foreground">
@@ -382,7 +362,6 @@
     </div>
   </section>
 
-  <%# ── DATA TABLE ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Data Table</h2>
     <div class="admin-section p-0 overflow-hidden">
@@ -418,7 +397,6 @@
     </div>
   </section>
 
-  <%# ── BREAKDOWN LIST ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Breakdown List</h2>
     <p class="text-sm text-muted-foreground">
@@ -445,7 +423,6 @@
     </div>
   </section>
 
-  <%# ── BULK ACTION BAR ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Bulk Action Bar</h2>
     <%= render "admin/shared/components/bulk_action_bar",
@@ -456,11 +433,10 @@
           ] %>
   </section>
 
-  <%# ── PAGINATION ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Pagination</h2>
     <p class="text-sm text-muted-foreground">
-      Rendered by <code class="bg-muted px-1 rounded text-xs">_pagination.html.erb</code>. Requires <code class="bg-muted px-1 rounded text-xs">@pagy</code> from <code class="bg-muted px-1 rounded text-xs">pagy(:offset, scope)</code> in the controller — pass it as <code class="bg-muted px-1 rounded text-xs">pagy:</code>.
+      Rendered by <code class="bg-muted px-1 rounded text-xs">_pagination.html.erb</code>. Requires <code class="bg-muted px-1 rounded text-xs">@pagy</code> from <code class="bg-muted px-1 rounded text-xs">pagy(:offset, scope)</code> in the controller - pass it as <code class="bg-muted px-1 rounded text-xs">pagy:</code>.
       Live preview is static markup because Pagy's <code class="bg-muted px-1 rounded text-xs">series_nav</code> needs a real request context.
     </p>
     <div class="admin-section">
@@ -479,7 +455,6 @@
     </div>
   </section>
 
-  <%# ── DROPDOWN MENU ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Dropdown Menu</h2>
     <div class="admin-section">
@@ -494,7 +469,6 @@
     </div>
   </section>
 
-  <%# ── JSON VIEWER ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">JSON Viewer</h2>
     <div class="admin-section space-y-3">
@@ -503,7 +477,6 @@
     </div>
   </section>
 
-  <%# ── CONFIRM DIALOG ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Confirm Dialog</h2>
     <div class="flex gap-2">
@@ -531,7 +504,6 @@
           confirm_label: "Publish" %>
   </section>
 
-  <%# ── ICONS ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Icons</h2>
     <div class="flex flex-wrap gap-4 text-muted-foreground">
@@ -544,7 +516,6 @@
     </div>
   </section>
 
-  <%# ── FORM COMPONENTS ── %>
   <%
     demo = StyleguideDemo.new
     demo_with_errors = StyleguideDemo.new
@@ -553,7 +524,6 @@
   <section class="space-y-5">
     <h2 class="text-lg font-semibold border-b pb-2">Form Components</h2>
 
-    <%# Text inputs %>
     <%= form_with model: demo, url: "#", html: {onsubmit: "return false"} do |f| %>
       <div class="admin-section max-w-2xl space-y-5">
         <h3 class="font-medium">Text Fields</h3>
@@ -699,9 +669,9 @@
       <div class="admin-section max-w-2xl space-y-5 mt-5">
         <h3 class="font-medium">Ajax Select</h3>
         <p class="text-sm text-muted-foreground -mt-2">
-          Association picker — searches records via AJAX endpoint, stores ID in hidden field.
+          Association picker - searches records via AJAX endpoint, stores ID in hidden field.
           Requires a <code class="bg-muted px-1 rounded text-xs">search</code> collection action returning <code class="bg-muted px-1 rounded text-xs">[{id:, label:}]</code>.
-            See docs for full usage. Type anything — the demo uses inline mock data instead of the live endpoint.
+            See docs for full usage. Type anything - the demo uses inline mock data instead of the live endpoint.
         </p>
         <%= render "admin/shared/form/ajax_select",
               form: f, field: :name,
@@ -719,7 +689,7 @@
       <div class="admin-section max-w-2xl space-y-5 mt-5">
         <h3 class="font-medium">Category Picker</h3>
         <p class="text-sm text-muted-foreground -mt-2">
-          Path-aware category select — depth-prefixed (<code class="bg-muted px-1 rounded text-xs">— —</code>)
+          Path-aware category select - depth-prefixed (<code class="bg-muted px-1 rounded text-xs">- -</code>)
           and ordered by ltree path so the visual order matches the tree's
           left-right traversal. Pass the <code class="bg-muted px-1 rounded text-xs">user:</code> whose
           categories should be listed. Used by the manual cash transaction
@@ -731,13 +701,13 @@
         <% else %>
           <%= render "admin/shared/components/callout",
                 variant: :info,
-                message: "Seed a taxonomy to preview this component — run the bootstrap on the dashboard." %>
+                message: "Seed a taxonomy to preview this component - run the bootstrap on the dashboard." %>
         <% end %>
       </div>
 
       <div class="admin-section max-w-2xl space-y-5 mt-5">
         <h3 class="font-medium">Form Group (custom content)</h3>
-        <p class="text-sm text-muted-foreground -mt-2">Use when no standard component fits — wraps any content in the standard label/hint/error shell.</p>
+        <p class="text-sm text-muted-foreground -mt-2">Use when no standard component fits - wraps any content in the standard label/hint/error shell.</p>
 
         <%= render "admin/shared/form/form_group",
               label: "Custom Field", required: true,
@@ -750,7 +720,6 @@
       </div>
     <% end %>
 
-    <%# Error state — separate form with errors %>
     <%= form_with model: demo_with_errors, url: "#", html: {onsubmit: "return false"} do |f| %>
       <div class="admin-section max-w-2xl space-y-5 mt-5">
         <h3 class="font-medium">Error State</h3>
@@ -766,7 +735,6 @@
     <% end %>
   </section>
 
-  <%# ── FORM FOOTER ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Form Footer</h2>
     <p class="text-sm text-muted-foreground">
@@ -786,11 +754,10 @@
     </div>
   </section>
 
-  <%# ── ACTION TOOLBAR ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Action Toolbar</h2>
     <p class="text-sm text-muted-foreground">
-      Two-slot horizontal toolbar — primary actions on the left, secondary on the right. Both slots accept <code class="bg-muted px-1 rounded text-xs">capture do ... end</code> output.
+      Two-slot horizontal toolbar - primary actions on the left, secondary on the right. Both slots accept <code class="bg-muted px-1 rounded text-xs">capture do ... end</code> output.
     </p>
     <%= render "admin/shared/components/action_toolbar",
           left: capture {
@@ -803,7 +770,6 @@
           } %>
   </section>
 
-  <%# ── DEFINITION LIST ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Definition List</h2>
     <p class="text-sm text-muted-foreground">
@@ -830,7 +796,6 @@
     </div>
   </section>
 
-  <%# ── BANK LOGO ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Bank Logo</h2>
     <p class="text-sm text-muted-foreground">
@@ -867,7 +832,6 @@
     </div>
   </section>
 
-  <%# ── BREADCRUMBS ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Breadcrumbs</h2>
     <p class="text-sm text-muted-foreground">
@@ -882,11 +846,10 @@
     </div>
   </section>
 
-  <%# ── CATEGORY BREADCRUMB ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Category Breadcrumb</h2>
     <p class="text-sm text-muted-foreground">
-      Path-aware label for a category — renders the full ltree path
+      Path-aware label for a category - renders the full ltree path
       ("Lifestyle / Shopping / Electronics") so leaf-only labels stay
       unambiguous when the same name appears under multiple branches.
       Pass <code class="bg-muted px-1 rounded text-xs">link: true</code> to
@@ -913,25 +876,23 @@
     <% else %>
       <%= render "admin/shared/components/callout",
             variant: :info,
-            message: "Seed a taxonomy to preview this component — run the bootstrap on the dashboard." %>
+            message: "Seed a taxonomy to preview this component - run the bootstrap on the dashboard." %>
     <% end %>
   </section>
 
-  <%# ── COMMAND PALETTE ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Command Palette</h2>
     <p class="text-sm text-muted-foreground">
       Global keyboard-triggered search rendered once in the layout (<code class="bg-muted px-1 rounded text-xs">layouts/admin.html.erb</code>). Open with <kbd class="rounded border bg-muted px-1.5 py-0.5 text-xs">Cmd/Ctrl + K</kbd>.
-      Items come from <code class="bg-muted px-1 rounded text-xs">admin_nav_sections</code> helper. No extra props — already wired up.
+      Items come from <code class="bg-muted px-1 rounded text-xs">admin_nav_sections</code> helper. No extra props - already wired up.
     </p>
   </section>
 
-  <%# ── CENTERED NARROW LAYOUT ── %>
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Centered narrow layout</h2>
     <p class="text-sm text-muted-foreground">
-      Pages that don't need the full content width — settings, profile screens,
-      forms with focused content — use <code class="bg-muted px-1 rounded text-xs">mx-auto max-w-4xl</code>
+      Pages that don't need the full content width - settings, profile screens,
+      forms with focused content - use <code class="bg-muted px-1 rounded text-xs">mx-auto max-w-4xl</code>
       on the outer wrapper so the content stays centered on wide displays
       instead of clinging to the left edge. Pair with an in-page side nav
       (<code class="bg-muted px-1 rounded text-xs">grid lg:grid-cols-[220px_minmax(0,1fr)]</code>)
@@ -941,12 +902,11 @@
     </p>
     <p class="text-sm text-muted-foreground">
       Live example: <code class="bg-muted px-1 rounded text-xs">app/views/admin/settings/preferences/_layout.html.erb</code>
-      — drives <a href="<%= admin_settings_preferences_path %>" class="text-primary hover:underline">/admin/settings/preferences</a>.
+      - drives <a href="<%= admin_settings_preferences_path %>" class="text-primary hover:underline">/admin/settings/preferences</a>.
       The aside iterates a registry helper (<code class="bg-muted px-1 rounded text-xs">preferences_sections</code>)
       so adding a tab is one entry + one controller action + one view.
     </p>
 
-    <%# Visual demo of the shell — fake aside + main inside the wrapper. %>
     <div class="mx-auto max-w-4xl border-2 border-dashed border-muted-foreground/20 rounded-lg p-3">
       <p class="text-xs text-muted-foreground uppercase tracking-wider mb-2">mx-auto max-w-4xl</p>
       <div class="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-6">
@@ -959,7 +919,7 @@
           <div class="admin-section">
             <h3 class="text-base font-semibold">Active section content</h3>
             <p class="text-sm text-muted-foreground mt-1">
-              Forms, definition lists, callouts — whatever the section needs — live here.
+              Forms, definition lists, callouts - whatever the section needs - live here.
             </p>
           </div>
         </main>

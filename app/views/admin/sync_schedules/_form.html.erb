@@ -18,7 +18,7 @@
     <%= render "admin/shared/form/select",
           form: f, field: :cadence, label: "Cadence", required: true,
           options: SyncSchedule::CADENCES.map { |c| [c.humanize, c] },
-          hint: "Daily fires once a day, every 2 days every 48h, weekly every 7 days — all anchored to the hour below." %>
+          hint: "Daily fires once a day, every 2 days every 48h, weekly every 7 days - all anchored to the hour below." %>
 
     <%= render "admin/shared/form/select",
           form: f, field: :preferred_hour, label: "Preferred hour", required: true,

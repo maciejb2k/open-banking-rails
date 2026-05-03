@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 // Collapsed state lives on <html> as `.sidebar-collapsed`. The class is
 // applied before first paint by an inline script in the layout <head>, and
-// the visual rules are a `sidebar-collapsed:` Tailwind variant — so a
+// the visual rules are a `sidebar-collapsed:` Tailwind variant - so a
 // refresh paints in the correct state instead of animating from
 // expanded → collapsed.
 export default class extends Controller {

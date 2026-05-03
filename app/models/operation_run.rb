@@ -35,17 +35,8 @@
 #  fk_rails_...  (triggered_by_user_id => users.id)
 #
 class OperationRun < ApplicationRecord
-  # Runtime trace of an EnableBanking::Operations::* (or any future
-  # long-running domain operation). One row per run — manual, scheduled,
-  # or system-triggered.
-  #
-  # Generic by design: `kind` discriminates, `params`/`summary` are
-  # kind-specific jsonb. The contract for each kind lives in code
-  # (the operation/job that owns that kind), not the schema.
-  #
-  # Designed to absorb the scattered `last_synced_at` / `last_error`
-  # fields on BankConnection/BankAccount over time — those become a
-  # denormalized cache; this is the source of truth for history.
+  # `kind` discriminates; `params`/`summary` are kind-specific jsonb.
+  # The contract for each kind lives in code (the owning operation/job).
 
   KINDS = %w[
     transaction_sync
@@ -69,16 +60,10 @@ class OperationRun < ApplicationRecord
   validates :status,  presence: true, inclusion: { in: STATUSES }
   validates :trigger, presence: true, inclusion: { in: TRIGGERS }
 
-  # Kinds that have a show page subscribing to the per-run Turbo Stream.
-  # Other kinds (e.g. synchronous tests run inline from a controller) don't
-  # need broadcasts — and broadcasting without a `_run_progress` partial
-  # just enqueues failing render jobs.
+  # Other kinds don't have a show page; broadcasting without a `_run_progress`
+  # partial would enqueue failing render jobs.
   STREAMED_KINDS = %w[transaction_sync llm_enrichment].freeze
 
-  # Live progress to the run show page. Each `update!` (the job calls one
-  # after every account synced) re-renders _run_progress.html.erb in place.
-  # Stream channel is per-run so multiple admins watching different runs
-  # don't cross-talk.
   after_update_commit :broadcast_progress, if: -> { STREAMED_KINDS.include?(kind) }
 
   scope :recent,        -> { order(created_at: :desc) }
@@ -97,7 +82,6 @@ class OperationRun < ApplicationRecord
     %w[subject triggered_by_user]
   end
 
-  # ── Lifecycle helpers ─────────────────────────────────────────────
   def start!
     update!(status: "running", started_at: Time.current)
   end
@@ -132,7 +116,6 @@ class OperationRun < ApplicationRecord
     (end_time - started_at).to_i
   end
 
-  # Convenience for badges / icons in the UI.
   def status_tone
     case status
     when "succeeded" then :success
@@ -144,9 +127,8 @@ class OperationRun < ApplicationRecord
     end
   end
 
-  # Subject label for the UI — falls back through to_breadcrumb / display_name / email.
   def subject_label
-    return "—" if subject.nil?
+    return "-" if subject.nil?
     %i[to_breadcrumb display_name email name].each do |m|
       return subject.public_send(m) if subject.respond_to?(m) && subject.public_send(m).present?
     end

@@ -1,6 +1,6 @@
 class ScopeCategoriesMerchantsRulesToUser < ActiveRecord::Migration[8.1]
   # Multi-tenant scoping for the classification taxonomy. Until now,
-  # categories / merchants / merchant_rules were a single shared set —
+  # categories / merchants / merchant_rules were a single shared set -
   # workable for one user, but every form picker and the enricher itself
   # leak across users at the moment a second user signs in.
   #
@@ -17,7 +17,7 @@ class ScopeCategoriesMerchantsRulesToUser < ActiveRecord::Migration[8.1]
   # collide on the new compound index.
   def up
     user_id = User.order(:id).limit(1).pick(:id)
-    raise "Cannot backfill — no User exists. Create one first." if user_id.nil?
+    raise "Cannot backfill - no User exists. Create one first." if user_id.nil?
 
     add_reference :categories,      :user, foreign_key: true, null: true
     add_reference :merchants,       :user, foreign_key: true, null: true

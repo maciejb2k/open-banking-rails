@@ -1,11 +1,6 @@
 # frozen_string_literal: true
 
 module Admin
-  # LLM enrichment runs — follows the same pattern as TransactionSyncsController.
-  #
-  #   GET  /admin/llm_enrichments       — dashboard: stats, review queue, run history, trigger form
-  #   POST /admin/llm_enrichments       — create OperationRun, enqueue job, redirect to show
-  #   GET  /admin/llm_enrichments/:id   — live progress via Turbo Streams
   class LlmEnrichmentsController < BaseController
     KIND = "llm_enrichment"
 
@@ -16,9 +11,8 @@ module Admin
       @merchantless_count = user_enrichments.merchantless.count
       @suggestible_count  = enrichable_scope.count
       @group_count        = build_group_count(enrichable_scope)
-      # `@new_groups_count <= @group_count` — same scope, but excludes
-      # groups already covered by an existing MerchantRule (those won't be
-      # sent to the LLM on the next run).
+      # Same scope as @group_count, but excludes groups already covered by an
+      # existing MerchantRule - those won't be sent to the LLM on the next run.
       @new_groups_count   = Llm::EnrichableQuery.groups(user: current_user, scope: enrichable_scope).size
       @llm_setting        = current_user.llm_setting
       @api_key_set        = @llm_setting&.configured?
@@ -62,10 +56,9 @@ module Admin
       OperationRun.where(kind: KIND, triggered_by_user_id: current_user.id)
     end
 
-    # Distinct (normalized_title, counterparty_name) signatures across
-    # the enrichable scope — every group costs ~1 LLM call so this drives
-    # the cost preview. Counts ALL groups, including ones already covered
-    # by a MerchantRule; pair with @new_groups_count for the delta.
+    # Every group costs ~1 LLM call - drives the cost preview. Counts ALL
+    # groups, including ones already covered by a MerchantRule; pair with
+    # @new_groups_count for the delta.
     def build_group_count(scope)
       keys = scope.pluck(:title, :counterparty_name).map do |t, cp|
         [ Enrichment::TitleNormalizer.call(t), cp.to_s ]

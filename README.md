@@ -141,7 +141,7 @@ That's your only admin account; no second sign-up.
 Secrets (`SECRET_KEY_BASE`, AR encryption keys) auto-generate on first
 boot and live in a Docker volume. `down`/`up` keeps everything; `down -v`
 **wipes your data**. The `app_secrets` volume is also required to
-decrypt your backups — back it up alongside `./backups/`.
+decrypt your backups - back it up alongside `./backups/`.
 
 ### Upgrade
 
@@ -227,7 +227,6 @@ Browse `/admin/styleguide` for every component and its variants.
 ![Preferences](docs/screenshots/preferences.png)
 
 ![Import/Export](docs/screenshots/importer.png)
-
 
 ## License
 

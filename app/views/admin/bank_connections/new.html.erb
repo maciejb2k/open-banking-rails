@@ -28,7 +28,7 @@
             ] },
             include_blank: "Choose a bank" %>
 
-      <%# Hidden — defaults to PL since we list PL ASPSPs %>
+      <%# PL only - the ASPSP list above is filtered to PL. %>
       <%= f.hidden_field :aspsp_country, value: "PL" %>
 
       <%= render "admin/shared/form/select",
@@ -52,7 +52,7 @@
         { label: "Redirect URL (sent to bank)",
           value: @primary_credential.redirect_url,
           mono: true, wrap: true,
-          hint: (mismatch ? "⚠ not in EB allowed list — bank will reject" : nil) },
+          hint: (mismatch ? "⚠ not in EB allowed list - bank will reject" : nil) },
         { label: "EB-registered URLs",
           value: redirect_in_eb.join(", ").presence,
           mono: true, wrap: true }

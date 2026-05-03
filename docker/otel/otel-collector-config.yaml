@@ -50,7 +50,7 @@ processors:
 
   # Drop logs below INFO before sending to Loki.
   # SEVERITY_NUMBER_INFO = 9 (OTel spec).
-  # Application can still emit DEBUG — filtered here, not at the source.
+  # Application can still emit DEBUG - filtered here, not at the source.
   filter/loki:
     error_mode: ignore
     logs:
@@ -87,7 +87,7 @@ service:
       exporters: [otlp/tempo, debug]
 
     # All traces also go to spanmetrics connector to generate Prometheus metrics.
-    # No sampling here — all spans must be counted for accurate metrics.
+    # No sampling here - all spans must be counted for accurate metrics.
     traces/metrics:
       receivers: [otlp]
       processors: [filter/spans_for_metrics, batch]

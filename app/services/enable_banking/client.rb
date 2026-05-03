@@ -1,14 +1,9 @@
 # frozen_string_literal: true
 
 module EnableBanking
-  # Thin Faraday wrapper:
-  # - JSON in/out
-  # - Bearer JWT signed per request (TTL ~1h)
-  # - PSU-IP-Address / PSU-User-Agent headers (required by some banks, e.g. mBank)
-  # - Returns EnableBanking::Result on every call (never raises on HTTP errors)
-  #
-  # Network/transport errors are caught and mapped to a failed Result with
-  # status: 0. Cryptography/config errors propagate as EnableBanking::ConfigError.
+  # PSU-IP-Address / PSU-User-Agent are required by some banks (mBank).
+  # Network/transport errors map to a failed Result with status 0; crypto/
+  # config errors propagate as EnableBanking::ConfigError.
   class Client
     DEFAULT_BASE_URL = "https://api.enablebanking.com"
     OPEN_TIMEOUT = 5
@@ -68,12 +63,11 @@ module EnableBanking
       end
     end
 
-    # Best-effort error extraction across response shapes EB returns.
     def extract_error(response)
       body = response.body
       if body.is_a?(Hash)
         parts = [ body["error"], body["message"], body["detail"] ].filter_map { |p| p.to_s.presence }
-        return parts.join(" — ") if parts.any?
+        return parts.join(" - ") if parts.any?
         body.to_json
       else
         body.to_s.presence || "HTTP #{response.status}"

@@ -1,36 +1,21 @@
 # frozen_string_literal: true
 
 module EnableBanking
-  # Pure function: derive a normalized payment_method string from a bank
-  # transaction's raw fields. Deterministic, no LLM.
-  #
-  # Signal precedence (most specific first):
-  #   1. type_hint  — bank's free-text remittance line (PKO: English keys
-  #                   like CARD-PAYMENT; mBank: Polish keys like
-  #                   "PRZELEW ZEWNĘTRZNY PRZYCHODZĄCY")
-  #   2. bank_transaction_code — Berlin Group code (Revolut populates;
-  #                   PKO/mBank don't)
-  #   3. counterparty_name + title — heuristic last resort. Returns "card"
-  #                   for any non-blank input. Logs a warning so we can
-  #                   measure how often heuristics fire vs deterministic
-  #                   mapping.
-  #
-  # Returns one of BankTransaction::PAYMENT_METHODS, or nil if signals are
-  # genuinely empty (caller can backfill later).
+  # Signal precedence (most specific first): type_hint → bank_transaction_code
+  # → heuristic fallback. Returns one of BankTransaction::PAYMENT_METHODS or
+  # nil. Keep TYPE_HINT_MAP narrow - fall through to nil + WARN rather than
+  # guess on unfamiliar codes; silent miscategorization is worse than an
+  # explicit "unmatched" we can find in logs.
   class PaymentMethodInferer
-    # type_hint values per bank, all observed in PoC samples.
-    # Keep this map narrow: fall through to nil + WARN log rather than
-    # guess on unfamiliar codes — silent miscategorization is worse than
-    # an explicit "unmatched" we can find in logs.
     TYPE_HINT_MAP = {
       # ── PKO (English keys in remittance_information[1]) ──
       "CARD-PAYMENT"                       => "card",
       "PAYCARD-TRANSFER"                   => "internal_transfer", # spłata karty kredytowej (PKO docs)
       "MOBILE-PAYMENT-POS-NO-CARD-TX-CODE" => "blik_pos",
-      "MOBILE-PAYMENT-POS-TX-CODE"         => "blik_pos",          # variant — defensive
+      "MOBILE-PAYMENT-POS-TX-CODE"         => "blik_pos",          # variant - defensive
       "MOBILE-PAYMENT-ATM-TX-CODE"         => "blik_atm",
       "MOBILE-PAYMENT-C2C"                 => "blik_p2p",
-      "MOBILE-PAYMENT-C2C-EXTERNAL"        => "blik_p2p",           # variant — defensive
+      "MOBILE-PAYMENT-C2C-EXTERNAL"        => "blik_p2p",           # variant - defensive
 
       # ── mBank (Polish keys in remittance_information[1]) ──
       "PRZELEW ZEWNĘTRZNY PRZYCHODZĄCY"    => "transfer",
@@ -42,19 +27,14 @@ module EnableBanking
       "TRANSFER"                           => "transfer"
     }.freeze
 
-    # Berlin Group bank_transaction_code mapping. Revolut sets this;
-    # PKO/mBank don't. Exact matches first, then loose regex fallbacks
-    # for unobserved Berlin Group sub-types.
     BANK_CODE_EXACT = {
       "CARD_PAYMENT" => "card",
       "TOPUP"        => "topup"
     }.freeze
 
-    # Loose regex fallbacks for unobserved bank_transaction_code values.
-    # Order matters: more specific first. Crucially: cash regex matches
-    # WTHD/ATM only — not "CASH-DEPT" (deposit) — so a deposit doesn't get
-    # mislabeled as an ATM withdrawal. Anchors are deliberately absent so
-    # nested Berlin Group codes like "PMNT-CCRD-POSP" or "PMNT-TRSF-CRTR"
+    # Order matters: more specific first. Cash regex matches WTHD/ATM only,
+    # not "CASH-DEPT" (deposit), so a deposit isn't mislabeled as ATM.
+    # Anchors are deliberately absent so nested codes like "PMNT-CCRD-POSP"
     # are still recognized.
     BANK_CODE_REGEX = [
       [ /CARD/,        "card" ],
@@ -79,8 +59,6 @@ module EnableBanking
 
     private
 
-    # Direct mapping with telemetry. If a non-blank type_hint isn't in the
-    # map, log it — that's how we discover new bank-specific codes.
     def from_type_hint
       return nil if @type_hint.blank?
       mapped = TYPE_HINT_MAP[@type_hint]
@@ -88,8 +66,6 @@ module EnableBanking
       mapped
     end
 
-    # Berlin Group bank_transaction_code. Exact match first, then loose
-    # regex fallback. Like type_hint, an unmapped non-blank value is logged.
     def from_bank_code
       return nil if @code.blank?
       upcased = @code.upcase
@@ -103,10 +79,8 @@ module EnableBanking
       nil
     end
 
-    # Last-resort heuristic. When neither hint is set but there is a
-    # title or counterparty (Revolut SaaS subscriptions, edge cases), default
-    # to "card". Always logs — heuristic firings should trend toward zero
-    # as deterministic mappings expand.
+    # Always logs - heuristic firings should trend toward zero as
+    # deterministic mappings expand.
     def from_heuristics
       return nil if @counterparty.blank? && @title.blank?
       Rails.logger.warn(

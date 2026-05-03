@@ -83,7 +83,7 @@
             </td>
             <td class="px-4 py-3 font-medium text-foreground"><%= version.item_type %></td>
             <td class="px-4 py-3 text-muted-foreground">#<%= version.item_id %></td>
-            <td class="px-4 py-3 text-muted-foreground"><%= version.whodunnit || "—" %></td>
+            <td class="px-4 py-3 text-muted-foreground"><%= version.whodunnit || "-" %></td>
             <td class="px-4 py-3 text-muted-foreground"><%= l(version.created_at, format: :short) %></td>
             <td class="px-4 py-3">
               <%= render "admin/shared/components/dropdown_menu", items: [

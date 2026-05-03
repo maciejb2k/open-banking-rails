@@ -58,7 +58,7 @@ class TppCredential < ApplicationRecord
 
   scope :primary_for, ->(user) { where(user: user, primary: true) }
 
-  # Ransack — explicit allowlist. Encrypted secrets are deliberately excluded.
+  # Encrypted secrets deliberately excluded.
   def self.ransackable_attributes(_auth_object = nil)
     %w[id name provider environment status primary redirect_url cert_expires_at
        last_verified_at user_id created_at updated_at]
@@ -68,9 +68,8 @@ class TppCredential < ApplicationRecord
     %w[user bank_connections]
   end
 
-  # Enforce only one primary per user. The DB-level partial unique index is the
-  # ultimate guard; this AR-level guard ensures the failure mode is a clean
-  # validation message rather than a constraint violation.
+  # AR-level guard for cleaner validation message - DB partial unique index
+  # is the ultimate enforcement.
   validate :only_one_primary_per_user, if: :primary?
 
   def to_breadcrumb

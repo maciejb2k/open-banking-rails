@@ -51,9 +51,8 @@ class BankAccount < ApplicationRecord
   CASH_ACCOUNT_TYPES = %w[CACC CARD CASH LOAN OTHR SVGS].freeze
 
   # Two ownership shapes, mutually exclusive (DB-enforced via
-  # bank_accounts_ownership_xor check constraint):
-  #   - Synced bank account: tpp_credential set, manual_owner nil, manual=false
-  #   - Cash wallet:         manual_owner set, tpp_credential nil, manual=true
+  # bank_accounts_ownership_xor): synced account has tpp_credential, cash wallet
+  # has manual_owner. See #ownership_consistency.
   belongs_to :tpp_credential, optional: true
   belongs_to :manual_owner, class_name: "User", optional: true
   belongs_to :current_bank_connection, class_name: "BankConnection", optional: true
@@ -89,8 +88,8 @@ class BankAccount < ApplicationRecord
     name.presence || product.presence || details.presence || iban.presence || uid
   end
 
-  # Resolves the human owner irrespective of ownership shape. Use this instead
-  # of `tpp_credential.user` whenever cash wallets might be in scope.
+  # Use this instead of `tpp_credential.user` whenever cash wallets might be
+  # in scope.
   def owner
     manual? ? manual_owner : tpp_credential&.user
   end
@@ -115,7 +114,6 @@ class BankAccount < ApplicationRecord
     details_fetched_at.blank? || details_fetched_at < 7.days.ago
   end
 
-  # Convenience for parsing latest balances snapshot.
   def parsed_balances
     return [] if raw_balances.blank?
     payload = raw_balances.is_a?(String) ? JSON.parse(raw_balances) : raw_balances
@@ -132,7 +130,6 @@ class BankAccount < ApplicationRecord
 
   private
 
-  # Mirrors the DB check constraint so AR surfaces a friendly message.
   def ownership_consistency
     if manual?
       errors.add(:tpp_credential_id, "must be blank for a cash wallet") if tpp_credential_id.present?

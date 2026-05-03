@@ -2,17 +2,9 @@
 
 module EnableBanking
   module Operations
-    # Fans out SyncAccountTransactions over every active account on a
-    # BankConnection. Failures are caught per-account so a single 4xx
-    # (e.g. PKO returning 400 for some edge case) doesn't tank the run.
-    # See PoC bin/get_transactions.rb — same per-account rescue pattern.
-    #
-    # Optional `on_account_synced:` callback receives a hash describing
-    # the outcome of each account as soon as it's done. Used by
-    # TransactionSyncJob to push live progress to the OperationRun.
-    # Synchronous callers (rake, console) can ignore it.
-    #
-    # Returns hash keyed by bank_account_id with each Outcome (or Failed exception).
+    # Per-account rescue so a single 4xx doesn't tank the run. The
+    # `on_account_synced:` callback drives live progress in
+    # TransactionSyncJob.
     class SyncConnectionTransactions < Base
       Failed = Class.new(StandardError)
 

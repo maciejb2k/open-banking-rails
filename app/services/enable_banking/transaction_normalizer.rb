@@ -1,17 +1,10 @@
 # frozen_string_literal: true
 
 module EnableBanking
-  # Maps a single Enable Banking transaction payload onto BankTransaction
-  # column attributes. Pure function, no DB writes — caller decides how to
-  # persist (single insert, upsert, bulk).
-  #
-  # Centralizes the per-bank quirks documented in the PoC:
+  # Per-bank quirks:
   #   - Revolut: transaction_id is always null → fall back to entry_reference
-  #   - mBank: counterparty IBAN comes as BBAN under {"other": {scheme_name: "BBAN"}}
-  #            → convert "PL" + bban (26 digits → 28-char IBAN)
-  #   - PKO: card payments have null creditor — title comes from remittance_information[0]
-  #
-  # See PoC docs/banks/comparison.md for the full field-by-field matrix.
+  #   - mBank:   counterparty IBAN arrives as BBAN under "other" - prepend PL
+  #   - PKO:     card payments have null creditor; title is remittance_information[0]
   class TransactionNormalizer
     DIRECTION_MAP = { "CRDT" => "credit", "DBIT" => "debit" }.freeze
     STATUS_MAP    = { "BOOK" => "booked", "PDNG" => "pending" }.freeze
@@ -72,17 +65,12 @@ module EnableBanking
 
     private
 
-    # Revolut: transaction_id is always null, fall back to entry_reference (UUID-like).
-    # PKO/mBank: transaction_id is base64(entry_reference) — both are stable, prefer
-    # transaction_id for consistency where available.
     def extract_external_id
       id = @payload["transaction_id"].presence || @payload["entry_reference"].presence
       raise ArgumentError, "Transaction has neither transaction_id nor entry_reference" if id.nil?
       id
     end
 
-    # Counterparty IBAN extraction. mBank quirk: when iban is null, scheme_name "BBAN"
-    # under "other" carries the 26-digit account number — prepend "PL" for a valid IBAN.
     def extract_iban(account_node)
       return nil if account_node.blank?
       return account_node["iban"] if account_node["iban"].present?
@@ -96,8 +84,7 @@ module EnableBanking
       end
     end
 
-    # PL BBAN (26 digits) → IBAN by prepending the country code.
-    # Other countries' BBANs would need a different transform; we only see PL banks today.
+    # PL only - other countries' BBANs need a different transform.
     def bban_to_iban(bban)
       return nil if bban.blank?
       "PL#{bban}"
@@ -110,13 +97,9 @@ module EnableBanking
       nil
     end
 
-    # Enable Banking sends the amount as a decimal string. Some banks signal
-    # debits with a leading minus, others rely solely on credit_debit_indicator;
-    # we normalize to the magnitude here and let `direction` carry the sign,
-    # so BankTransaction#signed_amount is the single source of truth for sign.
-    # BigDecimal preserves precision; Money.from_amount honors the currency's
-    # subunit scale (PLN/EUR=2, JPY=0, BHD=3) so a wrong-scale value can never
-    # be stored.
+    # Some banks signal debits with a leading minus, others rely on
+    # credit_debit_indicator - normalize to magnitude and let `direction`
+    # carry the sign, so signed_amount is the single source of truth.
     def to_cents(amount_string, currency)
       raise ArgumentError, "Missing transaction_amount.amount" if amount_string.blank?
       raise ArgumentError, "Missing transaction_amount.currency" if currency.blank?

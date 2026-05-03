@@ -2,7 +2,7 @@ name: Release
 
 # Build the production image and push it to GHCR on every `vX.Y.Z` tag.
 # Manual dispatch is also wired up for emergency rebuilds. Pushes to
-# main do NOT publish — that's intentional, releases happen on tags.
+# main do NOT publish - that's intentional, releases happen on tags.
 
 on:
   push:

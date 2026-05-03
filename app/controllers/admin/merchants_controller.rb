@@ -12,21 +12,12 @@ module Admin
       scope = scope.where("name ILIKE ?", "%#{params[:q]}%") if params[:q].present?
 
       @pagy, @collection = pagy(:offset, scope.order(:name))
-      # Counts the user's own transactions only — joining through the
-      # enrichable polymorphic onto bank_transactions / manual_transactions
-      # would be more correct, but for the merchant index "tx using this
-      # merchant" within scope is enough; cross-user merchants don't exist
-      # any more so the count is naturally bounded.
       @transaction_counts = TransactionEnrichment
                               .where(merchant_id: @collection.map(&:id))
                               .group(:merchant_id).count
     end
 
     def show
-      # Same shape as bank/cash tx show + analytics drill-downs: a merchant
-      # tied to a hidden category leaks the category itself + N transactions
-      # in the recent list. Bounce; user has to remove the category from
-      # the hidden list in /admin/settings/preferences to inspect.
       if current_user.hides_category?(@merchant.default_category_id)
         redirect_to admin_merchants_path,
                     alert: "This merchant is in a hidden category. Remove it from the hidden list in preferences to open it."
@@ -70,11 +61,8 @@ module Admin
     def update
       old_default_category_id = @merchant.default_category_id
       if @merchant.update(merchant_params)
-        # If the default category changed, transactions enriched against this
-        # merchant inherit the new category through `effective_category` —
-        # no DB write needed. We log it for clarity in audit.
         if @merchant.default_category_id != old_default_category_id
-          Rails.logger.info("[Merchant##{@merchant.id}] default_category #{old_default_category_id} -> #{@merchant.default_category_id} — propagated via effective_category")
+          Rails.logger.info("[Merchant##{@merchant.id}] default_category #{old_default_category_id} -> #{@merchant.default_category_id} - propagated via effective_category")
         end
         redirect_to safe_return_to(default: admin_merchant_path(@merchant)), notice: "Merchant updated."
       else
@@ -85,7 +73,7 @@ module Admin
     def destroy
       if TransactionEnrichment.where(merchant_id: @merchant.id).exists?
         redirect_to admin_merchant_path(@merchant),
-                    alert: "Can't delete — this merchant has linked transactions. Archive it instead."
+                    alert: "Can't delete - this merchant has linked transactions. Archive it instead."
       else
         @merchant.destroy
         redirect_to safe_return_to(default: admin_merchants_path), notice: "Merchant deleted."
@@ -102,9 +90,6 @@ module Admin
       redirect_to safe_return_to(default: admin_merchant_path(@merchant)), notice: "Merchant restored."
     end
 
-    # Approves an LLM-proposed merchant: flips its rules to `enabled: true`,
-    # marks the merchant as approved, and rebuilds enrichments so any
-    # historical match is applied retroactively.
     def approve
       ActiveRecord::Base.transaction do
         @merchant.update!(approved_at: Time.current, approved_by: current_user)
@@ -114,7 +99,7 @@ module Admin
       end
       Enrichment::TransactionEnricher.rebuild!(user: current_user)
       redirect_to safe_return_to(default: admin_merchant_path(@merchant)),
-                  notice: "Approved — historical transactions re-classified."
+                  notice: "Approved - historical transactions re-classified."
     end
 
     private

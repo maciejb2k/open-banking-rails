@@ -1,15 +1,8 @@
 # frozen_string_literal: true
 
 module AutoSync
-  # Observes a finalized scheduled OperationRun and bumps the related
-  # SyncSchedule's consecutive_failures counter. After FAILURE_THRESHOLD
-  # consecutive non-success runs, paused_until is set so the dispatcher
-  # stops picking the schedule up for COOLDOWN. A successful run resets
-  # both counter and pause.
-  #
-  # Called explicitly from TransactionSyncJob (and any future scheduled
-  # job) — never from an AR callback. Per AGENTS.md: side-effects belong
-  # to the service that triggered the save, not to model lifecycle hooks.
+  # After FAILURE_THRESHOLD consecutive non-success scheduled runs, paused_until
+  # is set so the dispatcher stops picking the schedule up for COOLDOWN.
   class CircuitBreaker
     COOLDOWN = 24.hours
 
@@ -47,8 +40,6 @@ module AutoSync
       schedule.update!(attrs)
     end
 
-    # Only BankConnection-scoped scheduled runs map to a schedule today.
-    # User- or BankAccount-scoped runs aren't part of slice 1's auto-sync.
     def schedule_for(run)
       return nil unless run.subject.is_a?(BankConnection)
       run.subject.sync_schedule

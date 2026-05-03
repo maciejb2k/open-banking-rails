@@ -15,7 +15,7 @@ COMPOSE_FILE="docker-compose.prod.yml"
 target="${1:-}"
 
 if [ ! -f "$COMPOSE_FILE" ]; then
-  echo "[restore] $COMPOSE_FILE missing — are you in the repo root?" >&2
+  echo "[restore] $COMPOSE_FILE missing - are you in the repo root?" >&2
   exit 1
 fi
 

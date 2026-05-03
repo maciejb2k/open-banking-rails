@@ -3,12 +3,12 @@ import { Controller } from "@hotwired/stimulus"
 // Privacy-mode text masking. Singleton controller mounted on <body>.
 //
 // Walks every `.sensitive` element and replaces every character in its text
-// nodes with `•` (including spaces and punctuation — no structure leaks).
+// nodes with `•` (including spaces and punctuation - no structure leaks).
 // Leading/trailing whitespace is preserved so inline layout stays intact.
 // Original text is cached on the text node so we can restore on toggle-off.
 //
-// `.sensitive--strong` (JSON viewers / payloads) is skipped — CSS blur owns it.
-// Hover reveal was removed deliberately — privacy mode should be all-or-nothing
+// `.sensitive--strong` (JSON viewers / payloads) is skipped - CSS blur owns it.
+// Hover reveal was removed deliberately - privacy mode should be all-or-nothing
 // when on, otherwise sensitive content leaks during a screen-share simply by
 // the cursor passing over it.
 
@@ -89,7 +89,7 @@ export default class extends Controller {
     delete el.dataset.masked
   }
 
-  // Walk text nodes whose closest .sensitive ancestor is `root` — avoids
+  // Walk text nodes whose closest .sensitive ancestor is `root` - avoids
   // double-masking when .sensitive elements are nested.
   walkOwnText(root, fn) {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {

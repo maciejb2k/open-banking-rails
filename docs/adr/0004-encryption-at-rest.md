@@ -1,4 +1,4 @@
-# 0004 — Selective ActiveRecord encryption
+# 0004 - Selective ActiveRecord encryption
 
 ## Context
 PSD2 secrets, API session IDs, raw bank payloads, balances, and per-user
@@ -6,9 +6,9 @@ LLM API keys are sensitive. They must be encrypted at rest, search/equality
 lookups on them are not needed.
 
 ## Alternatives
-- **Disk / Postgres TDE only** — protects against disk theft, not against
+- **Disk / Postgres TDE only** - protects against disk theft, not against
   app-server / DB-user compromise.
-- **Encrypt entire sensitive tables** — overkill, breaks indexes and
+- **Encrypt entire sensitive tables** - overkill, breaks indexes and
   Ransack on non-secret cols.
 - **AR-encryption per field, non-deterministic.**
 
@@ -23,7 +23,7 @@ secret patterns. Adding a new encrypted field = `encrypts :col` on the
 model + entry here.
 
 ## Consequences
-- Equality search on encrypted fields is impossible — fine, we don't
+- Equality search on encrypted fields is impossible - fine, we don't
   need it. If we ever do (e.g. dedup on hashed session_id), switch
   that one field to deterministic encryption.
 - Key rotation uses standard Rails encryption tooling.

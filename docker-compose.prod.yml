@@ -158,7 +158,7 @@ services:
           target=$$(find /backups -name '*.sql.gz' -type f | xargs -r ls -t 2>/dev/null | head -n1)
         fi
         if [ -z "$$target" ] || [ ! -f "$$target" ]; then
-          echo "[restore] no dump found — pass an explicit path or place one under ./backups/" >&2
+          echo "[restore] no dump found - pass an explicit path or place one under ./backups/" >&2
           exit 1
         fi
         echo "[restore] using $$target"

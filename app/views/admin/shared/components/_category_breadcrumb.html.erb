@@ -1,6 +1,4 @@
 <%# locals: (category:, link: false, separator: " / ", muted_ancestors: true) %>
-<%# Renders a path-aware label for a category: "Lifestyle / Shopping / Electronics".
-    `link: true` makes the leaf clickable to its analytics drill-down (when not hidden). %>
 <%
   segments = category.breadcrumb_names
   hidden   = current_user.hides_category?(category) if defined?(current_user) && current_user

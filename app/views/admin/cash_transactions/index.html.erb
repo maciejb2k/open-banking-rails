@@ -17,11 +17,7 @@
         actions: new_buttons %>
 
   <% if @user_wallets.any? %>
-    <%# Custom: wallet card with conditional negative-balance hint. Not a
-        stat_card (no change/trend metric); not a generic card (the warning
-        flips the value color and shows an inline message). Padding/shape
-        mirror _stat_card so the grid feels native. If a second
-        balance-with-warning surface appears, extract _balance_card. %>
+    <%# Custom: wallet card with negative-balance warning. If a 2nd balance-with-warning surface appears, extract _balance_card. %>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <% @user_wallets.each do |wallet| %>
         <% balance = @wallet_balances[wallet.id] %>
@@ -36,11 +32,11 @@
             </span>
           </div>
           <p class="mt-3 text-2xl font-bold <%= negative ? "text-destructive" : "text-foreground" %> <%= sensitive_class %>">
-            <%= balance ? balance.format : "—" %>
+            <%= balance ? balance.format : "-" %>
           </p>
           <% if negative %>
             <p class="mt-2 text-xs text-destructive">
-              Negative balance — you've logged more expenses than top-ups.
+              Negative balance - you've logged more expenses than top-ups.
               Likely missing a cash income entry.
             </p>
           <% end %>
@@ -52,7 +48,7 @@
           variant: :info,
           title: "No cash wallet yet" do %>
       A PLN wallet is created automatically the moment you log your first
-      cash entry — no setup needed. Use <strong>Add expense</strong> or
+      cash entry - no setup needed. Use <strong>Add expense</strong> or
       <strong>Add income</strong> above to start.
       <% unless current_user.track_cash? %>
         <br>
@@ -169,7 +165,7 @@
             <td class="px-4 py-3 max-w-xs">
               <div class="flex items-center gap-2 min-w-0">
                 <span class="truncate <%= sensitive_class if tx.title.present? && !hidden %>">
-                  <%= hide_private_text(tx.title.presence || "—", cat) %>
+                  <%= hide_private_text(tx.title.presence || "-", cat) %>
                 </span>
                 <% if tx.enrichment&.merchant && !hidden %>
                   <%= render "admin/shared/components/badge",

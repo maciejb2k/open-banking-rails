@@ -1,6 +1,6 @@
 <div class="space-y-6">
   <% account_subtitle = capture do %>
-    Bank account — <span class="<%= sensitive_class %>"><%= @account.iban || @account.uid %></span>
+    Bank account - <span class="<%= sensitive_class %>"><%= @account.iban || @account.uid %></span>
   <% end %>
   <% bc = @account.current_bank_connection %>
   <%= render "admin/shared/components/page_header",
@@ -105,7 +105,7 @@
               <span class="text-muted-foreground text-xs"><%= balance_money.currency.iso_code %></span>
             </td>
             <td class="px-4 py-3 text-muted-foreground text-xs">
-              <%= b["reference_date"] || b["last_change_date_time"] || "—" %>
+              <%= b["reference_date"] || b["last_change_date_time"] || "-" %>
             </td>
           </tr>
         <% end %>

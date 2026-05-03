@@ -2,13 +2,6 @@
 
 module EnableBanking
   module Operations
-    # Initiates the bank authorization flow.
-    #
-    # - Encodes signed CSRF state (user, credential, aspsp, replaces target)
-    # - Calls Api::StartAuth
-    # - Returns the bank's redirect URL on success
-    #
-    # Raises Failed when EB doesn't return a URL.
     class StartAuth < Base
       Failed = Class.new(StandardError)
 

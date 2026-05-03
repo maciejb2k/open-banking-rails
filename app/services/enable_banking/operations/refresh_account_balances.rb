@@ -2,10 +2,6 @@
 
 module EnableBanking
   module Operations
-    # Pulls the latest balance snapshot from EB and stores it on the
-    # BankAccount. raw_balances is encrypted at rest (see BankAccount).
-    #
-    # Raises Failed on API failure.
     class RefreshAccountBalances < Base
       Failed = Class.new(StandardError)
 

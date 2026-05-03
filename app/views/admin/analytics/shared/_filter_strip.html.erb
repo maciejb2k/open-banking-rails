@@ -1,12 +1,5 @@
 <%# locals: (filter:, user_accounts:, wrap_controller: true, with_trigger: true) %>
-<%# Filter bar shared by every analytics page. Section-based layout
-    (Period / Accounts) so additional chip groups (categories, tags …)
-    can drop in as new sections later without redesigning the strip.
-    `wrap_controller`: when false, the partial assumes a parent
-    `data-controller="filter-panel"` wrapper exists and skips its own.
-    `with_trigger`: when false, the Filters trigger button is not
-    rendered inside the strip — useful when the caller wants to surface
-    it elsewhere (e.g. inside the page_header actions slot). %>
+<%# wrap_controller: false → caller already provides data-controller="filter-panel". with_trigger: false → caller renders the Filters trigger elsewhere (e.g. page_header actions). %>
 
 <%
   day_presets = [
@@ -22,11 +15,6 @@
   ]
   active_preset_days = day_presets.find { |p| p[:days] == filter.period.length_days }&.dig(:days)
 
-  # Month-aligned presets — the personal-finance reading lens. "This
-  # month" defaults the dashboard, "Last month" is the natural compare
-  # ("did I do better than April?"), N-month windows give trend depth.
-  # All resolve to from/to date params via url_for — no new server-side
-  # state needed.
   today_d  = Date.current
   bom      = today_d.beginning_of_month
   prev_bom = (today_d << 1).beginning_of_month
@@ -66,13 +54,7 @@
   ]
   any_month_active = month_presets.any? { |p| p[:active] }
 
-  # All-accounts toggle chips. Each chip carries its own URL; click
-  # toggles its account in/out of the filter. Three target states:
-  #   * collapse to default (all-owned, no params) when the resulting
-  #     selection covers every owned account
-  #   * `?accounts=none` when the user toggles the last chip off (true
-  #     zero — charts show 0, distinct from default)
-  #   * narrowed `?account_ids[]=…` everywhere else
+  # Three URL states: default (all-owned → no params), explicit zero (?accounts=none), or narrowed (?account_ids[]=…).
   owned_ids   = current_user.all_bank_account_ids
   current_ids = filter.account_ids
 
@@ -102,32 +84,15 @@
 
   active_count = filter.all_accounts? ? 0 : filter.account_ids.size
 
-  # Shared chip styles. "Active" uses a soft primary tint + ring instead
-  # of a fully filled green pill — full-fill obliterates the bank logo
-  # and label. Inactive is plain card with border.
+  # Soft primary tint+ring on active - fully-filled fill would obliterate the bank logo.
   active_chip_cls   = "bg-primary/10 ring-1 ring-primary/40 text-foreground"
   inactive_chip_cls = "border border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-muted/40"
 %>
 
-<%# Section pattern: row of `text-[10px] uppercase` label + flex-wrap chip area
-    + optional aside. Used 2× below (Period / Accounts). If a 3rd section
-    appears (Categories, Tags, …), extract `_filter_section` taking
-    `label:` + block content for the chip area. %>
-<%# Toggle-chip pattern: period chips and account chips share the same
-    active/inactive style strings (`active_chip_cls` / `inactive_chip_cls`)
-    but render different shapes. If a 3rd toggle-chip surfaces (e.g.
-    category multiselect), extract `_toggle_chip` partial taking
-    `active:`, `href:`, body block. %>
 <%= tag.div(class: "space-y-3", **(wrap_controller ? { data: { controller: "filter-panel" } } : {})) do %>
   <%= form_with url: url_for(only_path: true), method: :get, html: { data: { turbo: false } } do |f| %>
 
-    <%# ── Months section ─────────────────────────────────────────────── %>
-    <%# Month-aligned presets first — these are the "ongoing review"
-        windows (MTD is the dashboard default). Days row below is the
-        secondary "rolling N-day audit" view. Both sections strip ?bucket
-        so the smart default (day/week/month-by-length) re-resolves; an
-        explicit granularity chip below sticks until the next period
-        change. %>
+    <%# Period chips strip ?bucket so the smart default re-resolves; an explicit Granularity chip below overrides until the period changes again. %>
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
       <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-full sm:w-20 shrink-0">Months</span>
       <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
@@ -145,12 +110,7 @@
       <% end %>
     </div>
 
-    <%# ── Days section ───────────────────────────────────────────────── %>
-    <%# Rolling N-day windows. Distinct from Months because the
-        comparison semantics differ: a rolling window compares to the
-        immediately-preceding window of the same length (Period#previous);
-        a month-aligned window compares to the same slice of the previous
-        calendar month (Filter#previous_range). %>
+    <%# Rolling-window comparisons go to Period#previous; month-aligned ones go to Filter#previous_range. %>
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1.5 mt-1.5 border-t border-border/40">
       <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-full sm:w-20 shrink-0">Days</span>
       <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
@@ -165,10 +125,7 @@
       </div>
     </div>
 
-    <%# ── Granularity section ────────────────────────────────────────── %>
-    <%# Day / Week / Month bucket switch for time-series widgets. Bucket
-        param is omitted from the URL when it equals the smart default —
-        clean URLs in default state, explicit override sticks. %>
+    <%# bucket param is omitted from the URL when it equals the smart default - clean URLs in default state, explicit override sticks. %>
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1.5 mt-1.5 border-t border-border/40">
       <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-full sm:w-20 shrink-0">Granularity</span>
       <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
@@ -184,9 +141,6 @@
       </div>
     </div>
 
-    <%# ── Currency section ───────────────────────────────────────────── %>
-    <%# Reporting currency for every aggregate on the page. Hidden for
-        single-currency users (the chip group would be a noise of one). %>
     <% if filter.available_currencies.size > 1 %>
       <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1.5 mt-1.5 border-t border-border/40">
         <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-full sm:w-20 shrink-0">Currency</span>
@@ -201,7 +155,6 @@
       </div>
     <% end %>
 
-    <%# ── Accounts section ───────────────────────────────────────────── %>
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1.5 mt-1.5 border-t border-border/40">
       <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 w-full sm:w-20 shrink-0">Accounts</span>
       <div class="flex flex-wrap items-center gap-2 flex-1 min-w-0">
@@ -238,7 +191,6 @@
       </div>
     </div>
 
-    <%# ── Slide-out panel: full-detail account list + custom date range %>
     <%= render "admin/shared/components/filter_panel",
           clear_url: url_for(filter.to_query_params.except(:account_ids, :accounts)),
           active_count: active_count do %>

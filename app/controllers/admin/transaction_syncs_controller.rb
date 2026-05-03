@@ -1,12 +1,8 @@
 # frozen_string_literal: true
 
 module Admin
-  # Dedicated UI for transaction-sync OperationRuns. Other kinds (when added)
-  # get their own controllers + views — the underlying OperationRun model is
-  # shared, but each surface is concern-specific.
-  #
   # Authorization: scoped to runs whose triggered_by_user_id = current_user.id.
-  # Scheduled runs (cron) must also stamp triggered_by_user_id so they appear here.
+  # Scheduled (cron) runs must also stamp triggered_by_user_id so they appear here.
   class TransactionSyncsController < BaseController
     KIND = "transaction_sync"
 
@@ -14,10 +10,7 @@ module Admin
       scope = OperationRun.where(kind: KIND, triggered_by_user_id: current_user.id)
       @pagy, @collection = paginated(scope, default_sort: "created_at desc", includes: :subject)
 
-      # Auto-sync schedules surface here (not under bank_connections#show) so
-      # the user can see and manage all schedules from a single page alongside
-      # manual sync history.
-      @schedule_rows = current_user_connections.map { |c| [c, c.sync_schedule] }
+      @schedule_rows = current_user_connections.map { |c| [ c, c.sync_schedule ] }
     end
 
     def show
@@ -55,7 +48,6 @@ module Admin
       OperationRun.where(kind: KIND, triggered_by_user_id: current_user.id)
     end
 
-    # User picked a specific connection or "all" (= current_user).
     def resolve_subject
       connection_id = params[:bank_connection_id]
       if connection_id.present? && (connection = current_user_connections.find_by(id: connection_id))

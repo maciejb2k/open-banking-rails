@@ -60,7 +60,7 @@ class BankConnection < ApplicationRecord
 
   has_paper_trail skip: %i[session_id psu_id_hash raw_session_payload]
 
-  # Ransack — explicit allowlist. Encrypted columns deliberately excluded.
+  # Encrypted columns deliberately excluded.
   def self.ransackable_attributes(_auth_object = nil)
     %w[id bank_slug bank_country bank_name status psu_type valid_until authorized_at
        last_refreshed_at last_synced_at closed_at access_balances access_transactions
@@ -96,7 +96,6 @@ class BankConnection < ApplicationRecord
     valid_until.present? && valid_until < within.from_now
   end
 
-  # Convenience for views — friendly badge color hint
   def status_tone
     case status
     when "authorized" then expiring_soon? ? :warning : :success

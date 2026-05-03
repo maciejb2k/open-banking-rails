@@ -1,6 +1,6 @@
 class RequireTriggeredByUserOnOperationRuns < ActiveRecord::Migration[8.1]
   def up
-    # Verified empty at migration-write time, but check defensively — a
+    # Verified empty at migration-write time, but check defensively - a
     # background job between this commit and `db:migrate` could insert a
     # row with a NULL user, and `change_column_null false` would fail.
     if OperationRun.where(triggered_by_user_id: nil).exists?

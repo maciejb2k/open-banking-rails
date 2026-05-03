@@ -1,17 +1,10 @@
 # frozen_string_literal: true
 
 module Cash
-  # Pairs a BLIK ATM withdrawal (BankTransaction debit) with a cash topup
-  # (ManualTransaction credit) in the user's cash wallet. The pair represents
-  # a *location change* of money, not a spend — once linked, both rows live
-  # under category `transfers` (kind: transfer) and drop out of spend analytics.
-  #
-  # Idempotent. Each bank tx links to at most one manual tx
-  # (DB-enforced via the unique partial index on linked_bank_transaction_id).
-  #
-  # Gated by User#track_cash. Without the flag, the bank row keeps its
-  # default classification (system rule → ATM merchant → transfers category)
-  # but no cash counterpart is materialized.
+  # The pair represents a location change of money, not a spend - both rows
+  # live under category `transfers` and drop out of spend analytics.
+  # Idempotent (DB-enforced via unique partial index on
+  # linked_bank_transaction_id). Gated by User#track_cash.
   class AtmWithdrawalLinker
     ELIGIBLE_PAYMENT_METHODS = %w[blik_atm].freeze
 
@@ -48,9 +41,8 @@ module Cash
           linked_bank_transaction: @bank_tx,
           created_by_user:         user
         )
-        # Cash topup classification: system_fallback → "cash_atm_topup" category
-        # (kind: transfer). The enricher would do this on the next sweep, but
-        # we want it consistent immediately. Category is per-user now.
+        # The enricher would do this on the next sweep, but we want it
+        # consistent immediately.
         topup.build_enrichment(
           source:      "system_fallback",
           category:    user.categories.find_by(slug: "cash_atm_topup"),
@@ -59,8 +51,7 @@ module Cash
         topup
       end
     rescue ActiveRecord::RecordNotUnique
-      # Race condition: another job linked the same bank tx between
-      # already_linked? and create!. Treat as idempotent success.
+      # Race: another job linked the same bank tx - idempotent success.
       nil
     end
 
