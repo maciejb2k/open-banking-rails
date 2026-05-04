@@ -52,7 +52,7 @@ module Admin
     end
 
     def destroy
-      if @category.descendants.any? || @category.merchants.any? || @category.transaction_enrichments.any?
+      if @category.in_use?
         redirect_to admin_categories_path,
                     alert: "Can't delete - this category is in use or has sub-categories. Archive it instead."
       else

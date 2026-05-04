@@ -25,20 +25,18 @@ module Admin
     end
 
     def create
-      run = OperationRun.create(
-        kind: KIND,
-        status: "queued",
-        trigger: "manual",
-        triggered_by_user: current_user,
-        subject: resolve_subject,
-        params: { date_from: params[:date_from].presence, date_to: params[:date_to].presence }.compact
+      result = TransactionSyncs::Queuer.call(
+        user:  current_user,
+        input: TransactionSyncs::Queuer::Input.new(
+          bank_connection_id: params[:bank_connection_id],
+          date_from:          params[:date_from],
+          date_to:            params[:date_to]
+        )
       )
-
-      if run.persisted?
-        TransactionSyncJob.perform_later(run.id)
-        redirect_to admin_transaction_sync_path(run), notice: "Sync ##{run.id} queued."
+      if result.success?
+        redirect_to admin_transaction_sync_path(result.run), notice: "Sync ##{result.run.id} queued."
       else
-        redirect_to new_admin_transaction_sync_path, alert: "Could not start sync: #{run.errors.full_messages.to_sentence}"
+        redirect_to new_admin_transaction_sync_path, alert: "Could not start sync: #{result.error}"
       end
     end
 
@@ -46,15 +44,6 @@ module Admin
 
     def scoped_runs
       OperationRun.where(kind: KIND, triggered_by_user_id: current_user.id)
-    end
-
-    def resolve_subject
-      connection_id = params[:bank_connection_id]
-      if connection_id.present? && (connection = current_user_connections.find_by(id: connection_id))
-        connection
-      else
-        current_user
-      end
     end
 
     def current_user_connections

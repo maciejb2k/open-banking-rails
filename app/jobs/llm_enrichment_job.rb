@@ -30,7 +30,7 @@ class LlmEnrichmentJob < ApplicationJob
     limit  = run.params["limit"]&.to_i || Llm::EnrichmentRunner::DEFAULT_LIMIT
     user   = run.subject.is_a?(User) ? run.subject : run.triggered_by_user
     raise "OperationRun #{run.id} has no resolvable user — cannot enrich" if user.nil?
--
+
     result = Llm::EnrichmentRunner.call(user: user, limit: limit, on_batch: on_batch)
 
     summary["total_groups"]   = result.processed

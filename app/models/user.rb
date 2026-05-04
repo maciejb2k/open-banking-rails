@@ -39,6 +39,8 @@ class User < ApplicationRecord
 
   has_one :llm_setting, dependent: :destroy
 
+  has_many :personal_access_tokens, dependent: :destroy
+
   has_many :operation_runs, foreign_key: :triggered_by_user_id, dependent: :destroy
 
   # Subtree-aware: hiding `food` hides every descendant. The user-selected

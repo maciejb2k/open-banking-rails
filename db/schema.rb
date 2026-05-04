@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_02_170613) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_04_184504) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "ltree"
   enable_extension "pg_catalog.plpgsql"
@@ -260,6 +260,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_170613) do
     t.index ["triggered_by_user_id"], name: "index_operation_runs_on_triggered_by_user_id"
   end
 
+  create_table "personal_access_tokens", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "last_four", limit: 4, null: false
+    t.datetime "last_used_at"
+    t.string "name", null: false
+    t.datetime "revoked_at"
+    t.string "token_digest", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["token_digest"], name: "index_personal_access_tokens_on_token_digest", unique: true
+    t.index ["user_id", "name"], name: "index_personal_access_tokens_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_personal_access_tokens_on_user_id"
+  end
+
   create_table "sync_schedules", force: :cascade do |t|
     t.bigint "bank_connection_id", null: false
     t.string "cadence", default: "daily", null: false
@@ -376,6 +390,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_170613) do
   add_foreign_key "merchants", "users"
   add_foreign_key "merchants", "users", column: "approved_by_id"
   add_foreign_key "operation_runs", "users", column: "triggered_by_user_id"
+  add_foreign_key "personal_access_tokens", "users"
   add_foreign_key "sync_schedules", "bank_connections"
   add_foreign_key "tpp_credentials", "users"
   add_foreign_key "transaction_enrichments", "categories"

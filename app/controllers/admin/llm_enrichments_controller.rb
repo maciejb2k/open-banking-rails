@@ -30,24 +30,15 @@ module Admin
     end
 
     def create
-      unless current_user.llm_setting&.configured?
-        redirect_to admin_settings_preferences_llm_path,
-                    alert: "Configure an LLM provider in Preferences before running enrichment."
-        return
-      end
-
-      run = OperationRun.create!(
-        kind:              KIND,
-        status:            "queued",
-        trigger:           "manual",
-        triggered_by_user: current_user,
-        subject:           current_user,
-        params:            { "limit" => (params[:limit].presence&.to_i || Llm::EnrichmentRunner::DEFAULT_LIMIT) },
-        summary:           {}
+      result = LlmEnrichments::Queuer.call(
+        user:  current_user,
+        input: LlmEnrichments::Queuer::Input.new(limit: params[:limit])
       )
-
-      LlmEnrichmentJob.perform_later(run.id)
-      redirect_to admin_llm_enrichment_path(run), notice: "Run ##{run.id} queued."
+      if result.success?
+        redirect_to admin_llm_enrichment_path(result.run), notice: "Run ##{result.run.id} queued."
+      else
+        redirect_to admin_settings_preferences_llm_path, alert: result.error
+      end
     end
 
     private

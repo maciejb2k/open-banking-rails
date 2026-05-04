@@ -6,27 +6,25 @@ module Admin
     before_action :set_rule, only: %i[update destroy]
 
     def create
-      @rule = @merchant.merchant_rules.build(rule_params.merge(user: current_user, source: "user", approved_at: Time.current, approved_by: current_user))
-      if @rule.save
-        Enrichment::TransactionEnricher.rebuild!(user: current_user)
+      result = MerchantRules::Creator.call(merchant: @merchant, actor: current_user, attributes: rule_params)
+      if result.success?
         redirect_to admin_merchant_path(@merchant), notice: "Rule added - historical transactions re-classified."
       else
-        redirect_to admin_merchant_path(@merchant), alert: "Could not add rule: #{@rule.errors.full_messages.join(', ')}"
+        redirect_to admin_merchant_path(@merchant), alert: "Could not add rule: #{result.error}"
       end
     end
 
     def update
-      if @rule.update(rule_params)
-        Enrichment::TransactionEnricher.rebuild!(user: current_user)
+      result = MerchantRules::Updater.call(rule: @rule, actor: current_user, attributes: rule_params)
+      if result.success?
         redirect_to admin_merchant_path(@merchant), notice: "Rule updated."
       else
-        redirect_to admin_merchant_path(@merchant), alert: "Could not update rule: #{@rule.errors.full_messages.join(', ')}"
+        redirect_to admin_merchant_path(@merchant), alert: "Could not update rule: #{result.error}"
       end
     end
 
     def destroy
-      @rule.destroy
-      Enrichment::TransactionEnricher.rebuild!(user: current_user)
+      MerchantRules::Destroyer.call(rule: @rule, actor: current_user)
       redirect_to admin_merchant_path(@merchant), notice: "Rule deleted - transactions re-classified."
     end
 

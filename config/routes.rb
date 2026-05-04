@@ -24,6 +24,12 @@ Rails.application.routes.draw do
   # Path must match the redirect_url registered with the provider (Enable Banking).
   get "/callback", to: "oauth_callbacks#enable_banking", as: :oauth_callback
 
+  get "/api/:version/docs", to: "swagger#index", as: :api_docs, constraints: { version: /v\d+/ }
+
+  match "/mcp", to: "mcp#handle", via: %i[get post delete]
+
+  mount Api => "/"
+
   if Rails.env.development?
     namespace :admin do
       get  "debug", to: "debug#index"
@@ -143,6 +149,8 @@ Rails.application.routes.draw do
         get   "data_exchange",        to: "data_exchange#show",   as: :data_exchange
         post  "data_exchange/export", to: "data_exchange#export", as: :data_exchange_export
         post  "data_exchange/import", to: "data_exchange#import", as: :data_exchange_import
+
+        resources :api_tokens, only: %i[index create destroy], controller: "api_tokens"
       end
     end
   end

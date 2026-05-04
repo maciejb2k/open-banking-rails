@@ -101,6 +101,10 @@ class Category < ApplicationRecord
 
   def root? = depth.zero?
 
+  def in_use?
+    descendants.exists? || merchants.exists? || transaction_enrichments.exists?
+  end
+
   def breadcrumb_names
     chain = ancestors.order(Arel.sql("nlevel(path)")) + [ self ]
     chain.map(&:name)

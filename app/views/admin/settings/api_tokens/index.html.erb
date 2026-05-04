@@ -1,0 +1,131 @@
+<%= render layout: "admin/settings/preferences/layout", locals: { current: :api_tokens } do %>
+  <div class="space-y-6">
+    <div class="admin-section space-y-4">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 class="text-base font-semibold text-foreground">API tokens</h2>
+          <p class="text-sm text-muted-foreground mt-1">
+            Personal access tokens authorize calls to the JSON API and the MCP
+            server. Each token belongs to your account; revoke any you no longer
+            recognize.
+          </p>
+        </div>
+        <%= link_to api_docs_path(version: "v1"),
+              target: "_blank",
+              rel: "noopener",
+              class: "inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs font-medium hover:bg-card-hover transition-colors whitespace-nowrap" do %>
+          <%= render "admin/shared/icons/file_text", classes: "h-3.5 w-3.5" %>
+          API docs
+        <% end %>
+      </div>
+
+      <%= form_with model: @new_token,
+                    url: admin_settings_preferences_api_tokens_path,
+                    scope: :personal_access_token,
+                    class: "space-y-2", local: true do |f| %>
+        <%# Hint lives outside the partial so the row aligns on input baseline. %>
+        <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-3 items-end">
+          <%= render "admin/shared/form/text_field",
+                form: f, field: :name,
+                label: "Token name",
+                placeholder: "e.g. claude-desktop, macbook-cli",
+                required: true %>
+          <%= render "admin/shared/components/button",
+                label: "Generate token",
+                type: :submit,
+                icon: "plus" %>
+        </div>
+        <p class="text-xs text-muted-foreground">
+          Used to identify this token in the list. Must be unique per account.
+        </p>
+      <% end %>
+
+      <% if @raw_token.present? %>
+        <div data-controller="clipboard"
+             data-clipboard-source-value="<%= @raw_token %>"
+             class="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+          <div class="flex items-start gap-3">
+            <%= render "admin/shared/icons/shield", classes: "h-5 w-5 text-primary shrink-0 mt-0.5" %>
+            <div class="space-y-1 min-w-0">
+              <p class="text-sm font-semibold text-foreground">
+                Copy this token now - it won't be shown again.
+              </p>
+              <p class="text-xs text-muted-foreground">
+                Store it in your password manager or your client's config file.
+                If you lose it, generate a new one.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-2">
+            <code class="<%= sensitive_class %> flex-1 rounded-md border bg-card px-3 py-2 font-mono text-sm break-all">
+              <%= @raw_token %>
+            </code>
+            <button type="button"
+                    data-action="click->clipboard#copy"
+                    data-clipboard-target="button"
+                    class="inline-flex items-center justify-center gap-2 rounded-lg border bg-card px-4 py-2 text-sm font-medium hover:bg-card-hover transition-colors whitespace-nowrap">
+              Copy
+            </button>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="admin-section space-y-4">
+      <h2 class="text-base font-semibold text-foreground">Active tokens</h2>
+
+      <% if @tokens.empty? %>
+        <%= render "admin/shared/components/empty_state",
+              title: "No tokens yet",
+              description: "Generate your first token above to start using the API or connect an MCP client.",
+              icon: "shield" %>
+      <% else %>
+        <%= render "admin/shared/components/data_table",
+              columns: [
+                { label: "Name" },
+                { label: "Last 4" },
+                { label: "Status" },
+                { label: "Created" },
+                { label: "Last used" },
+                { label: "", align: :right }
+              ] do %>
+          <% @tokens.each do |token| %>
+            <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
+              <td class="px-3 sm:px-4 py-3 font-medium text-foreground">
+                <%= sensitive token.name %>
+              </td>
+              <td class="px-3 sm:px-4 py-3 font-mono text-xs text-muted-foreground">
+                <%= sensitive "…#{token.last_four}", kind: :mask %>
+              </td>
+              <td class="px-3 sm:px-4 py-3">
+                <% if token.revoked? %>
+                  <%= render "admin/shared/components/badge", text: "Revoked", variant: :destructive %>
+                <% else %>
+                  <%= render "admin/shared/components/badge", text: "Active", variant: :success %>
+                <% end %>
+              </td>
+              <td class="px-3 sm:px-4 py-3 text-muted-foreground whitespace-nowrap">
+                <%= l(token.created_at, format: :short) %>
+              </td>
+              <td class="px-3 sm:px-4 py-3 text-muted-foreground whitespace-nowrap">
+                <%= token.last_used_at ? l(token.last_used_at, format: :short) : "Never" %>
+              </td>
+              <td class="px-3 sm:px-4 py-3 text-right">
+                <% unless token.revoked? %>
+                  <%= button_to admin_settings_preferences_api_token_path(token),
+                        method: :delete,
+                        form: { data: { turbo_confirm: "Revoke #{token.name}? Calls using this token will start failing immediately." } },
+                        class: "inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors" do %>
+                    <%= render "admin/shared/icons/trash_2", classes: "h-3.5 w-3.5" %>
+                    Revoke
+                  <% end %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+<% end %>

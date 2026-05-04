@@ -23,7 +23,10 @@ module Admin
           desc: "AI provider, API key, connection test." },
         { id: :data_exchange, label: "Data exchange", icon: "package",
           path: admin_settings_preferences_data_exchange_path,
-          desc: "Export and import bundles between instances." }
+          desc: "Export and import bundles between instances." },
+        { id: :api_tokens, label: "API tokens", icon: "shield",
+          path: admin_settings_preferences_api_tokens_path,
+          desc: "Personal access tokens for the JSON API and MCP server." }
       ]
     end
 

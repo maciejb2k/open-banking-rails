@@ -46,9 +46,9 @@ module Admin
     end
 
     def create
-      @merchant = current_user.merchants.new(merchant_params.merge(source: "user", approved_at: Time.current, approved_by: current_user))
-      @merchant.slug = generate_slug(@merchant.name) if @merchant.slug.blank?
-      if @merchant.save
+      result = Merchants::Creator.call(user: current_user, attributes: merchant_params)
+      @merchant = result.merchant
+      if result.success?
         redirect_to admin_merchant_path(@merchant), notice: "Merchant created."
       else
         render :new, status: :unprocessable_entity
@@ -91,13 +91,7 @@ module Admin
     end
 
     def approve
-      ActiveRecord::Base.transaction do
-        @merchant.update!(approved_at: Time.current, approved_by: current_user)
-        @merchant.merchant_rules.where(source: "llm", enabled: false).each do |rule|
-          rule.update!(enabled: true, approved_at: Time.current, approved_by: current_user)
-        end
-      end
-      Enrichment::TransactionEnricher.rebuild!(user: current_user)
+      Merchants::Approver.call(merchant: @merchant, actor: current_user)
       redirect_to safe_return_to(default: admin_merchant_path(@merchant)),
                   notice: "Approved - historical transactions re-classified."
     end
@@ -110,17 +104,6 @@ module Admin
 
     def merchant_params
       params.expect(merchant: %i[name slug kind default_category_id logo_url notes])
-    end
-
-    def generate_slug(name)
-      base = name.to_s.downcase.gsub(/\p{M}/, "").gsub(/[^a-z0-9]+/, "_").gsub(/_+/, "_").gsub(/\A_|_\z/, "")
-      candidate = base
-      i = 2
-      while current_user.merchants.exists?(slug: candidate)
-        candidate = "#{base}_#{i}"
-        i += 1
-      end
-      candidate
     end
   end
 end

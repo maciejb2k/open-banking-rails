@@ -25,6 +25,13 @@ gem "rack-cors"
 gem "ransack"
 gem "paper_trail"
 
+gem "grape", "~> 3.1"
+gem "grape-entity"
+gem "grape-swagger"
+gem "grape-swagger-entity"
+
+gem "mcp"
+
 gem "gutentag", "~> 3.0"
 
 gem "scenic", "~> 1.8"
