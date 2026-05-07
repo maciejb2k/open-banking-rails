@@ -45,7 +45,7 @@ module Resources
                 total_cents: total_cents,
                 count:       count,
                 monthly_trend: monthly.map { |r|
-                  { period: r.respond_to?(:period) ? r.period : nil, amount_cents: r.amount_cents, count: r.count }
+                  { period: r[:bucket], amount_cents: r[:value].to_i }
                 },
                 transactions: ::Entities::LedgerEntry.represent(transactions).as_json,
                 pagination:   pagination_meta(pagy_obj)
