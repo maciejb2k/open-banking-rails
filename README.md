@@ -202,6 +202,18 @@ Once the container is up and you've created the admin account, this is the post-
 9. Open **AI Enrichments** and walk through the queue until categories match how you think.
 10. Open the dashboard and you're done.
 
+## API & MCP
+
+The dashboard is also a REST API and an MCP server. Get a token from
+**Settings → API Tokens** and point your client at `/api/v1/...` or
+`/mcp`. Swagger docs live at `/api/v1/docs`. The MCP endpoint plugs into
+Claude Desktop and any other MCP client, with tools for transactions,
+categories, merchants and analytics.
+
+![API Tokens](docs/screenshots/api_tokens.png)
+
+![OpenAPI](docs/screenshots/openapi.png)
+
 ## Styleguide & Component Library
 
 No `ActiveAdmin`, no `Avo`. The admin panel is hand-rolled on Tailwind
