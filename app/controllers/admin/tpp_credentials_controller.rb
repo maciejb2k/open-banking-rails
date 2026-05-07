@@ -16,8 +16,9 @@ module Admin
     end
 
     def create
+      first_credential = current_user.tpp_credentials.none?
       @credential = current_user.tpp_credentials.new(credential_params)
-      @credential.primary = true if current_user.tpp_credentials.none?
+      @credential.primary = true if first_credential
 
       if @credential.save
         redirect_to admin_tpp_credential_path(@credential),
