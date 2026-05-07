@@ -4,7 +4,7 @@ module Admin
   module Settings
     class ApiTokensController < BaseController
       def index
-        @tokens    = current_user.personal_access_tokens.order(revoked_at: :asc, created_at: :desc)
+        @tokens    = current_user.personal_access_tokens.order(revoked_at: :desc, created_at: :desc)
         @new_token = PersonalAccessToken.new
         @raw_token = flash[:new_raw_token]
       end
@@ -22,7 +22,7 @@ module Admin
           redirect_to admin_settings_preferences_api_tokens_path,
                       notice: "Token \"#{result.token_record.name}\" generated. Copy it now - it won't be shown again."
         else
-          @tokens    = current_user.personal_access_tokens.order(revoked_at: :asc, created_at: :desc)
+          @tokens    = current_user.personal_access_tokens.order(revoked_at: :desc, created_at: :desc)
           @new_token = result.token_record || PersonalAccessToken.new
           flash.now[:alert] = result.error.presence || "Could not generate the token."
           render :index, status: :unprocessable_entity
