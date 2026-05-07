@@ -83,7 +83,7 @@ class Merchant < ApplicationRecord
   def generate_slug
     return if slug.present?
     return if name.blank?
-    base = name.to_s.downcase.gsub(/\p{M}/, "").gsub(/[^a-z0-9]+/, "_").gsub(/_+/, "_").gsub(/\A_|_\z/, "")
+    base = name.to_s.unicode_normalize(:nfd).downcase.gsub(/\p{M}/, "").gsub(/[^a-z0-9]+/, "_").gsub(/_+/, "_").gsub(/\A_|_\z/, "")
     self.slug = base.presence || "merchant_#{SecureRandom.hex(4)}"
   end
 end
