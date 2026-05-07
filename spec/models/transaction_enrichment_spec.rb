@@ -1,5 +1,42 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: transaction_enrichments
+#
+#  id                  :bigint           not null, primary key
+#  category_overridden :boolean          default(FALSE), not null
+#  confidence          :decimal(4, 3)
+#  enrichable_type     :string           not null
+#  enriched_at         :datetime
+#  model               :string
+#  notes               :text
+#  recurrence_interval :string
+#  recurring           :boolean          default(FALSE), not null
+#  source              :string           not null
+#  created_at          :datetime         not null
+#  updated_at          :datetime         not null
+#  category_id         :bigint
+#  enrichable_id       :bigint           not null
+#  merchant_id         :bigint
+#  merchant_rule_id    :bigint
+#
+# Indexes
+#
+#  idx_enrichments_on_enrichable                      (enrichable_type,enrichable_id) UNIQUE
+#  index_transaction_enrichments_on_category_id       (category_id)
+#  index_transaction_enrichments_on_enrichable        (enrichable_type,enrichable_id)
+#  index_transaction_enrichments_on_merchant_id       (merchant_id)
+#  index_transaction_enrichments_on_merchant_rule_id  (merchant_rule_id)
+#  index_transaction_enrichments_on_recurring         (recurring) WHERE (recurring = true)
+#  index_transaction_enrichments_on_source            (source)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (category_id => categories.id)
+#  fk_rails_...  (merchant_id => merchants.id)
+#  fk_rails_...  (merchant_rule_id => merchant_rules.id)
+#
 require "rails_helper"
 
 RSpec.describe TransactionEnrichment do

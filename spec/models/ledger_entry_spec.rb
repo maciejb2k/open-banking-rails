@@ -1,5 +1,32 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: ledger_entries
+#
+#  amount_cents          :bigint
+#  booking_date          :date
+#  category_path         :ltree
+#  counterparty_kind     :string
+#  counterparty_name     :string
+#  currency              :string(3)
+#  direction             :string
+#  enrichment_source     :string
+#  essential             :boolean
+#  payment_method        :string
+#  recurrence_interval   :string
+#  recurring             :boolean
+#  signed_amount_cents   :bigint
+#  source_type           :text
+#  status                :string
+#  title                 :text
+#  transaction_date      :date
+#  bank_account_id       :bigint
+#  effective_category_id :bigint
+#  enrichment_id         :bigint
+#  merchant_id           :bigint
+#  source_id             :bigint
+#
 require "rails_helper"
 
 RSpec.describe LedgerEntry do

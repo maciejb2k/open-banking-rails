@@ -22,8 +22,8 @@
 #
 #  index_categories_on_archived_at       (archived_at)
 #  index_categories_on_path              (path) USING gist
-#  index_categories_on_path_unique       (path) UNIQUE
 #  index_categories_on_user_id           (user_id)
+#  index_categories_on_user_id_and_path  (user_id,path) UNIQUE
 #  index_categories_on_user_id_and_slug  (user_id,slug) UNIQUE
 #
 # Foreign Keys
@@ -47,7 +47,7 @@ class Category < ApplicationRecord
   validates :slug, presence: true, uniqueness: { scope: :user_id },
                    format: { with: /\A[a-z0-9_\-]+\z/, message: "must be lowercase letters, digits, underscores, dashes" }
   validates :kind, inclusion: { in: KINDS }
-  validates :path, presence: true, uniqueness: true
+  validates :path, presence: true, uniqueness: { scope: :user_id }
 
   before_validation :ensure_path_ends_with_slug
 

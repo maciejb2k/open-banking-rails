@@ -1,5 +1,27 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: llm_settings
+#
+#  id              :bigint           not null, primary key
+#  api_key         :text             not null
+#  last_test_error :text
+#  last_tested_at  :datetime
+#  model           :string
+#  provider        :string           not null
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#  user_id         :bigint           not null
+#
+# Indexes
+#
+#  index_llm_settings_on_user_id  (user_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (user_id => users.id)
+#
 FactoryBot.define do
   factory :llm_setting do
     user

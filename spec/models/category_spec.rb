@@ -1,5 +1,35 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: categories
+#
+#  id          :bigint           not null, primary key
+#  archived_at :datetime
+#  color       :string
+#  essential   :boolean          default(FALSE), not null
+#  icon        :string
+#  kind        :string           default("expense"), not null
+#  name        :string           not null
+#  path        :ltree
+#  position    :integer          default(0), not null
+#  slug        :string           not null
+#  created_at  :datetime         not null
+#  updated_at  :datetime         not null
+#  user_id     :bigint           not null
+#
+# Indexes
+#
+#  index_categories_on_archived_at       (archived_at)
+#  index_categories_on_path              (path) USING gist
+#  index_categories_on_user_id           (user_id)
+#  index_categories_on_user_id_and_path  (user_id,path) UNIQUE
+#  index_categories_on_user_id_and_slug  (user_id,slug) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (user_id => users.id)
+#
 require "rails_helper"
 
 RSpec.describe Category do
@@ -30,14 +60,17 @@ RSpec.describe Category do
     expect(duplicate.errors[:slug]).to include("has already been taken")
   end
 
-  it "rejects a duplicate path even across different users (path is globally unique)" do
+  it "scopes path uniqueness per user (different users may share, same user may not)" do
     user_a = create(:user)
     user_b = create(:user)
     create(:category, user: user_a, name: "Food", slug: "food", path: "food.cooking.supermarket")
 
-    duplicate = build(:category, user: user_b, name: "Other", slug: "supermarket_other", path: "food.cooking.supermarket")
-    expect(duplicate).not_to be_valid
-    expect(duplicate.errors[:path]).to include("has already been taken")
+    cross_user = build(:category, user: user_b, name: "Other", slug: "supermarket_other", path: "food.cooking.supermarket")
+    expect(cross_user).to be_valid
+
+    same_user = build(:category, user: user_a, name: "Other", slug: "supermarket_other", path: "food.cooking.supermarket")
+    expect(same_user).not_to be_valid
+    expect(same_user.errors[:path]).to include("has already been taken")
   end
 
   it "fills slug from the last segment of path when slug is blank, and leaves an explicit slug alone" do

@@ -1,5 +1,44 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: bank_connections
+#
+#  id                  :bigint           not null, primary key
+#  access_balances     :boolean          default(TRUE), not null
+#  access_transactions :boolean          default(TRUE), not null
+#  authorized_at       :datetime
+#  bank_country        :string           default("PL")
+#  bank_name           :string
+#  bank_slug           :string           not null
+#  closed_at           :datetime
+#  last_error          :text
+#  last_refreshed_at   :datetime
+#  last_synced_at      :datetime
+#  psu_id_hash         :text
+#  psu_type            :string           default("personal")
+#  raw_session_payload :text
+#  status              :string           default("pending"), not null
+#  valid_until         :datetime
+#  created_at          :datetime         not null
+#  updated_at          :datetime         not null
+#  replaces_id         :bigint
+#  session_id          :text
+#  tpp_credential_id   :bigint           not null
+#
+# Indexes
+#
+#  index_bank_connections_lookup                (tpp_credential_id,bank_slug,status)
+#  index_bank_connections_on_replaces_id        (replaces_id)
+#  index_bank_connections_on_status             (status)
+#  index_bank_connections_on_tpp_credential_id  (tpp_credential_id)
+#  index_bank_connections_on_valid_until        (valid_until)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (replaces_id => bank_connections.id)
+#  fk_rails_...  (tpp_credential_id => tpp_credentials.id)
+#
 require "rails_helper"
 
 RSpec.describe BankConnection do
