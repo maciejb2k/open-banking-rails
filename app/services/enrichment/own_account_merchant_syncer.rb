@@ -10,7 +10,7 @@ module Enrichment
   # so own-IBAN match wins against a generic title keyword like "JOHN DOE" on
   # outgoing PKO transfers. User-source rules still override.
   class OwnAccountMerchantSyncer
-    OWN_TRANSFER_CATEGORY_SLUG = "transfers"
+    OWN_TRANSFER_CATEGORY_SLUG = "money_transfers"
     RULE_PRIORITY              = 200
 
     def self.call(bank_account) = new(bank_account).call

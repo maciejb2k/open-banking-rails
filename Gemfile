@@ -62,6 +62,14 @@ group :development, :test do
   gem "factory_bot_rails", "~> 6.5"
   gem "shoulda-matchers", "~> 7.0"
   gem "simplecov", require: false
+  gem "webmock", "~> 3.0"
+  gem "capybara", "~> 3.40"
+  gem "rspec-sidekiq", "~> 5.0"
+  gem "faker", "~> 3.4"
+end
+
+group :test do
+  gem "database_cleaner-active_record", "~> 2.0"
 end
 
 group :development do

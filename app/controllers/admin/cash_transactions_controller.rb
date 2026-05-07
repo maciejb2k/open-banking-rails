@@ -100,7 +100,7 @@ module Admin
 
     def load_form_options
       @merchant_options = current_user.merchants.active.order(:name).limit(500)
-      @category_options = current_user.categories.active.includes(:parent).order(:position, :name)
+      @category_options = current_user.categories.active.order(:position, :name)
       @currency_options = supported_currencies
     end
 
