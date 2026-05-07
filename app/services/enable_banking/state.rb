@@ -25,8 +25,9 @@ module EnableBanking
 
       def decode(token)
         return nil if token.blank?
-        data = Rails.application.message_verifier(PURPOSE).verified(token)
-        return nil if data.nil?
+        raw = Rails.application.message_verifier(PURPOSE).verified(token)
+        return nil if raw.nil?
+        data = raw.respond_to?(:symbolize_keys) ? raw.symbolize_keys : raw
         return nil if data[:expires_at].to_i < Time.current.to_i
         data
       rescue ActiveSupport::MessageVerifier::InvalidSignature, ActiveSupport::MessageEncryptor::InvalidMessage

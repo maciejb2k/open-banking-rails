@@ -32,6 +32,13 @@ module AutoSync
       previous = snapshot(schedule)
 
       schedule.assign_attributes(assigned_attrs(schedule))
+
+      # NextRunCalculator raises bare ArgumentError on out-of-range preferred_hour or
+      # unknown cadence; surface those as Result(success?: false) by validating first.
+      unless schedule.valid?
+        return Result.new(success?: false, schedule: schedule, error_messages: schedule.errors.full_messages)
+      end
+
       schedule.next_run_at = recomputed_next_run(schedule) if recompute_needed?(schedule, previous)
 
       schedule.save!
