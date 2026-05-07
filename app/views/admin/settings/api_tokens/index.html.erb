@@ -81,50 +81,52 @@
               description: "Generate your first token above to start using the API or connect an MCP client.",
               icon: "shield" %>
       <% else %>
-        <%= render "admin/shared/components/data_table",
-              columns: [
-                { label: "Name" },
-                { label: "Last 4" },
-                { label: "Status" },
-                { label: "Created" },
-                { label: "Last used" },
-                { label: "", align: :right }
-              ] do %>
+        <%# Custom: list-style layout - the table form with 6 columns overflows the
+            narrow preferences column. If a second similar list shows up, extract
+            a _stacked_list component. %>
+        <ul class="divide-y rounded-lg border bg-card">
           <% @tokens.each do |token| %>
-            <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
-              <td class="px-3 sm:px-4 py-3 font-medium text-foreground">
-                <%= sensitive token.name %>
-              </td>
-              <td class="px-3 sm:px-4 py-3 font-mono text-xs text-muted-foreground">
-                <%= sensitive "…#{token.last_four}", kind: :mask %>
-              </td>
-              <td class="px-3 sm:px-4 py-3">
-                <% if token.revoked? %>
-                  <%= render "admin/shared/components/badge", text: "Revoked", variant: :destructive %>
-                <% else %>
-                  <%= render "admin/shared/components/badge", text: "Active", variant: :success %>
-                <% end %>
-              </td>
-              <td class="px-3 sm:px-4 py-3 text-muted-foreground whitespace-nowrap">
-                <%= l(token.created_at, format: :short) %>
-              </td>
-              <td class="px-3 sm:px-4 py-3 text-muted-foreground whitespace-nowrap">
-                <%= token.last_used_at ? l(token.last_used_at, format: :short) : "Never" %>
-              </td>
-              <td class="px-3 sm:px-4 py-3 text-right">
-                <% unless token.revoked? %>
-                  <%= button_to admin_settings_preferences_api_token_path(token),
-                        method: :delete,
-                        form: { data: { turbo_confirm: "Revoke #{token.name}? Calls using this token will start failing immediately." } },
-                        class: "inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors" do %>
-                    <%= render "admin/shared/icons/trash_2", classes: "h-3.5 w-3.5" %>
-                    Revoke
+            <li class="flex items-start gap-3 px-3 sm:px-4 py-3">
+              <div class="min-w-0 flex-1 space-y-1">
+                <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span class="<%= sensitive_class %> font-medium text-foreground break-all">
+                    <%= token.name %>
+                  </span>
+                  <span class="<%= sensitive_class(kind: :mask) %> font-mono text-xs text-muted-foreground">
+                    …<%= token.last_four %>
+                  </span>
+                  <% if token.revoked? %>
+                    <%= render "admin/shared/components/badge", text: "Revoked", variant: :destructive %>
+                  <% else %>
+                    <%= render "admin/shared/components/badge", text: "Active", variant: :success %>
                   <% end %>
+                </div>
+                <p class="text-xs text-muted-foreground">
+                  Created <%= l(token.created_at, format: :short) %>
+                  · Last used <%= token.last_used_at ? l(token.last_used_at, format: :short) : "never" %>
+                </p>
+              </div>
+
+              <% if token.revoked? %>
+                <%= button_to admin_settings_preferences_api_token_path(token),
+                      method: :delete,
+                      form: { data: { turbo_confirm: "Delete #{token.name}? This removes the record permanently." }, class: "shrink-0" },
+                      class: "inline-flex items-center gap-1.5 rounded-md border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-card-hover transition-colors" do %>
+                  <%= render "admin/shared/icons/trash_2", classes: "h-3.5 w-3.5" %>
+                  Delete
                 <% end %>
-              </td>
-            </tr>
+              <% else %>
+                <%= button_to admin_settings_preferences_api_token_path(token),
+                      method: :delete,
+                      form: { data: { turbo_confirm: "Revoke #{token.name}? Calls using this token will start failing immediately." }, class: "shrink-0" },
+                      class: "inline-flex items-center gap-1.5 rounded-md border bg-card px-2.5 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors" do %>
+                  <%= render "admin/shared/icons/trash_2", classes: "h-3.5 w-3.5" %>
+                  Revoke
+                <% end %>
+              <% end %>
+            </li>
           <% end %>
-        <% end %>
+        </ul>
       <% end %>
     </div>
   </div>

@@ -32,8 +32,10 @@ module Admin
       def destroy
         token = current_user.personal_access_tokens.find(params[:id])
         if token.revoked?
+          name = token.name
+          token.destroy!
           redirect_to admin_settings_preferences_api_tokens_path,
-                      alert: "Token already revoked."
+                      notice: "Token \"#{name}\" deleted."
         else
           token.update!(revoked_at: Time.current)
           redirect_to admin_settings_preferences_api_tokens_path,
