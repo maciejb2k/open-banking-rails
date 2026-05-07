@@ -58,7 +58,7 @@ module DataExchange
         @parsed_bundle = Bundle.load(@bundle_blob, passphrase: @passphrase)
       rescue BundleCipher::InvalidPassphrase => e
         raise Failed, e.message
-      rescue Bundle::InvalidFormat => e
+      rescue BundleCipher::MalformedBundle, Bundle::InvalidFormat => e
         raise Failed, "bundle malformed: #{e.message}"
       end
 

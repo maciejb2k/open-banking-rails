@@ -38,6 +38,12 @@ class Category < ApplicationRecord
 
   KINDS = %w[expense income transfer savings ignored].freeze
   SEPARATOR = "."
+  # PG ltree labels are [A-Za-z0-9_]+; we lowercase by convention. Without a
+  # format gate here the uniqueness validator's SELECT casts a malformed
+  # value to ::ltree and raises PG::SyntaxError before the slug format
+  # validator gets to add a friendly error - so the controller would see a
+  # 500 instead of a 422.
+  LTREE_PATH_FORMAT = /\A[a-z0-9_]+(\.[a-z0-9_]+)*\z/
 
   belongs_to :user
   has_many :merchants, foreign_key: :default_category_id, dependent: :nullify
@@ -47,7 +53,9 @@ class Category < ApplicationRecord
   validates :slug, presence: true, uniqueness: { scope: :user_id },
                    format: { with: /\A[a-z0-9_\-]+\z/, message: "must be lowercase letters, digits, underscores, dashes" }
   validates :kind, inclusion: { in: KINDS }
-  validates :path, presence: true, uniqueness: { scope: :user_id }
+  validates :path, presence: true,
+                   format: { with: LTREE_PATH_FORMAT, message: "must be lowercase letters, digits, underscores, dot-separated" }
+  validates :path, uniqueness: { scope: :user_id }, if: :path_ltree_compatible?
 
   before_validation :ensure_path_ends_with_slug
 
@@ -119,6 +127,10 @@ class Category < ApplicationRecord
   end
 
   private
+
+  def path_ltree_compatible?
+    path.to_s.match?(LTREE_PATH_FORMAT)
+  end
 
   def ensure_path_ends_with_slug
     return if path.blank?

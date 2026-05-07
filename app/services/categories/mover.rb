@@ -23,7 +23,12 @@ module Categories
     def call
       attrs = @attributes.dup
       if @parent_path.present?
-        attrs[:path] = compose_path(@parent_path, attrs[:slug] || @category.slug)
+        # Skip the path assignment when the candidate isn't ltree-compatible.
+        # The model's slug format validator surfaces the real error - leaving
+        # path untouched also keeps the persisted in-memory value valid for
+        # the edit form's `self_and_descendants` lookup on re-render.
+        candidate = compose_path(@parent_path, attrs[:slug] || @category.slug)
+        attrs[:path] = candidate if candidate.match?(::Category::LTREE_PATH_FORMAT)
       end
 
       ActiveRecord::Base.transaction do
