@@ -20,12 +20,18 @@ Bundler.require(*Rails.groups)
 
 module OpenBankingRails
   ADMIN_EDITION = "Alpha"
-  ADMIN_VERSION = "0.4.0"
+  ADMIN_VERSION = "0.5.0"
 
   class Application < Rails::Application
     config.load_defaults 8.1
 
     config.autoload_lib(ignore: %w[assets tasks])
+
+    # `lib/api/` hosts the Grape API. Collapse it so its contents map as if
+    # `lib/api/` were itself an autoload root: `lib/api/api.rb` -> `Api`,
+    # `lib/api/entities/x.rb` -> `Entities::X`, etc. Without collapse,
+    # Zeitwerk would expect `Api::Api`, `Api::Entities::X`.
+    Rails.autoloaders.main.collapse("#{root}/lib/api")
 
     config.generators.system_tests = nil
 
