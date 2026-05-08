@@ -17,16 +17,10 @@ RSpec.describe "Banking area", type: :request do
     expect(response.body).not_to include(other_credential.name)
   end
 
-  it "GET /admin/tpp_credentials/:id returns 404 when accessing another user's credential" do
-    user = create(:user)
-    other = create(:user)
-    other_credential = create(:tpp_credential, user: other)
-    sign_in user
-
-    get admin_tpp_credential_path(other_credential)
-
-    expect(response).to have_http_status(:not_found)
-  end
+  it_behaves_like "a cross-user isolated resource",
+                  verb: :get,
+                  path_for: ->(record) { Rails.application.routes.url_helpers.admin_tpp_credential_path(record) },
+                  build_record: ->(user) { create(:tpp_credential, user: user) }
 
   it "GET /admin/tpp_credentials/new builds a form with the enable_banking provider default" do
     user = create(:user)
@@ -170,16 +164,10 @@ RSpec.describe "Banking area", type: :request do
     expect(response.body).not_to include(foreign.bank_name)
   end
 
-  it "GET /admin/bank_connections/:id returns 404 for another user's connection" do
-    user = create(:user)
-    other = create(:user)
-    foreign = create(:bank_connection, tpp_credential: create(:tpp_credential, user: other))
-    sign_in user
-
-    get admin_bank_connection_path(foreign)
-
-    expect(response).to have_http_status(:not_found)
-  end
+  it_behaves_like "a cross-user isolated resource",
+                  verb: :get,
+                  path_for: ->(record) { Rails.application.routes.url_helpers.admin_bank_connection_path(record) },
+                  build_record: ->(user) { create(:bank_connection, tpp_credential: create(:tpp_credential, user: user)) }
 
   it "GET /admin/bank_connections/new redirects to credentials when no primary credential exists" do
     user = create(:user)

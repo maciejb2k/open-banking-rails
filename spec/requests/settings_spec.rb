@@ -411,19 +411,17 @@ RSpec.describe "Settings area", type: :request do
     expect(flash[:notice]).to match(/deleted/i)
   end
 
-  it "DELETE /admin/settings/preferences/api_tokens/:id returns 404 for another user's token" do
-    user = create(:user)
-    other = create(:user)
-    foreign = PersonalAccessToken.create!(user: other, name: "alien",
-                                          token_digest: PersonalAccessToken.digest_for("obrl_alien"),
-                                          last_four: "lien")
-    sign_in user
-
-    delete admin_settings_preferences_api_token_path(foreign)
-
-    expect(response).to have_http_status(:not_found)
-    expect(PersonalAccessToken.exists?(foreign.id)).to be(true)
-  end
+  it_behaves_like "a cross-user isolated resource",
+                  verb: :delete,
+                  path_for: ->(record) { Rails.application.routes.url_helpers.admin_settings_preferences_api_token_path(record) },
+                  build_record: ->(user) {
+                    PersonalAccessToken.create!(
+                      user:         user,
+                      name:         "isolation-#{SecureRandom.hex(3)}",
+                      token_digest: PersonalAccessToken.digest_for("obrl_iso_#{SecureRandom.hex(4)}"),
+                      last_four:    SecureRandom.hex(2)
+                    )
+                  }
 
   it "GET /admin/settings/preferences/profile without sign-in redirects to /admin/sign_in" do
     create(:user)

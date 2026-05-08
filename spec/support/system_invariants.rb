@@ -10,13 +10,29 @@ module SystemInvariants
   end
 
   def assert_ledger_sums_match!(user)
-    bank_sum   = BankTransaction.for_user(user).sum(:amount_cents)
-    manual_sum = ManualTransaction.for_user(user).sum(:amount_cents)
-    ledger_sum = LedgerEntry.for_user(user).sum(:amount_cents)
-    expected   = bank_sum + manual_sum
-    return if ledger_sum == expected
+    signed_sql = "CASE direction WHEN 'credit' THEN amount_cents ELSE -amount_cents END"
+    bank_signed   = BankTransaction.for_user(user).sum(signed_sql)
+    manual_signed = ManualTransaction.for_user(user).sum(signed_sql)
+    bank_unsigned   = BankTransaction.for_user(user).sum(:amount_cents)
+    manual_unsigned = ManualTransaction.for_user(user).sum(:amount_cents)
+    bank_count   = BankTransaction.for_user(user).count
+    manual_count = ManualTransaction.for_user(user).count
 
-    raise "LedgerEntry sum #{ledger_sum} does not equal source-table sum #{expected} for user #{user.id}"
+    ledger_signed   = LedgerEntry.for_user(user).sum(:signed_amount_cents)
+    ledger_unsigned = LedgerEntry.for_user(user).sum(:amount_cents)
+    ledger_count    = LedgerEntry.for_user(user).count
+
+    if ledger_signed != bank_signed + manual_signed
+      raise "LedgerEntry signed sum #{ledger_signed} != source signed sum #{bank_signed + manual_signed} for user #{user.id}"
+    end
+
+    if ledger_unsigned != bank_unsigned + manual_unsigned
+      raise "LedgerEntry unsigned sum #{ledger_unsigned} != source unsigned sum #{bank_unsigned + manual_unsigned} for user #{user.id}"
+    end
+
+    if ledger_count != bank_count + manual_count
+      raise "LedgerEntry row count #{ledger_count} != source row count #{bank_count + manual_count} for user #{user.id}"
+    end
   end
 
   def assert_user_isolation!(user_a, user_b)

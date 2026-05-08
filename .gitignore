@@ -40,3 +40,6 @@
 
 # Ignore SimpleCov / test coverage output.
 /coverage/
+
+# Ignore RSpec example status persistence (per-developer state).
+/.rspec_status

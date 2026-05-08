@@ -4,6 +4,6 @@ require "rails_helper"
 
 RSpec.describe "FactoryBot" do
   it "lints every defined factory and trait without validation failures" do
-    FactoryBot.lint(traits: true) if FactoryBot.factories.any?
+    FactoryBot.lint(traits: true)
   end
 end

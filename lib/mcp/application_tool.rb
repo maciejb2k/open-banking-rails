@@ -16,7 +16,7 @@ module Mcp
       end
 
       def error(message)
-        ::MCP::Tool::Response.new([ { type: "text", text: "Error: #{message}" } ], true)
+        ::MCP::Tool::Response.new([ { type: "text", text: "Error: #{message}" } ], error: true)
       end
 
       def from_result(result, on_success:)

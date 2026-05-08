@@ -4,6 +4,11 @@ SimpleCov.start "rails" do
   add_group "Services", "app/services"
 end
 
+ENV["OTEL_TRACES_EXPORTER"]  ||= "none"
+ENV["OTEL_METRICS_EXPORTER"] ||= "none"
+ENV["OTEL_LOGS_EXPORTER"]    ||= "none"
+ENV["OTEL_SDK_DISABLED"]     ||= "true"
+
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true

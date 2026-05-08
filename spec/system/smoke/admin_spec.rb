@@ -68,7 +68,7 @@ RSpec.describe "Admin smoke crawler", :smoke, type: :system do
   enumerated.each do |path, name|
     it "renders #{path} (#{name})" do
       resolved = resolve_path(path, substitutions)
-      next if resolved.nil?
+      skip "no fixture id available for #{path} in the showcase" if resolved.nil?
 
       visit resolved
 

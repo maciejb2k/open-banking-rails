@@ -88,16 +88,10 @@ RSpec.describe "Cash area", type: :request do
     expect(response).to redirect_to(edit_admin_cash_transaction_path(tx))
   end
 
-  it "GET /admin/cash_transactions/:id returns 404 for another user's transaction" do
-    user = create(:user)
-    other = create(:user)
-    foreign = create(:manual_transaction, user: other)
-    sign_in user
-
-    get admin_cash_transaction_path(foreign)
-
-    expect(response).to have_http_status(:not_found)
-  end
+  it_behaves_like "a cross-user isolated resource",
+                  verb: :get,
+                  path_for: ->(record) { Rails.application.routes.url_helpers.admin_cash_transaction_path(record) },
+                  build_record: ->(user) { create(:manual_transaction, user: user) }
 
   it "POST /admin/cash_transactions delegates to TransactionCreator and redirects on success with an expense notice" do
     user = create(:user)

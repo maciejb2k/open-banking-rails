@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
+require "concurrent/atomic/atomic_reference"
+
 # Per-example holder for the in-memory fake adapters. The fakes live in
 # `spec/support/fakes/`. Replacing the production EnableBanking::Client and
 # Llm::Client.for entry points happens here so individual specs only need to
 # reach for `fake_eb` / `fake_llm`.
-module FakesHelpers
-  CURRENT_EB  = Concurrent::AtomicReference.new(nil) if defined?(Concurrent::AtomicReference)
-  CURRENT_LLM = Concurrent::AtomicReference.new(nil) if defined?(Concurrent::AtomicReference)
 
-  CURRENT_EB ||= Struct.new(:value).new
-  CURRENT_LLM ||= Struct.new(:value).new
+module FakesHelpers
+  CURRENT_EB  = Concurrent::AtomicReference.new(nil)
+  CURRENT_LLM = Concurrent::AtomicReference.new(nil)
 
   def fake_eb
     CURRENT_EB.value
