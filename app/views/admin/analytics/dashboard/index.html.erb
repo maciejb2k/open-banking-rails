@@ -348,37 +348,8 @@
     <% end %>
   </div>
 
-  <%# Custom: paired stacked bars + share %. If a 3rd two-axis facet shows up, extract _facet_pair. %>
-  <% if @spend_cents.positive? %>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <% [
-           [ "Essentials vs discretionary", @essential_pair, "of spend covers needs", :success, :info ],
-           [ "Recurring vs one-off",         @recurring_pair, "of spend repeats every cycle", :info, :muted ]
-         ].each do |title, pair, hint_suffix, left_tone, right_tone| %>
-        <%= render "admin/shared/components/card", title: title, subtitle: "#{pair.left_share_pct}% #{hint_suffix}" do %>
-          <div class="flex h-3 rounded-full overflow-hidden bg-muted">
-            <div class="bg-primary" style="width: <%= pair.left_share_pct %>%"></div>
-            <div class="bg-muted-foreground/30" style="width: <%= pair.right_share_pct %>%"></div>
-          </div>
-          <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
-            <div>
-              <div class="text-xs text-muted-foreground"><%= pair.left.label %></div>
-              <div class="font-bold tabular-nums <%= sensitive_class %>"><%= pair.left.amount.format(no_cents_if_whole: true) %></div>
-              <div class="text-xs text-muted-foreground"><%= pair.left_share_pct %>% · <%= pluralize(pair.left.count, "tx") %></div>
-            </div>
-            <div>
-              <div class="text-xs text-muted-foreground"><%= pair.right.label %></div>
-              <div class="font-bold tabular-nums <%= sensitive_class %>"><%= pair.right.amount.format(no_cents_if_whole: true) %></div>
-              <div class="text-xs text-muted-foreground"><%= pair.right_share_pct %>% · <%= pluralize(pair.right.count, "tx") %></div>
-            </div>
-          </div>
-        <% end %>
-      <% end %>
-    </div>
-  <% end %>
-
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-    <div class="lg:col-span-7">
+    <div class="lg:col-span-7 space-y-4">
       <%= render "admin/shared/components/card",
             title: "Spend by category",
             subtitle: safe_join([
@@ -419,9 +390,95 @@
           <% end %>
         <% end %>
       <% end %>
+
+      <%# Bar click narrows the whole dashboard via ?under_path; the leaf chart above stays in sync because it shares the scope. %>
+      <% if @domain_breakdown.any? %>
+        <%
+          domain_visible    = @domain_breakdown.first(10)
+          domain_labels     = domain_visible.map { |r| hidden_for_row.call(r) ? "•••" : r.name }
+          domain_values     = domain_visible.map { |r| (r.amount_cents / 100.0).round(2) }
+          domain_metadata   = domain_visible.map { |r| { count: r.count, delta: r.delta_pct }.compact }
+          domain_urls       = domain_visible.map { |r|
+            next nil if hidden_for_row.call(r)
+            url_for(@filter.to_query_params.merge(under_path: r.path))
+          }
+
+          domain_chart_config = {
+            type: "bar",
+            data: {
+              labels: domain_labels,
+              datasets: [ {
+                data: domain_values,
+                backgroundColor: current_color,
+                borderRadius: 4,
+                barThickness: 22
+              } ]
+            },
+            options: {
+              currency: @filter.currency,
+              indexAxis: "y",
+              responsive: true,
+              maintainAspectRatio: false,
+              metadata: domain_metadata,
+              plugins: {
+                legend: { display: false },
+                datalabels: { display: false }
+              },
+              scales: {
+                x: {
+                  grid: { color: "rgba(148,163,184,0.15)" },
+                  ticks: { tickFormat: "money", font: { size: 11 } },
+                  beginAtZero: true
+                },
+                y: {
+                  grid: { display: false },
+                  ticks: { font: { size: 12 }, autoSkip: false }
+                }
+              }
+            }
+          }
+          domain_chart_height = (domain_labels.size * 36) + 40
+
+          domain_card_title    = @drill_category ? "Spend in #{@drill_category.name}" : "Spend by domain"
+          domain_card_subtitle = "click a bar to narrow the dashboard to that area"
+        %>
+        <%= render "admin/shared/components/card",
+              title:    domain_card_title,
+              subtitle: domain_card_subtitle do %>
+          <div data-controller="chart"
+               data-chart-config-value="<%= domain_chart_config.to_json %>"
+               data-chart-urls-value="<%= domain_urls.to_json %>"
+               style="height: <%= domain_chart_height %>px">
+            <canvas></canvas>
+          </div>
+        <% end %>
+      <% end %>
     </div>
 
-    <div class="lg:col-span-5">
+    <div class="lg:col-span-5 space-y-4">
+      <% if @spend_cents.positive? %>
+        <%# Custom: paired stacked bars + share %. If a 3rd two-axis facet shows up, extract _facet_pair. %>
+        <% pair = @essential_pair %>
+        <%= render "admin/shared/components/card", title: "Essentials vs discretionary", subtitle: "#{pair.left_share_pct}% of spend covers needs" do %>
+          <div class="flex h-3 rounded-full overflow-hidden bg-muted">
+            <div class="bg-primary" style="width: <%= pair.left_share_pct %>%"></div>
+            <div class="bg-muted-foreground/30" style="width: <%= pair.right_share_pct %>%"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
+            <div>
+              <div class="text-xs text-muted-foreground"><%= pair.left.label %></div>
+              <div class="font-bold tabular-nums <%= sensitive_class %>"><%= pair.left.amount.format(no_cents_if_whole: true) %></div>
+              <div class="text-xs text-muted-foreground"><%= pair.left_share_pct %>% · <%= pluralize(pair.left.count, "tx") %></div>
+            </div>
+            <div>
+              <div class="text-xs text-muted-foreground"><%= pair.right.label %></div>
+              <div class="font-bold tabular-nums <%= sensitive_class %>"><%= pair.right.amount.format(no_cents_if_whole: true) %></div>
+              <div class="text-xs text-muted-foreground"><%= pair.right_share_pct %>% · <%= pluralize(pair.right.count, "tx") %></div>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+
       <%= render "admin/shared/components/card",
             title: "Cash flow",
             subtitle: "income vs spend · per #{bucket_label} · #{period_hint}" do %>
@@ -457,74 +514,7 @@
           </div>
         <% end %>
       <% end %>
-    </div>
-  </div>
 
-  <%# Custom: comparative per-mover card (stat_card is single-metric). If a 2nd comparative row appears, extract `_movers_grid`. %>
-  <% if @top_movers.any? %>
-    <%= render "admin/shared/components/card",
-          title: "Top movers",
-          subtitle: "biggest swings · #{@filter.previous_label}" do %>
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <% @top_movers.each do |mover| %>
-          <%
-            mover_cat = current_user.categories.find_by(path: mover.path)
-            cat_hidden = mover_cat && current_user.hides_category?(mover_cat)
-            href = (mover.slug && !cat_hidden) ? admin_analytics_category_path(mover.slug, @filter.to_query_params) : nil
-            tint = mover.direction == :up ? "bg-destructive/5 border-destructive/20" : "bg-success/5 border-success/20"
-            delta_tone = mover.direction == :up ? "text-destructive" : "text-success"
-            base_cls = "block rounded-lg border p-4 transition-colors #{tint} #{href ? 'hover:bg-muted/50 cursor-pointer' : ''}"
-            wrapper_attrs = { class: base_cls }
-            wrapper_attrs[:href] = href if href
-            wrapper_tag = href ? :a : :div
-          %>
-          <%= content_tag(wrapper_tag, wrapper_attrs) do %>
-            <div class="flex items-baseline justify-between gap-2">
-              <p class="text-sm font-semibold truncate <%= sensitive_class %>"><%= cat_hidden ? "•••" : mover.name %></p>
-              <% if mover.new_spend? %>
-                <%= render "admin/shared/components/badge", text: "new", variant: :info %>
-              <% elsif mover.delta_pct %>
-                <span class="text-xs font-bold tabular-nums <%= delta_tone %>"><%= mover.delta_pct.positive? ? "+" : "" %><%= mover.delta_pct %>%</span>
-              <% end %>
-            </div>
-            <p class="text-base font-bold tabular-nums mt-2 <%= sensitive_class %>">
-              <%= mover.current_amount.format(no_cents_if_whole: true) %>
-            </p>
-            <p class="text-xs text-muted-foreground mt-0.5 <%= sensitive_class %>">
-              <% if mover.new_spend? %>
-                new this period
-              <% else %>
-                <%= mover.direction == :up ? "+" : "−" %><%= mover.delta_amount.format(no_cents_if_whole: true) %> vs prev
-              <% end %>
-            </p>
-          <% end %>
-        <% end %>
-      </div>
-    <% end %>
-  <% end %>
-
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-    <div class="lg:col-span-7">
-      <%= render "admin/shared/components/card",
-            title: "Top merchants",
-            subtitle: "click → transactions" do %>
-        <% if merchant_labels_present %>
-          <div data-controller="chart"
-               data-chart-config-value="<%= merchants_chart_config.to_json %>"
-               data-chart-urls-value="<%= merchant_urls.to_json %>"
-               style="height: <%= merchants_chart_height %>px">
-            <canvas></canvas>
-          </div>
-        <% else %>
-          <%= render "admin/shared/components/empty_state",
-                title: "No merchants",
-                description: "No merchants matched in this period.",
-                icon: "tag" %>
-        <% end %>
-      <% end %>
-    </div>
-
-    <div class="lg:col-span-5">
       <%= render "admin/shared/components/card",
             title: "Accounts - share of spend",
             subtitle: "click → filter to this account" do %>
@@ -555,66 +545,21 @@
     </div>
   </div>
 
-  <%# Bar click narrows the whole dashboard via ?under_path; the leaf chart in Row 1 stays in sync because it shares the scope. %>
-  <% if @domain_breakdown.any? %>
-    <%
-      domain_visible    = @domain_breakdown.first(10)
-      domain_labels     = domain_visible.map { |r| hidden_for_row.call(r) ? "•••" : r.name }
-      domain_values     = domain_visible.map { |r| (r.amount_cents / 100.0).round(2) }
-      domain_metadata   = domain_visible.map { |r| { count: r.count, delta: r.delta_pct }.compact }
-      domain_urls       = domain_visible.map { |r|
-        next nil if hidden_for_row.call(r)
-        url_for(@filter.to_query_params.merge(under_path: r.path))
-      }
-
-      domain_chart_config = {
-        type: "bar",
-        data: {
-          labels: domain_labels,
-          datasets: [ {
-            data: domain_values,
-            backgroundColor: current_color,
-            borderRadius: 4,
-            barThickness: 22
-          } ]
-        },
-        options: {
-          currency: @filter.currency,
-          indexAxis: "y",
-          responsive: true,
-          maintainAspectRatio: false,
-          metadata: domain_metadata,
-          plugins: {
-            legend: { display: false },
-            datalabels: { display: false }
-          },
-          scales: {
-            x: {
-              grid: { color: "rgba(148,163,184,0.15)" },
-              ticks: { tickFormat: "money", font: { size: 11 } },
-              beginAtZero: true
-            },
-            y: {
-              grid: { display: false },
-              ticks: { font: { size: 12 }, autoSkip: false }
-            }
-          }
-        }
-      }
-      domain_chart_height = (domain_labels.size * 36) + 40
-
-      domain_card_title    = @drill_category ? "Spend in #{@drill_category.name}" : "Spend by domain"
-      domain_card_subtitle = "click a bar to narrow the dashboard to that area"
-    %>
-    <%= render "admin/shared/components/card",
-          title:    domain_card_title,
-          subtitle: domain_card_subtitle do %>
+  <%= render "admin/shared/components/card",
+        title: "Top merchants",
+        subtitle: "click → transactions" do %>
+    <% if merchant_labels_present %>
       <div data-controller="chart"
-           data-chart-config-value="<%= domain_chart_config.to_json %>"
-           data-chart-urls-value="<%= domain_urls.to_json %>"
-           style="height: <%= domain_chart_height %>px">
+           data-chart-config-value="<%= merchants_chart_config.to_json %>"
+           data-chart-urls-value="<%= merchant_urls.to_json %>"
+           style="height: <%= merchants_chart_height %>px">
         <canvas></canvas>
       </div>
+    <% else %>
+      <%= render "admin/shared/components/empty_state",
+            title: "No merchants",
+            description: "No merchants matched in this period.",
+            icon: "tag" %>
     <% end %>
   <% end %>
 
@@ -680,6 +625,49 @@
           </tr>
         <% end %>
       <% end %>
+    <% end %>
+  <% end %>
+
+  <%# Custom: comparative per-mover card (stat_card is single-metric). If a 2nd comparative row appears, extract `_movers_grid`. %>
+  <% if @top_movers.any? %>
+    <%= render "admin/shared/components/card",
+          title: "Top movers",
+          subtitle: "biggest swings · #{@filter.previous_label}" do %>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <% @top_movers.each do |mover| %>
+          <%
+            mover_cat = current_user.categories.find_by(path: mover.path)
+            cat_hidden = mover_cat && current_user.hides_category?(mover_cat)
+            href = (mover.slug && !cat_hidden) ? admin_analytics_category_path(mover.slug, @filter.to_query_params) : nil
+            tint = mover.direction == :up ? "bg-destructive/5 border-destructive/20" : "bg-success/5 border-success/20"
+            delta_tone = mover.direction == :up ? "text-destructive" : "text-success"
+            base_cls = "block rounded-lg border p-4 transition-colors #{tint} #{href ? 'hover:bg-muted/50 cursor-pointer' : ''}"
+            wrapper_attrs = { class: base_cls }
+            wrapper_attrs[:href] = href if href
+            wrapper_tag = href ? :a : :div
+          %>
+          <%= content_tag(wrapper_tag, wrapper_attrs) do %>
+            <div class="flex items-baseline justify-between gap-2">
+              <p class="text-sm font-semibold truncate <%= sensitive_class %>"><%= cat_hidden ? "•••" : mover.name %></p>
+              <% if mover.new_spend? %>
+                <%= render "admin/shared/components/badge", text: "new", variant: :info %>
+              <% elsif mover.delta_pct %>
+                <span class="text-xs font-bold tabular-nums <%= delta_tone %>"><%= mover.delta_pct.positive? ? "+" : "" %><%= mover.delta_pct %>%</span>
+              <% end %>
+            </div>
+            <p class="text-base font-bold tabular-nums mt-2 <%= sensitive_class %>">
+              <%= mover.current_amount.format(no_cents_if_whole: true) %>
+            </p>
+            <p class="text-xs text-muted-foreground mt-0.5 <%= sensitive_class %>">
+              <% if mover.new_spend? %>
+                new this period
+              <% else %>
+                <%= mover.direction == :up ? "+" : "−" %><%= mover.delta_amount.format(no_cents_if_whole: true) %> vs prev
+              <% end %>
+            </p>
+          <% end %>
+        <% end %>
+      </div>
     <% end %>
   <% end %>
 </div>

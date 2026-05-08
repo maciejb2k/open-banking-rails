@@ -54,7 +54,6 @@ module Admin
         @drill_category = current_user.categories.find_by(path: @filter.under_path) if @filter.under_path.present?
 
         @essential_pair = ::Analytics::FacetBreakdown.essential(scope, currency: currency)
-        @recurring_pair = ::Analytics::FacetBreakdown.recurring(scope, currency: currency)
 
         @top_movers = ::Analytics::TopMovers.from_breakdown(@breakdown, limit: 5)
 

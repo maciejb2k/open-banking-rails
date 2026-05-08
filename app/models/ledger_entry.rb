@@ -14,8 +14,6 @@
 #  enrichment_source     :string
 #  essential             :boolean
 #  payment_method        :string
-#  recurrence_interval   :string
-#  recurring             :boolean
 #  signed_amount_cents   :bigint
 #  source_type           :text
 #  status                :string
@@ -70,9 +68,6 @@ class LedgerEntry < ApplicationRecord
 
   scope :essential,     -> { where(essential: true) }
   scope :discretionary, -> { where(essential: false) }
-
-  scope :recurring, -> { where(recurring: true) }
-  scope :one_off,   -> { where(recurring: false) }
 
   # `spend` / `income` also pin direction - defense-in-depth so a
   # misclassified row (an incoming top-up the LLM glued to expense kind)

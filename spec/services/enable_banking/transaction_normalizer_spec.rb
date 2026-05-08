@@ -185,4 +185,40 @@ RSpec.describe EnableBanking::TransactionNormalizer do
     expect(JSON.parse(result[:raw_payload])).to eq(payload)
     expect(result[:fetched_at]).to eq(at)
   end
+
+  it "normalizes every payload shape observed in the PoC dataset to a canonical payment_method without warnings" do
+    user = create(:user)
+    tpp = create(:tpp_credential, user: user)
+    account = create(:bank_account, tpp_credential: tpp)
+
+    cases = [
+      { bank: "pko", payload: { "transaction_id" => "p1", "credit_debit_indicator" => "DBIT", "transaction_amount" => { "amount" => "44.05", "currency" => "PLN" }, "booking_date" => "2026-04-26", "status" => "BOOK", "remittance_information" => [ "RZESZOWJMP S.A. BIEDRONKA 4957PL", "CARD-PAYMENT" ] }, expected_pm: "card" },
+      { bank: "pko", payload: { "transaction_id" => "p2", "credit_debit_indicator" => "CRDT", "transaction_amount" => { "amount" => "208.63", "currency" => "PLN" }, "booking_date" => "2026-04-20", "status" => "BOOK", "remittance_information" => [ "01007956474609054353500004250188", "CARD-PAYMENT-RETURN" ] }, expected_pm: "card" },
+      { bank: "pko", payload: { "transaction_id" => "p3", "credit_debit_indicator" => "DBIT", "transaction_amount" => { "amount" => "700.00", "currency" => "PLN" }, "booking_date" => "2026-04-20", "status" => "BOOK", "remittance_information" => [ "RZESZOWUL. REJTANA 53 BPL", "CARD-ATM" ] }, expected_pm: "blik_atm" },
+      { bank: "pko", payload: { "transaction_id" => "p4", "credit_debit_indicator" => "DBIT", "transaction_amount" => { "amount" => "5.00", "currency" => "PLN" }, "booking_date" => "2026-04-26", "status" => "BOOK", "remittance_information" => [ "", "MOBILE-PAYMENT-POS-NO-CARD-TX-CODE" ] }, expected_pm: "blik_pos" },
+      { bank: "pko", payload: { "transaction_id" => "p5", "credit_debit_indicator" => "CRDT", "transaction_amount" => { "amount" => "1.00", "currency" => "PLN" }, "booking_date" => "2026-04-26", "status" => "BOOK", "remittance_information" => [ "", "MOBILE-PAYMENT-POS-RETURN" ] }, expected_pm: "blik_pos" },
+      { bank: "pko", payload: { "transaction_id" => "p6", "credit_debit_indicator" => "CRDT", "transaction_amount" => { "amount" => "7000.00", "currency" => "PLN" }, "booking_date" => "2026-03-15", "status" => "BOOK", "remittance_information" => [ "RACHUNEK DO UMOWY ZLECENIA NR 1/03/2026", "TRANSFER-IN" ] }, expected_pm: "transfer" },
+      { bank: "pko", payload: { "transaction_id" => "p7", "credit_debit_indicator" => "CRDT", "transaction_amount" => { "amount" => "43.05", "currency" => "PLN" }, "booking_date" => "2026-04-10", "status" => "BOOK", "remittance_information" => [ "MACIEJ BIEL WYSLANO Z REVOLUT", "TRANSFER-EXPRESS-ELIXIR-IN" ] }, expected_pm: "transfer" },
+      { bank: "mbank", payload: { "transaction_id" => "m1", "credit_debit_indicator" => "DBIT", "transaction_amount" => { "amount" => "2.61", "currency" => "PLN" }, "booking_date" => "2025-12-09", "status" => "BOOK", "remittance_information" => [ "PRZELEW ŚRODKÓW", "PRZELEW WŁASNY" ], "creditor" => { "name" => "MACIEJ BIEL" }, "creditor_account" => { "other" => { "scheme_name" => "BBAN", "identification" => "08114020040000350275622273" } } }, expected_pm: "internal_transfer" },
+      { bank: "mbank", payload: { "transaction_id" => "m2", "credit_debit_indicator" => "DBIT", "transaction_amount" => { "amount" => "299.00", "currency" => "PLN" }, "booking_date" => "2025-11-03", "status" => "BOOK", "remittance_information" => [ "/OPT/X/////TR-2KN4-K47AVCX", "PRZELEW WEWNĘTRZNY WYCHODZĄCY" ] }, expected_pm: "transfer" },
+      { bank: "mbank", payload: { "transaction_id" => "m3", "credit_debit_indicator" => "CRDT", "transaction_amount" => { "amount" => "300.01", "currency" => "PLN" }, "booking_date" => "2025-07-22", "status" => "BOOK", "remittance_information" => [ "NA ŻYCIE JAK W MADRYCIE", "PRZELEW WEWNĘTRZNY PRZYCHODZĄCY" ] }, expected_pm: "transfer" },
+      { bank: "mbank", payload: { "transaction_id" => "m4", "credit_debit_indicator" => "DBIT", "transaction_amount" => { "amount" => "199.90", "currency" => "PLN" }, "booking_date" => "2026-03-12", "status" => "BOOK", "remittance_information" => [ "ALLEGRO.PL", "BLIK ZAKUP E-COMMERCE" ] }, expected_pm: "blik_pos" },
+      { bank: "mbank", payload: { "transaction_id" => "m5", "credit_debit_indicator" => "DBIT", "transaction_amount" => { "amount" => "16.39", "currency" => "PLN" }, "booking_date" => "2026-01-06", "status" => "BOOK", "remittance_information" => [ "PRZELEW ŚRODKÓW", "BLIK P2P-WYCHODZĄCY" ] }, expected_pm: "blik_p2p" },
+      { bank: "revolut", payload: { "transaction_id" => nil, "entry_reference" => "69e73c30-547d-a139-be41-c59809b6679e", "credit_debit_indicator" => "DBIT", "transaction_amount" => { "amount" => "20.00", "currency" => "PLN" }, "booking_date" => "2026-04-15", "status" => "BOOK", "remittance_information" => [ "Claude.ai Subscription" ], "bank_transaction_code" => { "code" => "CARD_PAYMENT" }, "creditor" => { "name" => "Claude.ai Subscription" } }, expected_pm: "card" },
+      { bank: "revolut", payload: { "transaction_id" => nil, "entry_reference" => "abc-3901", "credit_debit_indicator" => "CRDT", "transaction_amount" => { "amount" => "100.00", "currency" => "PLN" }, "booking_date" => "2026-04-12", "status" => "BOOK", "remittance_information" => [ "Google Pay Top-Up by *6181" ], "bank_transaction_code" => { "code" => "TOPUP" } }, expected_pm: "topup" }
+    ]
+
+    allow(Rails.logger).to receive(:warn)
+
+    aggregate_failures do
+      cases.each do |c|
+        result = described_class.call(c[:payload], bank_account: account)
+        expect(result[:payment_method]).to eq(c[:expected_pm]),
+          "expected #{c[:bank]} #{c[:payload]['remittance_information']&.last.inspect} to map to #{c[:expected_pm].inspect}, got #{result[:payment_method].inspect}"
+        expect(BankTransaction::PAYMENT_METHODS).to include(result[:payment_method])
+      end
+    end
+
+    expect(Rails.logger).not_to have_received(:warn).with(/PaymentMethodInferer.*(unmapped|heuristic)/)
+  end
 end

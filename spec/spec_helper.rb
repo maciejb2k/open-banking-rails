@@ -2,6 +2,9 @@ require "simplecov"
 SimpleCov.start "rails" do
   add_group "Models", "app/models"
   add_group "Services", "app/services"
+  add_filter "app/controllers/swagger_controller.rb"
+  add_filter "app/controllers/admin/debug_controller.rb"
+  add_filter "app/jobs/failing_job.rb"
 end
 
 ENV["OTEL_TRACES_EXPORTER"]  ||= "none"

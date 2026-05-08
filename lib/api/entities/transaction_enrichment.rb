@@ -8,8 +8,6 @@ module Entities
     expose :merchant_rule_id,    documentation: { type: Integer }
     expose :source,              documentation: { type: String, desc: "rule / merchant_default / manual / user_rule / llm / payment_method_fallback" }
     expose :category_overridden, documentation: { type: "Boolean" }
-    expose :recurring,           documentation: { type: "Boolean" }
-    expose :recurrence_interval, documentation: { type: String }
     expose :confidence,          documentation: { type: Float }
     expose :model,               documentation: { type: String }
     expose :enriched_at,         documentation: { type: String }

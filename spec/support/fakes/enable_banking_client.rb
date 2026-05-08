@@ -33,6 +33,22 @@ module Fakes
       @recorded_calls      = []
       @session_counter     = SequenceCounter.new
       @transaction_counter = SequenceCounter.new
+      @transactions_page_size = nil
+      @application_redirect_urls = nil
+    end
+
+    # Override what /application returns under "redirect_urls". Off by default
+    # so existing specs see the legacy single-URL payload; opt-in for
+    # VerifyCredential's reconciliation branches.
+    attr_writer :application_redirect_urls
+
+    # Opt-in pagination simulation. When set, transactions_page returns
+    # `size` items at a time and surfaces a continuation_key the caller
+    # must echo back to fetch the next page. Off by default - existing
+    # specs that don't care about pagination see the legacy single-page
+    # behavior.
+    def transactions_page_size=(size)
+      @transactions_page_size = size
     end
 
     def get(path, params = {})
@@ -241,7 +257,7 @@ module Fakes
         "name"          => "Fake App",
         "kid"           => "kid-fake",
         "active"        => true,
-        "redirect_urls" => [ "http://localhost:3000/admin/oauth/enable_banking/callback" ]
+        "redirect_urls" => @application_redirect_urls || [ "http://localhost:3000/admin/oauth/enable_banking/callback" ]
       }
     end
 
@@ -327,9 +343,15 @@ module Fakes
       from = params[:date_from] && Date.parse(params[:date_from].to_s)
       to   = params[:date_to]   && Date.parse(params[:date_to].to_s)
       txs = txs.select { |t| (from.nil? || Date.parse(t["booking_date"]) >= from) && (to.nil? || Date.parse(t["booking_date"]) <= to) }
+
+      return { "transactions" => txs, "continuation_key" => nil } if @transactions_page_size.nil?
+
+      offset = params[:continuation_key].to_s.start_with?("offset:") ? params[:continuation_key].to_s.delete_prefix("offset:").to_i : 0
+      slice = txs.slice(offset, @transactions_page_size) || []
+      next_offset = offset + slice.size
       {
-        "transactions"    => txs,
-        "continuation_key" => nil
+        "transactions"    => slice,
+        "continuation_key" => (next_offset < txs.size ? "offset:#{next_offset}" : nil)
       }
     end
   end

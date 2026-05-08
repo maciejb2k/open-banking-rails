@@ -24,6 +24,45 @@ RSpec.describe EnableBanking::PaymentMethodInferer do
     expect(result_p2p).to eq("blik_p2p")
   end
 
+  it "maps mBank PRZELEW WŁASNY to internal_transfer so own-account moves never count as spend" do
+    result = described_class.call(type_hint: "PRZELEW WŁASNY", bank_transaction_code: nil, title: "PRZELEW ŚRODKÓW", counterparty_name: "MACIEJ BIEL", direction: "debit")
+    expect(result).to eq("internal_transfer")
+  end
+
+  it "maps mBank PRZELEW WEWNĘTRZNY (same-bank, different person) variants to transfer" do
+    result_out = described_class.call(type_hint: "PRZELEW WEWNĘTRZNY WYCHODZĄCY", bank_transaction_code: nil, title: nil, counterparty_name: nil, direction: "debit")
+    result_in  = described_class.call(type_hint: "PRZELEW WEWNĘTRZNY PRZYCHODZĄCY", bank_transaction_code: nil, title: nil, counterparty_name: nil, direction: "credit")
+
+    expect(result_out).to eq("transfer")
+    expect(result_in).to eq("transfer")
+  end
+
+  it "maps mBank BLIK ZAKUP E-COMMERCE to blik_pos" do
+    result = described_class.call(type_hint: "BLIK ZAKUP E-COMMERCE", bank_transaction_code: nil, title: "ALLEGRO.PL", counterparty_name: nil, direction: "debit")
+    expect(result).to eq("blik_pos")
+  end
+
+  it "maps PKO TRANSFER-IN and TRANSFER-EXPRESS-ELIXIR-IN to transfer (covers salary and Express Elixir incoming)" do
+    elixir = described_class.call(type_hint: "TRANSFER-EXPRESS-ELIXIR-IN", bank_transaction_code: nil, title: "MACIEJ BIEL WYSLANO Z REVOLUT", counterparty_name: nil, direction: "credit")
+    salary = described_class.call(type_hint: "TRANSFER-IN", bank_transaction_code: nil, title: "RACHUNEK DO UMOWY ZLECENIA", counterparty_name: nil, direction: "credit")
+
+    expect(elixir).to eq("transfer")
+    expect(salary).to eq("transfer")
+  end
+
+  it "maps PKO CARD-ATM to blik_atm so ATM withdrawals share the cash-out fallback path regardless of channel" do
+    result = described_class.call(type_hint: "CARD-ATM", bank_transaction_code: nil, title: "RZESZOWUL. REJTANA 53 BPL", counterparty_name: nil, direction: "debit")
+    expect(result).to eq("blik_atm")
+  end
+
+  it "maps PKO refund variants to their original channel (direction=credit carries refund-ness)" do
+    card_return = described_class.call(type_hint: "CARD-PAYMENT-RETURN", bank_transaction_code: nil, title: nil, counterparty_name: nil, direction: "credit")
+    blik_return = described_class.call(type_hint: "MOBILE-PAYMENT-POS-RETURN", bank_transaction_code: nil, title: nil, counterparty_name: nil, direction: "credit")
+
+    expect(card_return).to eq("card")
+    expect(blik_return).to eq("blik_pos")
+  end
+
   it "logs and returns nil for an unmapped type_hint" do
     expect(Rails.logger).to receive(:warn).with(/unmapped type_hint=\"UNKNOWN-CODE\"/)
 

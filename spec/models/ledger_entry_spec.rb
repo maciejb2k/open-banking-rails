@@ -14,8 +14,6 @@
 #  enrichment_source     :string
 #  essential             :boolean
 #  payment_method        :string
-#  recurrence_interval   :string
-#  recurring             :boolean
 #  signed_amount_cents   :bigint
 #  source_type           :text
 #  status                :string

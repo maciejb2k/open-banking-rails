@@ -10,18 +10,27 @@ module EnableBanking
     TYPE_HINT_MAP = {
       # ── PKO (English keys in remittance_information[1]) ──
       "CARD-PAYMENT"                       => "card",
+      "CARD-PAYMENT-RETURN"                => "card",              # refund; direction=credit carries the sign
+      "CARD-ATM"                           => "blik_atm",          # ATM withdrawal (channel agnostic - shares fallback path)
       "PAYCARD-TRANSFER"                   => "internal_transfer", # spłata karty kredytowej (PKO docs)
       "MOBILE-PAYMENT-POS-NO-CARD-TX-CODE" => "blik_pos",
       "MOBILE-PAYMENT-POS-TX-CODE"         => "blik_pos",          # variant - defensive
+      "MOBILE-PAYMENT-POS-RETURN"          => "blik_pos",          # BLIK POS refund
       "MOBILE-PAYMENT-ATM-TX-CODE"         => "blik_atm",
       "MOBILE-PAYMENT-C2C"                 => "blik_p2p",
-      "MOBILE-PAYMENT-C2C-EXTERNAL"        => "blik_p2p",           # variant - defensive
+      "MOBILE-PAYMENT-C2C-EXTERNAL"        => "blik_p2p",          # variant - defensive
+      "TRANSFER-IN"                        => "transfer",          # PKO incoming wire (e.g. salary)
+      "TRANSFER-EXPRESS-ELIXIR-IN"         => "transfer",          # PKO Express Elixir incoming
 
       # ── mBank (Polish keys in remittance_information[1]) ──
       "PRZELEW ZEWNĘTRZNY PRZYCHODZĄCY"    => "transfer",
       "PRZELEW ZEWNĘTRZNY WYCHODZĄCY"      => "transfer",
+      "PRZELEW WEWNĘTRZNY PRZYCHODZĄCY"    => "transfer",          # mBank → mBank (different person)
+      "PRZELEW WEWNĘTRZNY WYCHODZĄCY"      => "transfer",
+      "PRZELEW WŁASNY"                     => "internal_transfer", # mBank → user's other bank account
       "BLIK P2P-PRZYCHODZĄCY"              => "blik_p2p",
       "BLIK P2P-WYCHODZĄCY"                => "blik_p2p",
+      "BLIK ZAKUP E-COMMERCE"              => "blik_pos",          # BLIK online purchase (Allegro etc.)
 
       # ── Generic / observed in real sync data not yet attributed to a bank ──
       "TRANSFER"                           => "transfer"

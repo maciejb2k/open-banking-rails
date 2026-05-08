@@ -19,8 +19,8 @@ require "action_cable/engine"
 Bundler.require(*Rails.groups)
 
 module OpenBankingRails
-  ADMIN_EDITION = "Alpha"
-  ADMIN_VERSION = "0.5.0"
+  ADMIN_EDITION = "Beta"
+  ADMIN_VERSION = "0.5.0-beta"
 
   class Application < Rails::Application
     config.load_defaults 8.1

@@ -19,6 +19,8 @@ module EnableBanking
         @connection = connection
       end
 
+      AUTH_FAILURE_STATUSES = [ 401, 403, 410 ].freeze
+
       def call
         result = Api::GetSession.call(
           credential: @connection.tpp_credential,
@@ -26,7 +28,9 @@ module EnableBanking
         )
 
         if result.failure?
-          @connection.update!(last_error: "HTTP #{result.status}: #{result.error}")
+          attrs = { last_error: "HTTP #{result.status}: #{result.error}" }
+          attrs[:status] = "expired" if AUTH_FAILURE_STATUSES.include?(result.status)
+          @connection.update!(attrs)
           raise Failed, result.error_message
         end
 

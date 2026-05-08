@@ -72,6 +72,38 @@ RSpec.describe EnableBanking::Operations::SyncAccountTransactions do
     end
   end
 
+  it "on a 401 from /transactions probes /sessions/{id} via RefreshConnection and flips connection.status to expired when the session is no longer AUTHORIZED" do
+    user = create(:user)
+    tpp = create(:tpp_credential, user: user)
+    session_id = fake_eb.add_session(aspsp_name: "Fake Bank", country: "PL", status: "EXPIRED")
+    connection = create(:bank_connection, tpp_credential: tpp, status: "authorized", session_id: session_id)
+    uid = fake_eb.add_account(session_id: session_id, currency: "PLN")
+    account = create(:bank_account, tpp_credential: tpp, current_bank_connection: connection, uid: uid, currency: "PLN")
+    fake_eb.simulate_failure(method: :get, path: "/accounts/#{uid}/transactions", status: 401, error: "Unauthorized")
+
+    expect {
+      described_class.call(account, date_from: Date.current - 30, date_to: Date.current)
+    }.to raise_error(described_class::Failed, /Unauthorized/)
+
+    expect(connection.reload.status).to eq("expired")
+  end
+
+  it "on a 401 from /transactions leaves connection.status untouched when /sessions/{id} still reports AUTHORIZED (transient glitch)" do
+    user = create(:user)
+    tpp = create(:tpp_credential, user: user)
+    session_id = fake_eb.add_session(aspsp_name: "Fake Bank", country: "PL", status: "AUTHORIZED")
+    connection = create(:bank_connection, tpp_credential: tpp, status: "authorized", session_id: session_id)
+    uid = fake_eb.add_account(session_id: session_id, currency: "PLN")
+    account = create(:bank_account, tpp_credential: tpp, current_bank_connection: connection, uid: uid, currency: "PLN")
+    fake_eb.simulate_failure(method: :get, path: "/accounts/#{uid}/transactions", status: 401, error: "Unauthorized")
+
+    expect {
+      described_class.call(account, date_from: Date.current - 30, date_to: Date.current)
+    }.to raise_error(described_class::Failed)
+
+    expect(connection.reload.status).to eq("authorized")
+  end
+
   it "uses INCREMENTAL_OVERLAP back from transactions_synced_at on subsequent syncs" do
     user = create(:user)
     tpp = create(:tpp_credential, user: user)

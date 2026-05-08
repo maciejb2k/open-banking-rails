@@ -31,7 +31,7 @@ module Mcp
             merchant_id: entry.merchant_id,
             effective_category_id: entry.effective_category_id,
             category_path: entry.category_path.to_s,
-            essential: entry.essential, recurring: entry.recurring,
+            essential: entry.essential,
             enrichment_source: entry.enrichment_source
           )
         end

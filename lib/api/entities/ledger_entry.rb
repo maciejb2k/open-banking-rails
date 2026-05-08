@@ -20,8 +20,6 @@ module Entities
     expose :counterparty_name,   documentation: { type: String }
     expose :counterparty_kind,   documentation: { type: String, desc: "self / external / unknown" }
     expose :essential,           documentation: { type: "Boolean" }
-    expose :recurring,           documentation: { type: "Boolean" }
-    expose :recurrence_interval, documentation: { type: String }
     expose :enrichment_source,   documentation: { type: String }
     expose :merchant_id,         documentation: { type: Integer }
     expose :effective_category_id, documentation: { type: Integer }

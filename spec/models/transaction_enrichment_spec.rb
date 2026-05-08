@@ -11,8 +11,6 @@
 #  enriched_at         :datetime
 #  model               :string
 #  notes               :text
-#  recurrence_interval :string
-#  recurring           :boolean          default(FALSE), not null
 #  source              :string           not null
 #  created_at          :datetime         not null
 #  updated_at          :datetime         not null
@@ -28,7 +26,6 @@
 #  index_transaction_enrichments_on_enrichable        (enrichable_type,enrichable_id)
 #  index_transaction_enrichments_on_merchant_id       (merchant_id)
 #  index_transaction_enrichments_on_merchant_rule_id  (merchant_rule_id)
-#  index_transaction_enrichments_on_recurring         (recurring) WHERE (recurring = true)
 #  index_transaction_enrichments_on_source            (source)
 #
 # Foreign Keys

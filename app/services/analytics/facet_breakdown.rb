@@ -22,24 +22,5 @@ module Analytics
         currency: currency
       )
     end
-
-    def self.recurring(scope, currency:)
-      rec = scope.spend.recurring
-      one = scope.spend.one_off
-      Pair.new(
-        left:  Row.new(label: "Recurring", amount_cents: rec.sum(:amount_cents), count: rec.count, currency: currency),
-        right: Row.new(label: "One-off",   amount_cents: one.sum(:amount_cents), count: one.count, currency: currency),
-        currency: currency
-      )
-    end
-
-    def self.recurring_by_interval(scope, currency:)
-      rows = scope.spend.recurring
-                  .group(:recurrence_interval)
-                  .pluck(Arel.sql("recurrence_interval, SUM(amount_cents), COUNT(*)"))
-      rows.map { |interval, sum, count|
-        Row.new(label: interval || "unknown", amount_cents: sum.to_i, count: count.to_i, currency: currency)
-      }.sort_by { |r| -r.amount_cents }
-    end
   end
 end

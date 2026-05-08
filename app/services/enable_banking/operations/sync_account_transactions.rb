@@ -18,6 +18,8 @@ module EnableBanking
         @date_to = date_to
       end
 
+      AUTH_FAILURE_STATUSES = [ 401, 403, 410 ].freeze
+
       def call
         from = (@date_from || resolve_default_date_from).to_date
         to   = (@date_to   || Date.current).to_date
@@ -28,7 +30,10 @@ module EnableBanking
           date_from: from,
           date_to: to
         )
-        raise Failed, result.error_message if result.failure?
+        if result.failure?
+          probe_session_on_auth_failure(result.status)
+          raise Failed, result.error_message
+        end
 
         outcome = persist(result.data, from, to)
         @account.update!(transactions_synced_at: Time.current)
@@ -80,6 +85,22 @@ module EnableBanking
         else
           BackfillWindow.default_date_from(@account.current_bank_connection&.bank_slug.to_s)
         end
+      end
+
+      # On an auth-shaped failure, the per-account endpoint can't tell us
+      # whether the consent died or this was a transient glitch. The
+      # session endpoint can - delegate the truth to RefreshConnection.
+      # Swallow its Failed so the original sync error stays the user-visible
+      # cause; RefreshConnection has already persisted whatever lifecycle
+      # change was needed.
+      def probe_session_on_auth_failure(status)
+        return unless AUTH_FAILURE_STATUSES.include?(status)
+        bc = @account.current_bank_connection
+        return unless bc
+
+        RefreshConnection.call(bc)
+      rescue RefreshConnection::Failed
+        nil
       end
     end
   end

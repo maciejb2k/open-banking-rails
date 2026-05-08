@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_07_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_08_201753) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "ltree"
   enable_extension "pg_catalog.plpgsql"
@@ -324,8 +324,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_07_180000) do
     t.bigint "merchant_rule_id"
     t.string "model"
     t.text "notes"
-    t.string "recurrence_interval"
-    t.boolean "recurring", default: false, null: false
     t.string "source", null: false
     t.datetime "updated_at", null: false
     t.index ["category_id"], name: "index_transaction_enrichments_on_category_id"
@@ -333,7 +331,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_07_180000) do
     t.index ["enrichable_type", "enrichable_id"], name: "index_transaction_enrichments_on_enrichable"
     t.index ["merchant_id"], name: "index_transaction_enrichments_on_merchant_id"
     t.index ["merchant_rule_id"], name: "index_transaction_enrichments_on_merchant_rule_id"
-    t.index ["recurring"], name: "index_transaction_enrichments_on_recurring", where: "(recurring = true)"
     t.index ["source"], name: "index_transaction_enrichments_on_source"
   end
 
@@ -422,8 +419,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_07_180000) do
       COALESCE(te.category_id, m.default_category_id) AS effective_category_id,
       c.path AS category_path,
       COALESCE(c.essential, false) AS essential,
-      COALESCE(te.recurring, false) AS recurring,
-      te.recurrence_interval,
       te.source AS enrichment_source
      FROM (((bank_transactions bt
        LEFT JOIN transaction_enrichments te ON ((((te.enrichable_type)::text = 'BankTransaction'::text) AND (te.enrichable_id = bt.id))))
@@ -452,8 +447,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_07_180000) do
       COALESCE(te.category_id, m.default_category_id) AS effective_category_id,
       c.path AS category_path,
       COALESCE(c.essential, false) AS essential,
-      COALESCE(te.recurring, false) AS recurring,
-      te.recurrence_interval,
       te.source AS enrichment_source
      FROM (((manual_transactions mt
        LEFT JOIN transaction_enrichments te ON ((((te.enrichable_type)::text = 'ManualTransaction'::text) AND (te.enrichable_id = mt.id))))
