@@ -42,7 +42,7 @@ module Admin
     def enrichment_source_badge(source)
       return nil if source.blank?
       render "admin/shared/components/badge",
-             text: enrichment_source_label(source),
+             label: enrichment_source_label(source),
              variant: SOURCE_VARIANTS.fetch(source.to_s, :muted)
     end
 
