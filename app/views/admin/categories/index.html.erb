@@ -51,11 +51,11 @@
             </td>
             <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground"><%= hide_private_text(c.path.to_s, c) %></td>
             <td class="px-4 py-2.5">
-              <%= render "admin/shared/components/badge", text: c.kind, variant: c.kind == "expense" ? :default : :muted %>
+              <%= render "admin/shared/components/badge", label: c.kind, variant: c.kind == "expense" ? :default : :muted %>
             </td>
             <td class="px-4 py-2.5 text-xs">
               <% if c.essential %>
-                <%= render "admin/shared/components/badge", text: "essential", variant: :info %>
+                <%= render "admin/shared/components/badge", label: "essential", variant: :info %>
               <% end %>
             </td>
             <td class="px-4 py-2.5">

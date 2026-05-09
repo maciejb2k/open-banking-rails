@@ -12,13 +12,13 @@
 
   <div class="flex items-center gap-3">
     <%= render "admin/shared/components/badge",
-          text: @account.status,
+          label: @account.status,
           variant: { "active" => :success, "inactive" => :muted, "revoked" => :destructive }.fetch(@account.status, :muted) %>
     <% if @account.cash_account_type %>
-      <%= render "admin/shared/components/badge", text: @account.cash_account_type, variant: :default %>
+      <%= render "admin/shared/components/badge", label: @account.cash_account_type, variant: :default %>
     <% end %>
     <% if @account.usage %>
-      <%= render "admin/shared/components/badge", text: @account.usage, variant: :muted %>
+      <%= render "admin/shared/components/badge", label: @account.usage, variant: :muted %>
     <% end %>
   </div>
 

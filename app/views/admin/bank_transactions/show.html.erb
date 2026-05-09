@@ -13,19 +13,19 @@
 
   <div class="flex items-center gap-3 flex-wrap">
     <%= render "admin/shared/components/badge",
-          text: @transaction.direction,
+          label: @transaction.direction,
           variant: @transaction.direction == "credit" ? :success : :muted %>
     <%= render "admin/shared/components/badge",
-          text: @transaction.status,
+          label: @transaction.status,
           variant: @transaction.status == "booked" ? :success : :info %>
     <% if @transaction.payment_method.present? %>
-      <%= render "admin/shared/components/badge", text: payment_method_label(@transaction.payment_method), variant: :info %>
+      <%= render "admin/shared/components/badge", label: payment_method_label(@transaction.payment_method), variant: :info %>
     <% end %>
     <% if @transaction.bank_transaction_code.present? %>
-      <%= render "admin/shared/components/badge", text: @transaction.bank_transaction_code, variant: :default %>
+      <%= render "admin/shared/components/badge", label: @transaction.bank_transaction_code, variant: :default %>
     <% end %>
     <% if @transaction.type_hint.present? %>
-      <%= render "admin/shared/components/badge", text: @transaction.type_hint, variant: :muted %>
+      <%= render "admin/shared/components/badge", label: @transaction.type_hint, variant: :muted %>
     <% end %>
   </div>
 

@@ -9,12 +9,12 @@
 
   <div class="flex items-center gap-3">
     <%= render "admin/shared/components/badge",
-          text: @connection.status,
+          label: @connection.status,
           variant: @connection.status_tone %>
     <% if @connection.expired? %>
-      <%= render "admin/shared/components/badge", text: "expired", variant: :destructive %>
+      <%= render "admin/shared/components/badge", label: "expired", variant: :destructive %>
     <% elsif @connection.expiring_soon? %>
-      <%= render "admin/shared/components/badge", text: "expiring soon", variant: :warning %>
+      <%= render "admin/shared/components/badge", label: "expiring soon", variant: :warning %>
     <% end %>
   </div>
 
@@ -85,7 +85,7 @@
                 <p class="font-mono text-xs text-foreground <%= sensitive_class %>"><%= account.iban || account.uid %></p>
                 <p class="text-xs text-muted-foreground"><span class="<%= sensitive_class %>"><%= account.display_name %></span> · <%= account.currency %></p>
               </div>
-              <%= render "admin/shared/components/badge", text: account.cash_account_type || "-", variant: :muted %>
+              <%= render "admin/shared/components/badge", label: account.cash_account_type || "-", variant: :muted %>
             <% end %>
           </li>
         <% end %>

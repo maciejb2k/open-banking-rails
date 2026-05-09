@@ -78,7 +78,7 @@
             <td class="px-4 py-3 text-muted-foreground"><%= version.id %></td>
             <td class="px-4 py-3">
               <%= render "admin/shared/components/badge",
-                    text: version.event,
+                    label: version.event,
                     variant: { "create" => :success, "update" => :info, "destroy" => :destructive }.fetch(version.event, :muted) %>
             </td>
             <td class="px-4 py-3 font-medium text-foreground"><%= version.item_type %></td>

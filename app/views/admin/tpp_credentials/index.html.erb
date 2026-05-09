@@ -34,7 +34,7 @@
             <td class="px-4 py-3">
               <%= link_to c.name, admin_tpp_credential_path(c), class: "font-medium text-foreground hover:text-primary" %>
               <% if c.primary? %>
-                <%= render "admin/shared/components/badge", text: "primary", variant: :info %>
+                <%= render "admin/shared/components/badge", label: "primary", variant: :info %>
               <% end %>
             </td>
             <td class="px-4 py-3 text-muted-foreground"><%= c.provider %></td>
@@ -51,7 +51,7 @@
             </td>
             <td class="px-4 py-3">
               <%= render "admin/shared/components/badge",
-                    text: c.status,
+                    label: c.status,
                     variant: { "active" => :success, "error" => :destructive, "pending" => :info }.fetch(c.status, :muted) %>
             </td>
             <td class="px-4 py-3">

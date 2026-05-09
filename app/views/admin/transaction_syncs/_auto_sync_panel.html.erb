@@ -41,11 +41,11 @@
 
           <div class="shrink-0">
             <% if schedule&.paused? %>
-              <%= render "admin/shared/components/badge", text: "Paused", variant: :warning %>
+              <%= render "admin/shared/components/badge", label: "Paused", variant: :warning %>
             <% elsif schedule&.enabled? %>
-              <%= render "admin/shared/components/badge", text: "On", variant: :success %>
+              <%= render "admin/shared/components/badge", label: "On", variant: :success %>
             <% else %>
-              <%= render "admin/shared/components/badge", text: "Off", variant: :muted %>
+              <%= render "admin/shared/components/badge", label: "Off", variant: :muted %>
             <% end %>
           </div>
 

@@ -96,9 +96,9 @@
                     …<%= token.last_four %>
                   </span>
                   <% if token.revoked? %>
-                    <%= render "admin/shared/components/badge", text: "Revoked", variant: :destructive %>
+                    <%= render "admin/shared/components/badge", label: "Revoked", variant: :destructive %>
                   <% else %>
-                    <%= render "admin/shared/components/badge", text: "Active", variant: :success %>
+                    <%= render "admin/shared/components/badge", label: "Active", variant: :success %>
                   <% end %>
                 </div>
                 <p class="text-xs text-muted-foreground">

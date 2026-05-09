@@ -33,7 +33,7 @@
           <td class="px-4 py-3 font-mono text-xs text-muted-foreground"><%= @pagy.offset + idx + 1 %></td>
           <td class="px-4 py-3">
             <%= render "admin/shared/components/badge",
-                  text: rule.source,
+                  label: rule.source,
                   variant: { "user" => :default, "llm" => :info, "system" => :muted }[rule.source] || :muted %>
           </td>
           <td class="px-4 py-3 font-mono text-xs break-all">
@@ -64,9 +64,9 @@
           </td>
           <td class="px-4 py-3">
             <% if rule.enabled? %>
-              <%= render "admin/shared/components/badge", text: "enabled", variant: :success %>
+              <%= render "admin/shared/components/badge", label: "enabled", variant: :success %>
             <% else %>
-              <%= render "admin/shared/components/badge", text: "disabled", variant: :muted %>
+              <%= render "admin/shared/components/badge", label: "disabled", variant: :muted %>
             <% end %>
           </td>
           <td class="px-4 py-3 font-mono text-sm tabular-nums">
@@ -96,7 +96,7 @@
         <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
           <td class="px-4 py-3 text-xs">
             <%= render "admin/shared/components/badge",
-                  text: direction,
+                  label: direction,
                   variant: direction == "credit" ? :success : :default %>
           </td>
           <td class="px-4 py-3 font-mono text-xs"><%= payment_method %></td>
@@ -110,7 +110,7 @@
           <td class="px-4 py-3">
             <% if cat %>
               <%= render "admin/shared/components/badge",
-                    text: cat.kind,
+                    label: cat.kind,
                     variant: cat.kind == "ignored" ? :muted : (cat.kind == "income" ? :success : :default) %>
             <% end %>
           </td>

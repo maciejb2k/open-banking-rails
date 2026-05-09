@@ -35,7 +35,7 @@
             <p class="font-mono text-xs text-foreground <%= sensitive_class %>"><%= row[:account].iban || row[:account].uid %></p>
             <p class="text-xs text-muted-foreground mt-0.5">
               <% if row[:kind] == :first_sync %>
-                <%= render "admin/shared/components/badge", text: "First sync", variant: :info %>
+                <%= render "admin/shared/components/badge", label: "First sync", variant: :info %>
                 No prior sync recorded.
               <% else %>
                 Last synced <%= l(row[:account].transactions_synced_at, format: :short) %>.

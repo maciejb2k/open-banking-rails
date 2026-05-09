@@ -65,14 +65,14 @@
                 <td class="px-4 py-3 text-sm"><%= rule.kind %></td>
                 <td class="px-4 py-3 font-mono text-xs <%= sensitive_class %>"><%= rule.pattern %></td>
                 <td class="px-4 py-3">
-                  <%= render "admin/shared/components/badge", text: rule.source, variant: rule.source == "user" ? :info : (rule.source == "llm" ? :default : :muted) %>
+                  <%= render "admin/shared/components/badge", label: rule.source, variant: rule.source == "user" ? :info : (rule.source == "llm" ? :default : :muted) %>
                 </td>
                 <td class="px-4 py-3 text-right font-mono text-xs"><%= rule.priority %></td>
                 <td class="px-4 py-3">
                   <% if rule.enabled? %>
-                    <%= render "admin/shared/components/badge", text: "Yes", variant: :success %>
+                    <%= render "admin/shared/components/badge", label: "Yes", variant: :success %>
                   <% else %>
-                    <%= render "admin/shared/components/badge", text: "No", variant: :muted %>
+                    <%= render "admin/shared/components/badge", label: "No", variant: :muted %>
                   <% end %>
                 </td>
                 <td class="px-4 py-3">

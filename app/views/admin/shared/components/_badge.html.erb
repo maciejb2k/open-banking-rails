@@ -1,4 +1,4 @@
-<%# locals: (text:, variant: :default) %>
+<%# locals: (label:, variant: :default) %>
 <%
   variant_classes = {
     default: "bg-primary/10 text-primary",
@@ -10,4 +10,4 @@
   }
   cls = variant_classes.fetch(variant.to_sym, variant_classes[:default])
 %>
-<span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize <%= cls %>"><%= text %></span>
+<span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize <%= cls %>"><%= label %></span>

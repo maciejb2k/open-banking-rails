@@ -120,7 +120,7 @@
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2">
                   <span class="font-medium <%= sensitive_class unless m_hidden %>"><%= hide_private_text(m.display, m.default_category_id) %></span>
-                  <%= render "admin/shared/components/badge", text: "AI", variant: :default %>
+                  <%= render "admin/shared/components/badge", label: "AI", variant: :default %>
                   <span class="text-xs text-muted-foreground">confidence: <%= (m.confidence.to_f * 100).round %>%</span>
                 </div>
                 <% if rule %>
@@ -188,7 +188,7 @@
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
             <td class="px-4 py-3 font-mono text-xs text-muted-foreground">#<%= run.id %></td>
             <td class="px-4 py-3">
-              <%= render "admin/shared/components/badge", text: run.status, variant: run.status_tone %>
+              <%= render "admin/shared/components/badge", label: run.status, variant: run.status_tone %>
             </td>
             <td class="px-4 py-3 text-sm text-muted-foreground">
               <%= Array(run.summary["batches"]).size %>

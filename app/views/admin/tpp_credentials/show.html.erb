@@ -13,15 +13,15 @@
 
   <div class="flex items-center gap-3">
     <%= render "admin/shared/components/badge",
-          text: @credential.status,
+          label: @credential.status,
           variant: { "active" => :success, "error" => :destructive, "pending" => :info }.fetch(@credential.status, :muted) %>
     <% if @credential.primary? %>
-      <%= render "admin/shared/components/badge", text: "primary", variant: :info %>
+      <%= render "admin/shared/components/badge", label: "primary", variant: :info %>
     <% end %>
     <% if @credential.cert_expired? %>
-      <%= render "admin/shared/components/badge", text: "cert expired", variant: :destructive %>
+      <%= render "admin/shared/components/badge", label: "cert expired", variant: :destructive %>
     <% elsif @credential.cert_expiring_soon? %>
-      <%= render "admin/shared/components/badge", text: "cert expiring soon", variant: :warning %>
+      <%= render "admin/shared/components/badge", label: "cert expiring soon", variant: :warning %>
     <% end %>
   </div>
 
@@ -127,7 +127,7 @@
                   <%= bc.psu_type %> · valid until <%= bc.valid_until&.to_date || "-" %>
                 </p>
               </div>
-              <%= render "admin/shared/components/badge", text: bc.status, variant: bc.status_tone %>
+              <%= render "admin/shared/components/badge", label: bc.status, variant: bc.status_tone %>
             <% end %>
           </li>
         <% end %>

@@ -109,7 +109,7 @@
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
             <td class="px-4 py-3 font-mono text-xs text-muted-foreground">#<%= run.id %></td>
             <td class="px-4 py-3">
-              <%= render "admin/shared/components/badge", text: run.status, variant: run.status_tone %>
+              <%= render "admin/shared/components/badge", label: run.status, variant: run.status_tone %>
             </td>
             <td class="px-4 py-3 text-xs">
               <% if run.subject.is_a?(User) %>

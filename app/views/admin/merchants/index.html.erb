@@ -83,7 +83,7 @@
             </td>
             <td class="px-4 py-3 text-sm text-muted-foreground"><%= m.merchant_rules.size %></td>
             <td class="px-4 py-3">
-              <%= render "admin/shared/components/badge", text: m.source, variant: m.source == "user" ? :info : (m.source == "llm" ? :default : :muted) %>
+              <%= render "admin/shared/components/badge", label: m.source, variant: m.source == "user" ? :info : (m.source == "llm" ? :default : :muted) %>
             </td>
             <td class="px-4 py-3 text-right font-mono text-xs">
               <%= @transaction_counts[m.id] || 0 %>

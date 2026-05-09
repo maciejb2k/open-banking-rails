@@ -53,7 +53,7 @@
             </td>
             <td class="px-4 py-3">
               <%= render "admin/shared/components/badge",
-                    text: account.status,
+                    label: account.status,
                     variant: { "active" => :success, "inactive" => :muted, "revoked" => :destructive }.fetch(account.status, :muted) %>
             </td>
             <td class="px-4 py-3">

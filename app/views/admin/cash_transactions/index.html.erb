@@ -169,7 +169,7 @@
                 </span>
                 <% if tx.enrichment&.merchant && !hidden %>
                   <%= render "admin/shared/components/badge",
-                        text: tx.enrichment.merchant.display, variant: :info %>
+                        label: tx.enrichment.merchant.display, variant: :info %>
                 <% end %>
               </div>
               <% if tx.counterparty_name.present? %>
@@ -182,12 +182,12 @@
               <% if cat %>
                 <%= render "admin/shared/components/category_breadcrumb", category: cat %>
               <% else %>
-                <%= render "admin/shared/components/badge", text: "unclassified", variant: :warning %>
+                <%= render "admin/shared/components/badge", label: "unclassified", variant: :warning %>
               <% end %>
             </td>
             <td class="px-4 py-3 text-xs">
               <%= render "admin/shared/components/badge",
-                    text: tx.source.humanize,
+                    label: tx.source.humanize,
                     variant: tx.source == "manual" ? :success : :muted %>
             </td>
             <td class="px-4 py-3 text-right amount whitespace-nowrap <%= tx.direction == "credit" ? "text-success" : "text-foreground" %>">

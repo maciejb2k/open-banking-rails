@@ -295,7 +295,7 @@
               <% if cat %>
                 <%= render "admin/shared/components/category_breadcrumb", category: cat %>
               <% else %>
-                <%= render "admin/shared/components/badge", text: "unclassified", variant: :warning %>
+                <%= render "admin/shared/components/badge", label: "unclassified", variant: :warning %>
               <% end %>
             </td>
             <td class="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
@@ -303,7 +303,7 @@
             </td>
             <td class="px-4 py-3">
               <%= render "admin/shared/components/badge",
-                    text: tx.status,
+                    label: tx.status,
                     variant: tx.status == "booked" ? :success : :info %>
             </td>
             <td class="px-4 py-3 text-right amount whitespace-nowrap <%= tx.direction == 'credit' ? 'text-success' : 'text-foreground' %>">

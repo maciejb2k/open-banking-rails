@@ -2,8 +2,8 @@
 <%# `**` swallows the extra `operation_run` local that Turbo::Broadcastable auto-injects. %>
 <%= tag.div id: dom_id(run, :progress), class: "space-y-6" do %>
   <div class="flex items-center gap-3">
-    <%= render "admin/shared/components/badge", text: run.status, variant: run.status_tone %>
-    <%= render "admin/shared/components/badge", text: run.trigger, variant: :muted %>
+    <%= render "admin/shared/components/badge", label: run.status, variant: run.status_tone %>
+    <%= render "admin/shared/components/badge", label: run.trigger, variant: :muted %>
     <% if run.running? %>
       <span class="inline-flex items-center gap-2 text-xs text-muted-foreground">
         <span class="relative flex h-2 w-2">
@@ -81,7 +81,7 @@
             </td>
             <td class="px-4 py-3">
               <%= render "admin/shared/components/badge",
-                    text: row["status"],
+                    label: row["status"],
                     variant: row["status"] == "succeeded" ? :success : :destructive %>
               <% if row["status"] == "failed" && row["error"].present? %>
                 <div class="text-xs text-destructive mt-1 break-all"><%= row["error"] %></div>

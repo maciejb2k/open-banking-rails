@@ -650,7 +650,7 @@
             <div class="flex items-baseline justify-between gap-2">
               <p class="text-sm font-semibold truncate <%= sensitive_class %>"><%= cat_hidden ? "•••" : mover.name %></p>
               <% if mover.new_spend? %>
-                <%= render "admin/shared/components/badge", text: "new", variant: :info %>
+                <%= render "admin/shared/components/badge", label: "new", variant: :info %>
               <% elsif mover.delta_pct %>
                 <span class="text-xs font-bold tabular-nums <%= delta_tone %>"><%= mover.delta_pct.positive? ? "+" : "" %><%= mover.delta_pct %>%</span>
               <% end %>

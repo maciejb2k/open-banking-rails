@@ -6,12 +6,12 @@
   <section class="space-y-3">
     <h2 class="text-lg font-semibold border-b pb-2">Badges</h2>
     <div class="flex flex-wrap gap-2">
-      <%= render "admin/shared/components/badge", text: "Default", variant: :default %>
-      <%= render "admin/shared/components/badge", text: "Success", variant: :success %>
-      <%= render "admin/shared/components/badge", text: "Destructive", variant: :destructive %>
-      <%= render "admin/shared/components/badge", text: "Warning", variant: :warning %>
-      <%= render "admin/shared/components/badge", text: "Info", variant: :info %>
-      <%= render "admin/shared/components/badge", text: "Muted", variant: :muted %>
+      <%= render "admin/shared/components/badge", label: "Default", variant: :default %>
+      <%= render "admin/shared/components/badge", label: "Success", variant: :success %>
+      <%= render "admin/shared/components/badge", label: "Destructive", variant: :destructive %>
+      <%= render "admin/shared/components/badge", label: "Warning", variant: :warning %>
+      <%= render "admin/shared/components/badge", label: "Info", variant: :info %>
+      <%= render "admin/shared/components/badge", label: "Muted", variant: :muted %>
     </div>
   </section>
 
@@ -380,7 +380,7 @@
           <tr class="border-b last:border-0 hover:bg-muted/20 transition-colors">
             <td class="px-4 py-3 font-medium text-foreground"><%= row[:name] %></td>
             <td class="px-4 py-3">
-              <%= render "admin/shared/components/badge", text: row[:status_label], variant: row[:status] %>
+              <%= render "admin/shared/components/badge", label: row[:status_label], variant: row[:status] %>
             </td>
             <td class="px-4 py-3 text-muted-foreground"><%= row[:created] %></td>
             <td class="px-4 py-3">

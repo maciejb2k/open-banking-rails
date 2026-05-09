@@ -1,7 +1,7 @@
 <%# locals: (run:, **) %>
 <%= tag.div id: dom_id(run, :progress), class: "space-y-6" do %>
   <div class="flex items-center gap-3">
-    <%= render "admin/shared/components/badge", text: run.status, variant: run.status_tone %>
+    <%= render "admin/shared/components/badge", label: run.status, variant: run.status_tone %>
     <% batches = Array(run.summary["batches"]) %>
     <% if run.running? %>
       <span class="inline-flex items-center gap-2 text-xs text-muted-foreground">
@@ -65,7 +65,7 @@
             <td class="px-4 py-3 text-sm"><%= b["size"] %></td>
             <td class="px-4 py-3">
               <% variant = b["status"] == "succeeded" ? :success : :destructive %>
-              <%= render "admin/shared/components/badge", text: b["status"], variant: variant %>
+              <%= render "admin/shared/components/badge", label: b["status"], variant: variant %>
             </td>
             <td class="px-4 py-3 font-mono text-sm"><%= b["auto"] %></td>
             <td class="px-4 py-3 font-mono text-sm"><%= b["pending"] %></td>
