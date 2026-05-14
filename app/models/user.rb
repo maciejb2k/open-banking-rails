@@ -2,16 +2,17 @@
 #
 # Table name: users
 #
-#  id                     :bigint           not null, primary key
-#  email                  :string           default(""), not null
-#  encrypted_password     :string           default(""), not null
-#  name                   :string
-#  remember_created_at    :datetime
-#  reset_password_sent_at :datetime
-#  reset_password_token   :string
-#  track_cash             :boolean          default(FALSE), not null
-#  created_at             :datetime         not null
-#  updated_at             :datetime         not null
+#  id                       :bigint           not null, primary key
+#  email                    :string           default(""), not null
+#  encrypted_password       :string           default(""), not null
+#  name                     :string
+#  remember_created_at      :datetime
+#  reset_password_sent_at   :datetime
+#  reset_password_token     :string
+#  reveal_hidden_categories :boolean          default(FALSE), not null
+#  track_cash               :boolean          default(FALSE), not null
+#  created_at               :datetime         not null
+#  updated_at               :datetime         not null
 #
 # Indexes
 #
@@ -46,6 +47,7 @@ class User < ApplicationRecord
   # Subtree-aware: hiding `food` hides every descendant. The user-selected
   # ids widen to "any descendant of a hidden path" via ltree.
   def hides_category?(category_or_id)
+    return false if reveal_hidden_categories
     return false if category_or_id.blank?
     id = category_or_id.respond_to?(:id) ? category_or_id.id : category_or_id
     hidden_subtree_ids.include?(id)

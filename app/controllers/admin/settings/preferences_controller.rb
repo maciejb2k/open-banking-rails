@@ -106,7 +106,7 @@ module Admin
       end
 
       def app_params
-        permitted = params.require(:user).permit(:track_cash, hidden_category_ids: [])
+        permitted = params.require(:user).permit(:track_cash, :reveal_hidden_categories, hidden_category_ids: [])
         # multi_select omits the param when nothing is selected - force [] so
         # the has_many through can clear the join table.
         permitted[:hidden_category_ids] ||= []

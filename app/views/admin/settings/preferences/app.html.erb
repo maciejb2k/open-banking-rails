@@ -41,6 +41,13 @@
               indent = "-" * c.path.to_s.count(".")
               { value: c.id, label: "#{indent} #{c.breadcrumb_names.join(" / ")}".strip }
             } %>
+
+      <%= render "admin/shared/form/toggle",
+            form: f, field: :reveal_hidden_categories,
+            label: "Temporarily reveal",
+            on_label: "Revealed",
+            off_label: "Hidden",
+            hint: "When on, the categories above are visible and editable everywhere - masking and drill-down blocks are bypassed. Turn back off when you're done." %>
     </div>
 
     <div class="flex justify-end">
