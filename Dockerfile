@@ -59,6 +59,13 @@ RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 # and Docker uses the same uid/gid when initializing an empty named volume.
 RUN mkdir -p /rails/secrets /rails/backups /rails/storage
 
+# Bake the release tag into the image so the footer (ADMIN_VERSION) tracks
+# the git tag automatically. CI passes APP_VERSION=${{ github.ref_name }};
+# local builds get "dev". Kept last in the build stage so it doesn't bust
+# the asset/bootsnap precompile caches when the version changes.
+ARG APP_VERSION=dev
+RUN echo "$APP_VERSION" > /rails/VERSION
+
 
 
 
@@ -73,12 +80,6 @@ USER 1000:1000
 # Copy built artifacts: gems, application
 COPY --chown=rails:rails --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --chown=rails:rails --from=build /rails /rails
-
-# Bake the release tag into the image so the footer (ADMIN_VERSION) tracks
-# the git tag automatically. CI passes APP_VERSION=${{ github.ref_name }};
-# local builds get "dev".
-ARG APP_VERSION=dev
-RUN echo "$APP_VERSION" > /rails/VERSION
 
 # Entrypoint prepares the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
