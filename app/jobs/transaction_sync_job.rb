@@ -132,6 +132,7 @@ class TransactionSyncJob < ApplicationJob
       base.merge(
         status: "succeeded",
         inserted: outcome.inserted,
+        updated: outcome.updated,
         skipped: outcome.skipped,
         pages_fetched: outcome.pages_fetched,
         truncated: outcome.truncated,

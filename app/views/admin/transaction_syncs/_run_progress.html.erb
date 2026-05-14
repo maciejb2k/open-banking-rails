@@ -66,6 +66,7 @@
               { label: "Range" },
               { label: "Status" },
               { label: "Inserted" },
+              { label: "Updated" },
               { label: "Skipped" },
               { label: "Pages" }
             ] do %>
@@ -88,6 +89,7 @@
               <% end %>
             </td>
             <td class="px-4 py-3 font-mono text-sm"><%= row["inserted"] || "-" %></td>
+            <td class="px-4 py-3 font-mono text-sm text-muted-foreground"><%= row["updated"] || "-" %></td>
             <td class="px-4 py-3 font-mono text-sm text-muted-foreground"><%= row["skipped"] || "-" %></td>
             <td class="px-4 py-3 font-mono text-sm text-muted-foreground"><%= row["pages_fetched"] || "-" %></td>
           </tr>

@@ -38,8 +38,73 @@ RSpec.describe EnableBanking::Operations::SyncAccountTransactions do
 
     expect(first.inserted).to eq(1)
     expect(second.inserted).to eq(0)
+    expect(second.updated).to eq(0)
     expect(second.skipped).to eq(1)
     expect(account.bank_transactions.count).to eq(1)
+  end
+
+  it "updates an existing pending row when the API now returns the same external_id as booked (firming transition)" do
+    user = create(:user)
+    tpp = create(:tpp_credential, user: user, status: "active")
+    connection = create(:bank_connection, tpp_credential: tpp, status: "authorized")
+    session_id = fake_eb.add_session(aspsp_name: "Fake Bank", country: "PL")
+    uid = fake_eb.add_account(session_id: session_id, currency: "PLN")
+    account = create(:bank_account, tpp_credential: tpp, current_bank_connection: connection, uid: uid, currency: "PLN")
+
+    existing = create(:bank_transaction,
+      bank_account: account,
+      external_id: "tx-firming-1",
+      status: "pending",
+      amount_cents: 5000,
+      currency: "PLN",
+      direction: "debit",
+      title: "Coffee (pending)",
+      booking_date: Date.current,
+      fetched_at: 1.day.ago)
+
+    fake_eb.add_transaction(account_uid: uid, external_id: "tx-firming-1", amount_cents: 5200, direction: "debit", title: "Coffee", status: "booked")
+
+    outcome = described_class.call(account, date_from: Date.current - 30, date_to: Date.current)
+
+    expect(outcome.inserted).to eq(0)
+    expect(outcome.updated).to eq(1)
+    expect(outcome.skipped).to eq(0)
+    expect(account.bank_transactions.count).to eq(1)
+    existing.reload
+    expect(existing.status).to eq("booked")
+    expect(existing.amount_cents).to eq(5200)
+    expect(existing.title).to eq("Coffee")
+  end
+
+  it "leaves already-booked rows untouched on re-sync (PSD2 booked immutability)" do
+    user = create(:user)
+    tpp = create(:tpp_credential, user: user, status: "active")
+    connection = create(:bank_connection, tpp_credential: tpp, status: "authorized")
+    session_id = fake_eb.add_session(aspsp_name: "Fake Bank", country: "PL")
+    uid = fake_eb.add_account(session_id: session_id, currency: "PLN")
+    account = create(:bank_account, tpp_credential: tpp, current_bank_connection: connection, uid: uid, currency: "PLN")
+
+    existing = create(:bank_transaction,
+      bank_account: account,
+      external_id: "tx-booked-1",
+      status: "booked",
+      amount_cents: 5000,
+      currency: "PLN",
+      direction: "debit",
+      title: "Original title",
+      booking_date: Date.current,
+      fetched_at: 1.day.ago)
+
+    fake_eb.add_transaction(account_uid: uid, external_id: "tx-booked-1", amount_cents: 9999, direction: "debit", title: "Mutated title", status: "booked")
+
+    outcome = described_class.call(account, date_from: Date.current - 30, date_to: Date.current)
+
+    expect(outcome.inserted).to eq(0)
+    expect(outcome.updated).to eq(0)
+    expect(outcome.skipped).to eq(1)
+    existing.reload
+    expect(existing.amount_cents).to eq(5000)
+    expect(existing.title).to eq("Original title")
   end
 
   it "raises Operations::SyncAccountTransactions::Failed when the API returns failure" do

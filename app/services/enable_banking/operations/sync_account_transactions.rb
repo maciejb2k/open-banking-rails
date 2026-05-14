@@ -2,13 +2,16 @@
 
 module EnableBanking
   module Operations
-    # Idempotent - duplicates (by bank_account_id + external_id) are skipped.
-    # Booked PSD2 transactions are immutable; we don't update existing rows.
-    # Pending → booked transitions are not yet handled.
+    # Idempotent on booked rows - PSD2 says booked transactions are immutable,
+    # so a re-sync of an already-booked record is a no-op (skipped).
+    # Pending rows are not immutable: a transaction can sit pending for a
+    # while before the bank firms it up (status flips to booked, the amount
+    # or dates can settle). On re-sync we overwrite pending rows with the
+    # latest payload so the local copy keeps up.
     class SyncAccountTransactions < Base
       Failed = Class.new(StandardError)
 
-      Outcome = Struct.new(:inserted, :skipped, :pages_fetched, :truncated, :date_from, :date_to, keyword_init: true)
+      Outcome = Struct.new(:inserted, :updated, :skipped, :pages_fetched, :truncated, :date_from, :date_to, keyword_init: true)
 
       INCREMENTAL_OVERLAP = 7.days
 
@@ -44,6 +47,7 @@ module EnableBanking
 
       def persist(data, from, to)
         inserted = 0
+        updated  = 0
         skipped  = 0
         fetched_at = Time.current
         user = @account.owner
@@ -63,6 +67,9 @@ module EnableBanking
               record.assign_attributes(attrs)
               record.save!
               inserted += 1
+            elsif record.status == "pending"
+              record.update!(attrs)
+              updated += 1
             else
               skipped += 1
             end
@@ -71,6 +78,7 @@ module EnableBanking
 
         Outcome.new(
           inserted: inserted,
+          updated: updated,
           skipped: skipped,
           pages_fetched: data["pages_fetched"],
           truncated: data["truncated"],
