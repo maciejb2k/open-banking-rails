@@ -74,6 +74,12 @@ USER 1000:1000
 COPY --chown=rails:rails --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --chown=rails:rails --from=build /rails /rails
 
+# Bake the release tag into the image so the footer (ADMIN_VERSION) tracks
+# the git tag automatically. CI passes APP_VERSION=${{ github.ref_name }};
+# local builds get "dev".
+ARG APP_VERSION=dev
+RUN echo "$APP_VERSION" > /rails/VERSION
+
 # Entrypoint prepares the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 

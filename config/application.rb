@@ -20,7 +20,14 @@ Bundler.require(*Rails.groups)
 
 module OpenBankingRails
   ADMIN_EDITION = "Personal"
-  ADMIN_VERSION = "1.0.1"
+  # Baked into the image by Dockerfile from the git tag at build time
+  # (see release.yml). Falls back to "dev" when running from source.
+  ADMIN_VERSION =
+    begin
+      File.read(File.expand_path("../VERSION", __dir__)).strip.delete_prefix("v")
+    rescue Errno::ENOENT
+      "dev"
+    end
 
   class Application < Rails::Application
     config.load_defaults 8.1
