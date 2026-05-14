@@ -4,6 +4,24 @@
 <%
   current_merchant_id = transaction.enrichment&.merchant_id
   current_category_id = transaction.enrichment&.category_id || transaction.merchant&.default_category_id
+
+  merchant_choices = merchant_options.map do |m|
+    label = if hide_private?(m.default_category_id)
+      "•••"
+    else
+      m.default_category ? "#{m.display} (#{m.default_category.name})" : m.display
+    end
+    { id: m.id, label: label }
+  end.sort_by { |o| o[:label].to_s.downcase }
+
+  category_choices = current_user.categories.active.ordered.map do |c|
+    label = hide_private?(c) ? "•••" : c.breadcrumb_names.join(" / ")
+    { id: c.id, label: label }
+  end.sort_by { |o| o[:label].to_s.downcase }
+
+  current_merchant_label = merchant_choices.find { |o| o[:id] == current_merchant_id }&.dig(:label)
+  current_category_label = category_choices.find { |o| o[:id] == current_category_id }&.dig(:label)
+
   default_pattern = transaction.title.to_s.upcase.strip
 %>
 
@@ -11,19 +29,28 @@
   <%= form_with url: admin_bank_transaction_enrichment_path(transaction), method: :patch, html: { class: "space-y-5" } do |f| %>
     <div class="space-y-1.5">
       <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Merchant</label>
-      <select name="enrichment[merchant_id]" class="form-input">
-        <option value="">- select -</option>
-        <% merchant_options.each do |m| %>
-          <% m_hidden = hide_private?(m.default_category_id) %>
-          <option value="<%= m.id %>" <%= 'selected' if m.id == current_merchant_id %>>
-            <% if m_hidden %>
-              •••
-            <% else %>
-              <%= m.display %><%= " (#{m.default_category.name})" if m.default_category %>
-            <% end %>
-          </option>
-        <% end %>
-      </select>
+      <div class="relative"
+           data-controller="ajax-select"
+           data-ajax-select-min-chars-value="0"
+           data-ajax-select-mock-options-value="<%= merchant_choices.to_json %>">
+        <div class="flex gap-2">
+          <input type="text"
+                 data-ajax-select-target="input"
+                 data-action="input->ajax-select#search focus->ajax-select#search keydown->ajax-select#navigate"
+                 value="<%= current_merchant_label %>"
+                 placeholder="Search merchants..."
+                 autocomplete="off"
+                 class="form-input flex-1">
+          <button type="button"
+                  data-action="click->ajax-select#clear"
+                  class="rounded-lg border bg-card px-3 text-muted-foreground hover:bg-card-hover transition-colors">
+            <%= render "admin/shared/icons/x", classes: "h-4 w-4" %>
+          </button>
+        </div>
+        <div data-ajax-select-target="dropdown"
+             class="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border bg-card shadow-lg hidden"></div>
+        <input type="hidden" name="enrichment[merchant_id]" value="<%= current_merchant_id %>" data-ajax-select-target="hidden">
+      </div>
       <p class="text-xs text-muted-foreground">
         Missing merchant? <%= link_to "Add new", new_admin_merchant_path, target: "_blank", class: "text-primary hover:underline" %>.
       </p>
@@ -31,25 +58,35 @@
 
     <div class="space-y-1.5">
       <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Category (override)</label>
-      <select name="enrichment[category_id]" class="form-input">
-        <option value="">- use merchant's default -</option>
-        <% current_user.categories.active.ordered.each do |c| %>
-          <option value="<%= c.id %>" <%= 'selected' if c.id == current_category_id %>>
-            <% if hide_private?(c) %>
-              •••
-            <% else %>
-              <%= c.breadcrumb_names.join(" / ") %>
-            <% end %>
-          </option>
-        <% end %>
-      </select>
+      <div class="relative"
+           data-controller="ajax-select"
+           data-ajax-select-min-chars-value="0"
+           data-ajax-select-mock-options-value="<%= category_choices.to_json %>">
+        <div class="flex gap-2">
+          <input type="text"
+                 data-ajax-select-target="input"
+                 data-action="input->ajax-select#search focus->ajax-select#search keydown->ajax-select#navigate"
+                 value="<%= current_category_label %>"
+                 placeholder="Use merchant's default, or search..."
+                 autocomplete="off"
+                 class="form-input flex-1">
+          <button type="button"
+                  data-action="click->ajax-select#clear"
+                  class="rounded-lg border bg-card px-3 text-muted-foreground hover:bg-card-hover transition-colors">
+            <%= render "admin/shared/icons/x", classes: "h-4 w-4" %>
+          </button>
+        </div>
+        <div data-ajax-select-target="dropdown"
+             class="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border bg-card shadow-lg hidden"></div>
+        <input type="hidden" name="enrichment[category_id]" value="<%= current_category_id %>" data-ajax-select-target="hidden">
+      </div>
     </div>
 
     <div class="space-y-2 border-t pt-4" data-controller="propagation">
       <label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Apply to</label>
 
       <label class="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/20 cursor-pointer transition-colors">
-        <input type="radio" name="enrichment[mode]" value="only_this" class="mt-0.5" data-action="change->propagation#switch" data-propagation-target="onlyThis">
+        <input type="radio" name="enrichment[mode]" value="only_this" class="mt-0.5" checked data-action="change->propagation#switch" data-propagation-target="onlyThis">
         <div>
           <div class="text-sm font-medium">This transaction only</div>
           <div class="text-xs text-muted-foreground">Override on this one transaction. Marked manual - won't be overwritten by future rules.</div>
@@ -57,7 +94,7 @@
       </label>
 
       <label class="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/20 cursor-pointer transition-colors">
-        <input type="radio" name="enrichment[mode]" value="all_for_merchant" class="mt-0.5" checked data-action="change->propagation#switch" data-propagation-target="allMerchant">
+        <input type="radio" name="enrichment[mode]" value="all_for_merchant" class="mt-0.5" data-action="change->propagation#switch" data-propagation-target="allMerchant">
         <div>
           <div class="text-sm font-medium">All transactions for this merchant</div>
           <div class="text-xs text-muted-foreground">Updates the merchant's default category. Applies retroactively and going forward.</div>
