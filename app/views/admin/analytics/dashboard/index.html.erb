@@ -280,6 +280,12 @@
           icon: "shopping_cart", tone: :destructive,
           hint: period_hint,
           value_class: sensitive_class %>
+    <%= render "admin/shared/components/stat_card",
+          label: "Income",
+          value: income_total.format(no_cents_if_whole: true),
+          icon: "banknote", tone: :success,
+          hint: "net #{@net_cents >= 0 ? '+' : ''}#{net_total.format(no_cents_if_whole: true)}",
+          value_class: sensitive_class %>
     <%# MTD with ≥3 days elapsed → run-rate; otherwise → avg daily spend. %>
     <% if @run_rate_cents %>
       <%
@@ -296,7 +302,7 @@
       <%= render "admin/shared/components/stat_card",
             label: "Run-rate",
             value: run_rate_total.format(no_cents_if_whole: true),
-            icon: "trending_up", tone: run_rate_tone,
+            icon: "gauge", tone: run_rate_tone,
             hint: run_rate_hint,
             value_class: sensitive_class %>
     <% else %>
@@ -309,39 +315,43 @@
     <% end %>
     <% if @spend_delta_pct.nil? %>
       <%= render "admin/shared/components/stat_card",
-            label: "Δ vs prev.",
+            label: "Spend change",
             value: "-",
             icon: "bar_chart_3",
-            hint: "no prior data",
+            hint: "no prior period to compare",
             value_class: sensitive_class %>
     <% else %>
+      <%
+        spend_change_hint = @filter.previous_label.sub(/\Avs /, "")
+        spend_change_hint = if @spend_delta_pct.positive?
+                              "more than #{spend_change_hint}"
+                            elsif @spend_delta_pct.negative?
+                              "less than #{spend_change_hint}"
+                            else
+                              "same as #{spend_change_hint}"
+                            end
+      %>
       <%= render "admin/shared/components/stat_card",
-            label: "Δ vs prev.",
+            label: "Spend change",
             value: "#{@spend_delta_pct.positive? ? '+' : ''}#{@spend_delta_pct}%",
             change: @spend_delta_pct,
             trend:  @spend_delta_pct >= 0 ? :up : :down,
             icon:   "bar_chart_3",
-            hint:   @filter.previous_label,
+            hint:   spend_change_hint,
             value_class: sensitive_class %>
     <% end %>
-    <%= render "admin/shared/components/stat_card",
-          label: "Income",
-          value: income_total.format(no_cents_if_whole: true),
-          icon: "trending_up", tone: :success,
-          hint: "net #{@net_cents >= 0 ? '+' : ''}#{net_total.format(no_cents_if_whole: true)}",
-          value_class: sensitive_class %>
     <% if @savings_rate_pct.nil? %>
       <%= render "admin/shared/components/stat_card",
             label: "Savings rate",
             value: "-",
-            icon: "trending_up", tone: :muted,
+            icon: "piggy_bank", tone: :muted,
             hint: "no income in period",
             value_class: sensitive_class %>
     <% else %>
       <%= render "admin/shared/components/stat_card",
             label: "Savings rate",
             value: "#{@savings_rate_pct}%",
-            icon: "trending_up",
+            icon: "piggy_bank",
             tone: @savings_rate_pct >= 0 ? :success : :destructive,
             hint: @savings_rate_pct >= 0 ? "of income kept" : "spent more than earned",
             value_class: sensitive_class %>
