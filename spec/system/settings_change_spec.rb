@@ -146,6 +146,10 @@ RSpec.describe "Settings change reflects in analytics journey", type: :system do
   end
 
   def create_restaurant_transactions(user, account, category:, count:, each_cents:)
+    # Anchor every tx to the first of the month: the analytics "this month"
+    # window is [beginning_of_month, today], so on the 1st it's a single day.
+    # Spreading dates forward (booking + i.days) pushed txs past the window
+    # end whenever the suite ran early in the month, dropping them from totals.
     booking = Date.current.beginning_of_month
     Array.new(count) do |i|
       tx = BankTransaction.create!(
@@ -157,8 +161,8 @@ RSpec.describe "Settings change reflects in analytics journey", type: :system do
         status:            "booked",
         payment_method:    "card",
         counterparty_kind: "external",
-        booking_date:      booking + i.days,
-        transaction_date:  booking + i.days,
+        booking_date:      booking,
+        transaction_date:  booking,
         title:             "RESTAURACJA NUMER #{i + 1}",
         raw_payload:       "{}",
         fetched_at:        Time.current

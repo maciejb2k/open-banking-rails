@@ -78,7 +78,10 @@ module EnableBanking
 
       # EnableBanking reissues account UIDs on every new session, so matching
       # only by uid creates a fresh BankAccount on every re-auth. Fall back to
-      # IBAN within the same credential to keep history attached.
+      # IBAN + currency within the same credential to keep history attached.
+      # Currency is part of the key because multi-currency products (e.g.
+      # Revolut EUR/USD pockets) legitimately share one IBAN - those are
+      # distinct accounts, not duplicates.
       def find_existing_account(account)
         by_uid = BankAccount.find_by(uid: account["uid"])
         return by_uid if by_uid
@@ -86,7 +89,7 @@ module EnableBanking
         iban = account.dig("account_id", "iban").presence
         return nil if iban.blank?
 
-        @credential.bank_accounts.synced.find_by(iban: iban)
+        @credential.bank_accounts.synced.find_by(iban: iban, currency: account["currency"])
       end
 
       # KEEP the old record (audit trail). Accounts not in the new payload

@@ -10,10 +10,12 @@
 #   bin/rails banking:merge_duplicate_accounts CANONICAL_ID=<keep> DUP_ID=<drop> CONFIRM=1
 
 namespace :banking do
-  desc "Scan for duplicate BankAccount rows (same IBAN under same TppCredential)"
+  desc "Scan for duplicate BankAccount rows (same IBAN + currency under same TppCredential)"
   task diagnose_duplicate_accounts: :environment do
+    # IBAN + currency, not IBAN alone: multi-currency products (Revolut
+    # EUR/USD pockets) share one IBAN but are distinct accounts.
     groups = BankAccount.synced.where.not(iban: [ nil, "" ])
-                        .group_by { |a| [ a.tpp_credential_id, a.iban ] }
+                        .group_by { |a| [ a.tpp_credential_id, a.iban, a.currency ] }
                         .select { |_, rows| rows.size > 1 }
 
     if groups.empty?
@@ -21,11 +23,11 @@ namespace :banking do
       next
     end
 
-    groups.sort_by { |(cred_id, iban), _| [ cred_id, iban ] }.each do |(cred_id, iban), accounts|
+    groups.sort_by { |(cred_id, iban, currency), _| [ cred_id, iban, currency.to_s ] }.each do |(cred_id, iban, currency), accounts|
       cred = TppCredential.find(cred_id)
       puts ""
       puts "USER #{cred.user.email}  CREDENTIAL #{cred.name} (id=#{cred.id})"
-      puts "  IBAN #{iban}:"
+      puts "  IBAN #{iban} (#{currency}):"
       accounts.sort_by(&:id).each do |a|
         conn = a.current_bank_connection
         bank = conn ? "#{conn.bank_name} (#{conn.status}, conn_id=#{conn.id})" : "—"
@@ -50,6 +52,7 @@ namespace :banking do
     abort("Refusing: same record.") if canonical.id == dup.id
     abort("Refusing: canonical has no IBAN.") if canonical.iban.blank?
     abort("Refusing: IBAN mismatch (#{canonical.iban} vs #{dup.iban}).") unless canonical.iban == dup.iban
+    abort("Refusing: currency mismatch (#{canonical.currency} vs #{dup.currency}) - likely distinct multi-currency pockets sharing an IBAN.") unless canonical.currency == dup.currency
     abort("Refusing: tpp_credential mismatch (#{canonical.tpp_credential_id} vs #{dup.tpp_credential_id}).") unless canonical.tpp_credential_id == dup.tpp_credential_id
     abort("Refusing: dup is a cash wallet, not a synced account.") if dup.manual?
 
