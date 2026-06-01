@@ -13,7 +13,9 @@
           message: "Re-auth flow: linked accounts (matched by EB UID) will be re-attached to the new connection automatically. The old connection stays as a historical record (status: replaced)." %>
   <% end %>
 
-  <%= form_with model: @form, url: admin_bank_connections_path, method: :post, local: true, class: "space-y-6" do |f| %>
+  <%# Turbo intercepts the submit as fetch() and chokes on the cross-origin 303 to EnableBanking.
+      Forcing a full-page submit lets the browser follow the redirect chain to the bank without CORS. %>
+  <%= form_with model: @form, url: admin_bank_connections_path, method: :post, local: true, data: { turbo: false }, class: "space-y-6" do |f| %>
     <% if reauth_mode %>
       <%= hidden_field_tag :replaces_connection_id, @replaces_connection_id %>
     <% end %>

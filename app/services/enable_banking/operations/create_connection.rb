@@ -52,8 +52,9 @@ module EnableBanking
         Array(payload["accounts"]).each do |account|
           next unless account.is_a?(Hash) && account["uid"].present?
 
-          ba = BankAccount.find_or_initialize_by(uid: account["uid"])
+          ba = find_existing_account(account) || BankAccount.new
           ba.assign_attributes(
+            uid: account["uid"],
             tpp_credential: @credential,
             current_bank_connection: bc,
             iban: account.dig("account_id", "iban"),
@@ -73,6 +74,19 @@ module EnableBanking
 
           Enrichment::OwnAccountMerchantSyncer.call(ba)
         end
+      end
+
+      # EnableBanking reissues account UIDs on every new session, so matching
+      # only by uid creates a fresh BankAccount on every re-auth. Fall back to
+      # IBAN within the same credential to keep history attached.
+      def find_existing_account(account)
+        by_uid = BankAccount.find_by(uid: account["uid"])
+        return by_uid if by_uid
+
+        iban = account.dig("account_id", "iban").presence
+        return nil if iban.blank?
+
+        @credential.bank_accounts.synced.find_by(iban: iban)
       end
 
       # KEEP the old record (audit trail). Accounts not in the new payload
